@@ -750,7 +750,10 @@ def format_posts_for_context(posts: list[CirclePost], max_chars: int = 3000) -> 
 
         body_text = p.body_plain[:200] + "..." if len(p.body_plain) > 200 else p.body_plain
         preview = sanitize_external_text(body_text, "circle")
-        entry = f"- **{post_name}**{author}{space}{date}\n  {preview}\n  Comments: {p.comments_count} | Likes: {p.likes_count}"
+        entry = (
+            f"- **{post_name}**{author}{space}{date}\n  {preview}\n"
+            f"  Comments: {p.comments_count} | Likes: {p.likes_count}"
+        )
         if p.url:
             entry += f" | {p.url}"
 

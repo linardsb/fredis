@@ -175,8 +175,9 @@ class SQLiteMemoryDB:
         self, path: str, content_hash: str, mtime_ns: int, size_bytes: int, epoch: int
     ) -> None:
         self._get_conn().execute(
-            """INSERT OR REPLACE INTO files(path, content_hash, mtime_ns, size_bytes, indexed_at_epoch)
-               VALUES (?, ?, ?, ?, ?)""",
+            """INSERT OR REPLACE INTO files(
+                path, content_hash, mtime_ns, size_bytes, indexed_at_epoch
+            ) VALUES (?, ?, ?, ?, ?)""",
             (path, content_hash, mtime_ns, size_bytes, epoch),
         )
 
@@ -429,7 +430,10 @@ class PostgresMemoryDB:
                 created_at_epoch BIGINT NOT NULL,
                 embedding vector({EMBEDDING_DIMENSIONS}),
                 search_vector tsvector GENERATED ALWAYS AS (
-                    to_tsvector('english', coalesce(content,'') || ' ' || coalesce(section_title,''))
+                    to_tsvector(
+                        'english',
+                        coalesce(content,'') || ' ' || coalesce(section_title,'')
+                    )
                 ) STORED
             )
         """)
@@ -458,7 +462,8 @@ class PostgresMemoryDB:
 
     def upsert_meta(self, key: str, value: str) -> None:
         self._get_conn().cursor().execute(
-            "INSERT INTO meta(key, value) VALUES (%s, %s) ON CONFLICT (key) DO UPDATE SET value = %s",
+            "INSERT INTO meta(key, value) VALUES (%s, %s) "
+            "ON CONFLICT (key) DO UPDATE SET value = %s",
             (key, value, value),
         )
 

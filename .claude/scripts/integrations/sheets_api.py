@@ -7,7 +7,8 @@ Usage:
     uv run python -m integrations.sheets_api read <spreadsheet_id>
     uv run python -m integrations.sheets_api read <spreadsheet_id> --range "Sheet1!A1:Z100"
     uv run python -m integrations.sheets_api info <spreadsheet_id>
-    uv run python -m integrations.sheets_api write <spreadsheet_id> --range "A1" --values '[["a","b"],["c","d"]]'
+    uv run python -m integrations.sheets_api write <spreadsheet_id> \
+        --range "A1" --values '[["a","b"],["c","d"]]'
 """
 
 from __future__ import annotations
