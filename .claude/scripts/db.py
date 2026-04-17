@@ -415,7 +415,7 @@ class PostgresMemoryDB:
         cur.execute("""
             CREATE INDEX IF NOT EXISTS idx_chunks_search_vector ON chunks USING GIN(search_vector)
         """)
-        cur.execute(f"""
+        cur.execute("""
             CREATE INDEX IF NOT EXISTS idx_chunks_embedding ON chunks
             USING hnsw(embedding vector_l2_ops)
             WHERE embedding IS NOT NULL

@@ -27,7 +27,12 @@ from typing import Any
 # Add parent dir for config imports
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from config import LOCAL_TZ, CIRCLE_ADMIN_TOKEN, CIRCLE_HEADLESS_TOKEN, CIRCLE_MEMBER_EMAIL  # noqa: E402
+from config import (  # noqa: E402
+    CIRCLE_ADMIN_TOKEN,
+    CIRCLE_HEADLESS_TOKEN,
+    CIRCLE_MEMBER_EMAIL,
+    LOCAL_TZ,
+)
 from sanitize import sanitize_external_text  # noqa: E402
 from shared import with_retry  # noqa: E402
 

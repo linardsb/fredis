@@ -20,7 +20,7 @@ from typing import Any
 # Add parent dir for config imports
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from config import LOCAL_TZ, GOOGLE_CALENDAR_ID  # noqa: E402
+from config import GOOGLE_CALENDAR_ID, LOCAL_TZ  # noqa: E402
 from sanitize import sanitize_external_text  # noqa: E402
 from shared import with_retry  # noqa: E402
 

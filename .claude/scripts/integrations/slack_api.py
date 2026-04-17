@@ -22,7 +22,7 @@ from typing import Any
 # Add parent dir for config imports
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from config import SLACK_BOT_TOKEN, SLACK_OWNER_USER_ID, SLACK_MONITORED_CHANNELS  # noqa: E402
+from config import SLACK_BOT_TOKEN, SLACK_MONITORED_CHANNELS, SLACK_OWNER_USER_ID  # noqa: E402
 from sanitize import sanitize_external_text  # noqa: E402
 from shared import with_retry  # noqa: E402
 

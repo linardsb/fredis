@@ -42,10 +42,10 @@ from pathlib import Path
 from typing import Any
 
 from config import (
+    DRAFT_EXPIRY_HOURS,
     DRAFTS_ACTIVE_DIR,
     DRAFTS_EXPIRED_DIR,
     DRAFTS_SENT_DIR,
-    DRAFT_EXPIRY_HOURS,
     EXPIRED_DRAFT_RETENTION_DAYS,
     GUARDRAIL_STATE_FILE,
     HABITS_FILE,
@@ -68,7 +68,13 @@ from sanitize import (
     check_injection_patterns,
     wrap_external_data,
 )
-from shared import append_to_daily_log, load_state, log_hook_execution, save_state, validate_bash_command
+from shared import (
+    append_to_daily_log,
+    load_state,
+    log_hook_execution,
+    save_state,
+    validate_bash_command,
+)
 
 # =============================================================================
 # STATE DIFFING — Track what's been reported, only surface deltas
@@ -607,7 +613,12 @@ def gather_circle_drafts_context() -> tuple[str, list, list]:
 
     # All DMs (not just unreplied — reconciliation needs to check replied ones too)
     try:
-        from integrations.circle_api import get_chat_rooms, get_chat_messages, format_chat_rooms_for_context, format_messages_for_context
+        from integrations.circle_api import (
+            format_chat_rooms_for_context,
+            format_messages_for_context,
+            get_chat_messages,
+            get_chat_rooms,
+        )
         all_rooms = get_chat_rooms(max_results=30)
 
         # Filter to unreplied for the prompt context (Claude only needs to see what's pending)
@@ -652,7 +663,7 @@ def gather_circle_drafts_context() -> tuple[str, list, list]:
 
     # Recent posts across spaces (fetch from home feed for efficiency)
     try:
-        from integrations.circle_api import get_member_posts, format_posts_for_context
+        from integrations.circle_api import format_posts_for_context, get_member_posts
         all_posts = get_member_posts(max_results=30)
         if all_posts:
             # Filter out posts that already have a draft (active or sent)
@@ -739,7 +750,7 @@ def _is_circle_post_handled(post: Any, handled_post_ids: set[int], handled_sourc
 def gather_email_drafts_context() -> str:
     """Fetch recent unreplied emails for draft scanning, excluding those with active drafts."""
     try:
-        from integrations.gmail import get_important_unreplied_emails, format_emails_for_context
+        from integrations.gmail import format_emails_for_context, get_important_unreplied_emails
         unreplied = get_important_unreplied_emails(hours_ago=8, max_results=10)
         if unreplied:
             # Filter out emails that already have an active draft (match by thread_id
