@@ -406,6 +406,7 @@ def create_gmail_draft(
     service = get_gmail_service()
 
     # Build the MIME message - use multipart if attachments, plain text otherwise
+    mime_msg: Any
     if attachments:
         mime_msg = email.mime.multipart.MIMEMultipart()
         mime_msg.attach(email.mime.text.MIMEText(body))

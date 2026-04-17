@@ -267,11 +267,14 @@ If nothing is worth updating in any file, respond with exactly: REFLECTION_OK
                         ),
                         HookMatcher(
                             matcher="Edit",
-                            hooks=[protect_soul_file],
+                            # Hooks use Any for input/context; matching the SDK's
+                            # full union type would require importing every hook
+                            # input type just to satisfy the strict signature.
+                            hooks=[protect_soul_file],  # type: ignore[list-item]
                         ),
                         HookMatcher(
                             matcher="Write",
-                            hooks=[protect_soul_file],
+                            hooks=[protect_soul_file],  # type: ignore[list-item]
                         ),
                     ]
                 },

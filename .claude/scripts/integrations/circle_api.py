@@ -315,7 +315,7 @@ def _get_member_jwt() -> str:
     """Get a JWT access token for the Member API, using cache when possible."""
     # Return cached token if still valid (with 60s buffer)
     if _jwt_cache["access_token"] and time.time() < _jwt_cache["expires_at"] - 60:
-        return _jwt_cache["access_token"]
+        return str(_jwt_cache["access_token"])
 
     if not CIRCLE_HEADLESS_TOKEN:
         raise ValueError(
@@ -343,7 +343,7 @@ def _get_member_jwt() -> str:
     else:
         _jwt_cache["expires_at"] = time.time() + 3000
 
-    return _jwt_cache["access_token"]
+    return str(_jwt_cache["access_token"])
 
 
 def _member_headers() -> dict[str, str]:
@@ -380,7 +380,7 @@ def get_chat_rooms(max_results: int = 20) -> list[CircleChatRoom]:
         last_at = ""
         if isinstance(last_msg, dict):
             last_preview = last_msg.get("body", "")[:100]
-            last_at = last_msg.get("sent_at", last_msg.get("created_at", ""))
+            last_at = last_msg.get("sent_at") or last_msg.get("created_at") or ""
             sender = last_msg.get("sender", {})
             if isinstance(sender, dict):
                 last_sender = sender.get("name", "")
@@ -421,7 +421,7 @@ def get_chat_messages(chat_room_uuid: str, max_results: int = 20) -> list[Circle
         sender_id = 0
         if isinstance(sender, dict):
             sender_name = sender.get("name", "")
-            sender_id = sender.get("community_member_id", sender.get("id", 0))
+            sender_id = sender.get("community_member_id") or sender.get("id") or 0
 
         # body can be plain string or TipTap JSON
         body = m.get("body", "")
@@ -865,15 +865,15 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.command == "spaces":
-        result = get_spaces()
-        print(format_spaces_for_context(result))
+        spaces = get_spaces()
+        print(format_spaces_for_context(spaces))
 
     elif args.command == "posts":
         if not args.target:
             print("Error: space_id required. Run 'circle spaces' first to get IDs.")
             sys.exit(1)
-        result = get_posts(int(args.target), max_results=args.max, status=args.status)
-        print(format_posts_for_context(result))
+        posts = get_posts(int(args.target), max_results=args.max, status=args.status)
+        print(format_posts_for_context(posts))
 
     elif args.command == "post":
         if not args.target:
@@ -889,24 +889,24 @@ if __name__ == "__main__":
         if not args.target:
             print("Error: search query required")
             sys.exit(1)
-        result = search_posts(args.target, max_results=args.max)
-        print(format_posts_for_context(result))
+        search_results = search_posts(args.target, max_results=args.max)
+        print(format_posts_for_context(search_results))
 
     elif args.command == "dms":
-        result = get_chat_rooms(max_results=args.max)
-        print(format_chat_rooms_for_context(result))
+        rooms = get_chat_rooms(max_results=args.max)
+        print(format_chat_rooms_for_context(rooms))
 
     elif args.command == "dm":
         if not args.target:
             print("Error: chat_room_uuid required. Run 'circle dms' first to get UUIDs.")
             sys.exit(1)
-        result = get_chat_messages(args.target, max_results=args.max)
-        print(format_messages_for_context(result))
+        messages = get_chat_messages(args.target, max_results=args.max)
+        print(format_messages_for_context(messages))
 
     elif args.command == "notifications":
-        result = get_notifications(max_results=args.max)
-        print(format_notifications_for_context(result))
+        notifications = get_notifications(max_results=args.max)
+        print(format_notifications_for_context(notifications))
 
     elif args.command == "feed":
-        result = get_member_posts(max_results=args.max)
-        print(format_posts_for_context(result))
+        feed_posts = get_member_posts(max_results=args.max)
+        print(format_posts_for_context(feed_posts))

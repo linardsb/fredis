@@ -351,9 +351,9 @@ def add_comment(task_gid: str, text: str) -> str:
 
     # Result is a story object — extract what we need
     if isinstance(result, dict):
-        return result.get("gid", "")
+        return str(result.get("gid", ""))
     elif hasattr(result, "gid"):
-        return result.gid
+        return str(result.gid)
     return str(result)
 
 
@@ -484,7 +484,7 @@ def move_task(
         from_project: Project GID to remove the task from (optional).
         insert_after: Task GID to insert after for ordering (optional).
     """
-    import requests as _requests
+    import requests as _requests  # type: ignore[import-untyped]
 
     headers = {"Authorization": f"Bearer {ASANA_ACCESS_TOKEN}"}
 

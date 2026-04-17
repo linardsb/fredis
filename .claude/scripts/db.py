@@ -543,7 +543,7 @@ class PostgresMemoryDB:
         row = cur.fetchone()
         if row is None:
             raise RuntimeError("Failed to get id from RETURNING after chunk insert")
-        return row[0]
+        return int(row[0])
 
     def insert_vector(self, chunk_id: int, embedding: NDArray[np.float32]) -> None:
         self._get_conn().cursor().execute(
