@@ -1,0 +1,39 @@
+/content-engine
+/Fredis
+/obsidian-ai-agent
+/video-processor
+/remotion-videos
+.claude/skills/pptx-generator/.tmp/
+/tmp
+mcp-config.json
+master.env
+.mcp.json
+.claude/settings.local.json
+__pycache__/
+workspace/
+
+
+# Memory files now live in Fredis/Memory/ (Obsidian vault, synced)
+.claude/memory/
+.agent/plans/
+
+# Heartbeat scripts
+.claude/scripts/.env
+.claude/scripts/.venv/
+.claude/scripts/heartbeat_runs.log
+.claude/scripts/reflection_runs.log
+.claude/scripts/vault_sync_runs.log
+.claude/scripts/uv.lock
+
+# Memory search data (Phase 3)
+.claude/data/
+
+# User-specific tone of voice (copied from templates on setup)
+.claude/tone-of-voice.md
+
+# Phase 5: Integration credentials & tokens
+.claude/scripts/integrations/google_credentials.json
+.claude/scripts/integrations/google_token.json
+
+# Windows artifacts
+NUL

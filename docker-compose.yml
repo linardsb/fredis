@@ -1,0 +1,37 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: secondbrain-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: secondbrain
+      POSTGRES_USER: secondbrain
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U secondbrain"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  obsidian:
+    image: lscr.io/linuxserver/obsidian:version-v1.11.7
+    container_name: secondbrain-obsidian
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:3001"
+    volumes:
+      - ./Fredis:/Fredis
+      - obsidian-config:/config
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ:-America/Chicago}
+    shm_size: "1gb"
+
+volumes:
+  pgdata:
+  obsidian-config:
