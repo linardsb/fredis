@@ -82,11 +82,11 @@ from shared import (
 
 
 def build_snapshot(
-    emails: list[Any] = (),
-    events: list[Any] = (),
-    tasks: list[Any] = (),
-    slack_msgs: list[Any] = (),
-    active_drafts: list[str] = (),
+    emails: list[Any] | None = None,
+    events: list[Any] | None = None,
+    tasks: list[Any] | None = None,
+    slack_msgs: list[Any] | None = None,
+    active_drafts: list[str] | None = None,
     habits_text: str = "",
 ) -> dict[str, Any]:
     """
@@ -94,6 +94,11 @@ def build_snapshot(
 
     Captures identity + key mutable fields so we can detect real changes.
     """
+    emails = emails or []
+    events = events or []
+    tasks = tasks or []
+    slack_msgs = slack_msgs or []
+    active_drafts = active_drafts or []
     return {
         "emails": {e.id: {"subject": e.subject, "sender": e.sender_email} for e in emails},
         "events": {ev.id: {"summary": ev.summary, "start": ev.start.isoformat()} for ev in events},
