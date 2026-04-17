@@ -419,6 +419,29 @@ The process needs to stay running — it connects via Socket Mode (outbound WebS
 
 ---
 
+## Pre-Commit Workflow
+
+Before committing changes under `.claude/scripts/`, run the lint, type, and
+test checks. The baseline is clean (0 ruff errors, 0 mypy errors,
+113 tests passing) — keep it that way.
+
+```bash
+cd .claude/scripts
+uv run ruff check .                         # 0 errors expected
+uv run --with mypy mypy . --ignore-missing-imports  # 0 errors expected
+uv run pytest tests/                        # 113 passed expected
+```
+
+Notes:
+- `heartbeat.py` has a per-file E501 ignore (see `pyproject.toml`) because
+  it contains a 200-line Claude prompt template inside a triple-quoted
+  string. Every other rule still applies.
+- mypy is invoked with `--with mypy` because it isn't in the project's
+  default dependency set; the dev extra (`pip install -e .[dev]`) declares
+  it for editor integrations but the CLI invocation is self-contained.
+
+---
+
 ## Legacy: MCP/Zapier (Fallback)
 
 MCP servers available through the mcp-client skill (use only if direct integrations are unavailable):
