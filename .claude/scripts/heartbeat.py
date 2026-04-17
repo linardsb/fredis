@@ -433,7 +433,7 @@ Respond with ONLY valid JSON (no markdown, no explanation):
     if result_text.startswith("```"):
         # Remove ```json ... ``` wrapping
         lines = result_text.split("\n")
-        lines = [l for l in lines if not l.strip().startswith("```")]
+        lines = [line for line in lines if not line.strip().startswith("```")]
         result_text = "\n".join(lines).strip()
     try:
         parsed = json.loads(result_text)

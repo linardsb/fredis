@@ -94,9 +94,8 @@ def list_items(max_results: int = 10, query: str = "") -> list[Item]:
 
     TODO: Implement your platform's list/search API call.
     """
-    client = get_client()
-
     # Example pattern:
+    # client = get_client()
     # results = with_retry(lambda: client.items.list(limit=max_results, q=query))
     # return [Item(id=r.id, title=r.title, ...) for r in results]
 
@@ -108,9 +107,8 @@ def get_item(item_id: str) -> Item | None:
 
     TODO: Implement your platform's get-by-ID API call.
     """
-    client = get_client()
-
     # Example pattern:
+    # client = get_client()
     # try:
     #     r = with_retry(lambda: client.items.get(item_id))
     #     return Item(id=r.id, title=r.title, ...)

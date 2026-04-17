@@ -630,10 +630,11 @@ def get_unreplied_posts(space_id: int, max_results: int = 10) -> list[CirclePost
     for post in posts:
         # Skip posts authored by the owner (match by OWNER_NAME from config)
         try:
-            from config import OWNER_NAME as _owner
+            from config import OWNER_NAME
+            owner_name = OWNER_NAME
         except ImportError:
-            _owner = ""
-        if post.author_name and _owner and _owner.lower() in post.author_name.lower():
+            owner_name = ""
+        if post.author_name and owner_name and owner_name.lower() in post.author_name.lower():
             continue
 
         # Check if the owner has commented
