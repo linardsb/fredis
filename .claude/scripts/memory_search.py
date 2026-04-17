@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import dataclass
+from typing import Any
 
 from config import (
     SEARCH_DEFAULT_LIMIT,
@@ -125,7 +126,7 @@ def search_hybrid(
     db.close()
 
     # Merge by chunk key (path:start_line-end_line)
-    merged: dict[str, dict] = {}
+    merged: dict[str, dict[str, Any]] = {}
     scores: dict[str, dict[str, float]] = {}
 
     for r in keyword_rows:

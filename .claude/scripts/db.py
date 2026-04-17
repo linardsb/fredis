@@ -267,7 +267,7 @@ class SQLiteMemoryDB:
                 ORDER BY rank
                 LIMIT ?
             """
-            params: tuple = (fts_query, path_prefix + "%", limit)
+            params: tuple[Any, ...] = (fts_query, path_prefix + "%", limit)
         else:
             sql = """
                 SELECT c.file_path, c.start_line, c.end_line, c.content,

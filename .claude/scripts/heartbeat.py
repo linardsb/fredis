@@ -82,10 +82,10 @@ from shared import (
 
 
 def build_snapshot(
-    emails: list = (),
-    events: list = (),
-    tasks: list = (),
-    slack_msgs: list = (),
+    emails: list[Any] = (),
+    events: list[Any] = (),
+    tasks: list[Any] = (),
+    slack_msgs: list[Any] = (),
     active_drafts: list[str] = (),
     habits_text: str = "",
 ) -> dict[str, Any]:
@@ -641,7 +641,7 @@ def gather_habits_context() -> str:
     return content
 
 
-def gather_circle_drafts_context() -> tuple[str, list, list]:
+def gather_circle_drafts_context() -> tuple[str, list[Any], list[Any]]:
     """
     Fetch Circle DMs and recent posts for draft scanning.
 
@@ -650,8 +650,8 @@ def gather_circle_drafts_context() -> tuple[str, list, list]:
         The raw lists are reused by reconcile_active_drafts() to avoid duplicate API calls.
     """
     sections: list[str] = []
-    all_rooms: list = []
-    all_posts: list = []
+    all_rooms: list[Any] = []
+    all_posts: list[Any] = []
 
     # All DMs (not just unreplied — reconciliation needs to check replied ones too)
     try:
@@ -902,7 +902,7 @@ def _update_draft_and_move_to_sent(filepath: Path, actual_reply: str) -> None:
     shutil.move(str(filepath), str(dest))
 
 
-def _match_draft_to_post(meta: dict[str, str], circle_posts: list) -> Any:
+def _match_draft_to_post(meta: dict[str, str], circle_posts: list[Any]) -> Any:
     """
     Match a circle-post draft to an actual CirclePost using author name + keyword overlap.
 
@@ -983,7 +983,7 @@ def _match_draft_to_post(meta: dict[str, str], circle_posts: list) -> Any:
     return best_match if best_score >= 7 else None
 
 
-def reconcile_active_drafts(circle_rooms: list, circle_posts: list) -> str:
+def reconcile_active_drafts(circle_rooms: list[Any], circle_posts: list[Any]) -> str:
     """
     Auto-reconcile active drafts by checking if the owner already replied on each platform.
 
