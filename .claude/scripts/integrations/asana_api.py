@@ -115,9 +115,7 @@ def resolve_assignee(name: str | None) -> str:
     # If it looks like a raw GID, pass through
     if key.isdigit():
         return key
-    raise ValueError(
-        f"Unknown Asana user '{name}'. Known users: {', '.join(ASANA_USERS.keys())}"
-    )
+    raise ValueError(f"Unknown Asana user '{name}'. Known users: {', '.join(ASANA_USERS.keys())}")
 
 
 def get_my_tasks(

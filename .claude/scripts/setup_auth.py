@@ -216,15 +216,22 @@ def main() -> None:
     """Run auth setup."""
     parser = argparse.ArgumentParser(description="Set up direct platform integrations")
     parser.add_argument("--check", action="store_true", help="Check status only (no auth flows)")
-    parser.add_argument("--headless", action="store_true",
-                        help="Use manual URL copy-paste flow (for remote/headless machines)")
+    parser.add_argument(
+        "--headless",
+        action="store_true",
+        help="Use manual URL copy-paste flow (for remote/headless machines)",
+    )
     args = parser.parse_args()
 
     ensure_directories()
 
     print_header("Second Brain - Direct Integrations Setup")
     print(f"  Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    mode = "Status Check" if args.check else ("Headless Setup" if args.headless else "Interactive Setup")
+    mode = (
+        "Status Check"
+        if args.check
+        else ("Headless Setup" if args.headless else "Interactive Setup")
+    )
     print(f"  Mode: {mode}")
 
     results = {

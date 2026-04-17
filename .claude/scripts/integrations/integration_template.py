@@ -34,6 +34,7 @@ from sanitize import sanitize_external_text  # noqa: E402
 # Create a dataclass for the main data type this integration returns.
 # Keep it simple — only include fields you'll actually use.
 
+
 @dataclass
 class Item:
     """Represents a single item from [Platform Name].
@@ -57,6 +58,7 @@ class Item:
 # Two common patterns:
 #   - Token-based: Read from env var, pass to SDK client
 #   - OAuth: Use shared Google credentials (see auth.py)
+
 
 def get_client() -> Any:
     """Build authenticated [Platform Name] client.
@@ -88,6 +90,7 @@ def get_client() -> Any:
 # These are the functions the heartbeat and CLI will call.
 # Keep them focused: fetch data, parse into dataclasses, return.
 # Use with_retry() for any API call to handle transient failures.
+
 
 def list_items(max_results: int = 10, query: str = "") -> list[Item]:
     """List items from [Platform Name].
@@ -125,6 +128,7 @@ def get_item(item_id: str) -> Item | None:
 # These functions format your data for inclusion in Claude's context prompt.
 # The heartbeat injects this text, so keep it concise and scannable.
 # IMPORTANT: Always sanitize external text before including in context.
+
 
 def format_items_for_context(items: list[Item], max_chars: int = 2000) -> str:
     """Format items for inclusion in Claude's context prompt.

@@ -148,9 +148,7 @@ def test_file_lock_timeout_when_held(tmp_path: Path) -> None:
 # =============================================================================
 
 
-def test_append_to_daily_log_creates_file(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_append_to_daily_log_creates_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """First append creates the file with the standard header + section."""
     daily_dir = tmp_path / "daily"
     monkeypatch.setattr("shared.get_today_log_path", lambda: daily_dir / "today.md")

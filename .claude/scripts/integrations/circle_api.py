@@ -131,18 +131,20 @@ def _get(url: str, headers: dict[str, str], params: dict[str, Any] | None = None
     import urllib.parse
 
     if params:
-        query_string = urllib.parse.urlencode(
-            {k: v for k, v in params.items() if v is not None}
-        )
+        query_string = urllib.parse.urlencode({k: v for k, v in params.items() if v is not None})
         url = f"{url}?{query_string}"
 
     def do_request() -> Any:
         cmd = ["curl", "-s", "-f", "--max-time", "30", url]
         for k, v in headers.items():
             cmd.extend(["-H", f"{k}: {v}"])
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=35, encoding="utf-8", errors="replace")
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=35, encoding="utf-8", errors="replace"
+        )
         if result.returncode != 0:
-            raise RuntimeError(f"HTTP request failed (curl exit {result.returncode}): {result.stderr.strip()}")
+            raise RuntimeError(
+                f"HTTP request failed (curl exit {result.returncode}): {result.stderr.strip()}"
+            )
         if not result.stdout.strip():
             return {}
         return json.loads(result.stdout)
@@ -160,9 +162,13 @@ def _post(url: str, headers: dict[str, str], data: dict[str, Any]) -> Any:
         cmd = ["curl", "-s", "-f", "--max-time", "30", "-X", "POST", url, "-d", body]
         for k, v in headers.items():
             cmd.extend(["-H", f"{k}: {v}"])
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=35, encoding="utf-8", errors="replace")
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=35, encoding="utf-8", errors="replace"
+        )
         if result.returncode != 0:
-            raise RuntimeError(f"HTTP request failed (curl exit {result.returncode}): {result.stderr.strip()}")
+            raise RuntimeError(
+                f"HTTP request failed (curl exit {result.returncode}): {result.stderr.strip()}"
+            )
         return json.loads(result.stdout)
 
     return with_retry(do_request)
@@ -631,6 +637,7 @@ def get_unreplied_posts(space_id: int, max_results: int = 10) -> list[CirclePost
         # Skip posts authored by the owner (match by OWNER_NAME from config)
         try:
             from config import OWNER_NAME
+
             owner_name = OWNER_NAME
         except ImportError:
             owner_name = ""
@@ -655,8 +662,14 @@ def _strip_html(html: str) -> str:
     # Remove HTML tags
     text = re.sub(r"<[^>]+>", " ", html)
     # Decode common HTML entities
-    for entity, char in [("&amp;", "&"), ("&lt;", "<"), ("&gt;", ">"),
-                         ("&quot;", '"'), ("&#39;", "'"), ("&nbsp;", " ")]:
+    for entity, char in [
+        ("&amp;", "&"),
+        ("&lt;", "<"),
+        ("&gt;", ">"),
+        ("&quot;", '"'),
+        ("&#39;", "'"),
+        ("&nbsp;", " "),
+    ]:
         text = text.replace(entity, char)
     # Collapse whitespace
     text = re.sub(r"\s+", " ", text)
@@ -728,7 +741,9 @@ def format_posts_for_context(posts: list[CirclePost], max_chars: int = 3000) -> 
         date = ""
         if p.created_at:
             try:
-                dt = datetime.fromisoformat(p.created_at.replace("Z", "+00:00")).astimezone(LOCAL_TZ)
+                dt = datetime.fromisoformat(p.created_at.replace("Z", "+00:00")).astimezone(
+                    LOCAL_TZ
+                )
                 date = f" ({dt.strftime('%Y-%m-%d %H:%M')})"
             except (ValueError, TypeError):
                 date = f" ({p.created_at})"
@@ -762,13 +777,9 @@ def format_chat_rooms_for_context(rooms: list[CircleChatRoom]) -> str:
         if r.last_message_preview:
             sender_name = ""
             if r.last_message_sender:
-                sender_name = sanitize_external_text(
-                    r.last_message_sender, "circle"
-                )
+                sender_name = sanitize_external_text(r.last_message_sender, "circle")
             sender = f"**{sender_name}**: " if sender_name else ""
-            msg_preview = sanitize_external_text(
-                r.last_message_preview, "circle"
-            )
+            msg_preview = sanitize_external_text(r.last_message_preview, "circle")
             preview = f"\n  Last: {sender}{msg_preview}"
         lines.append(f"- [{kind_label}] **{name}**{unread} (UUID: {r.uuid}){preview}")
     return "\n".join(lines)
@@ -842,7 +853,9 @@ if __name__ == "__main__":
         "command",
         choices=["spaces", "posts", "post", "search", "dms", "dm", "notifications", "feed"],
     )
-    parser.add_argument("target", nargs="?", default=None, help="space_id, post_id, chat_room_uuid, or search query")
+    parser.add_argument(
+        "target", nargs="?", default=None, help="space_id, post_id, chat_room_uuid, or search query"
+    )
     parser.add_argument("--max", type=int, default=10)
     parser.add_argument("--status", default="published", choices=["published", "draft", "all"])
 

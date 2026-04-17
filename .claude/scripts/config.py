@@ -164,6 +164,14 @@ def is_within_active_hours() -> bool:
 
 def ensure_directories() -> None:
     """Ensure all required directories exist."""
-    for directory in [MEMORY_DIR, DAILY_DIR, STATE_DIR, DATA_DIR, INTEGRATIONS_DIR,
-                       DRAFTS_ACTIVE_DIR, DRAFTS_SENT_DIR, DRAFTS_EXPIRED_DIR]:
+    for directory in [
+        MEMORY_DIR,
+        DAILY_DIR,
+        STATE_DIR,
+        DATA_DIR,
+        INTEGRATIONS_DIR,
+        DRAFTS_ACTIVE_DIR,
+        DRAFTS_SENT_DIR,
+        DRAFTS_EXPIRED_DIR,
+    ]:
         directory.mkdir(parents=True, exist_ok=True)

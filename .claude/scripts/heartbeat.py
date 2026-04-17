@@ -97,7 +97,10 @@ def build_snapshot(
     return {
         "emails": {e.id: {"subject": e.subject, "sender": e.sender_email} for e in emails},
         "events": {ev.id: {"summary": ev.summary, "start": ev.start.isoformat()} for ev in events},
-        "tasks": {t.gid: {"name": t.name, "due": str(t.due_on or ""), "completed": t.completed} for t in tasks},
+        "tasks": {
+            t.gid: {"name": t.name, "due": str(t.due_on or ""), "completed": t.completed}
+            for t in tasks
+        },
         "slack": {f"{m.channel}:{m.ts}": {"text": m.text[:100]} for m in slack_msgs},
         "drafts": sorted(active_drafts),
         "habits": habits_text.strip(),
@@ -137,7 +140,9 @@ def diff_snapshot(prev: dict[str, Any], curr: dict[str, Any]) -> dict[str, Any]:
     result["has_changes"] = (
         any(result[f"new_{s}"] for s in ("emails", "events", "tasks", "slack"))
         or any(result[f"changed_{s}"] for s in ("emails", "events", "tasks", "slack"))
-        or any(result[f"removed_{s}"] for s in ("tasks",))  # removed tasks = completed, worth noting
+        or any(
+            result[f"removed_{s}"] for s in ("tasks",)
+        )  # removed tasks = completed, worth noting
         or result["drafts_changed"]
         or result["habits_changed"]
     )
@@ -176,10 +181,13 @@ def _fetch_raw_data() -> dict[str, Any]:
             get_unread_count,
             list_emails,
         )
+
         data["unread_count"] = get_unread_count()
         data["urgent_emails"] = check_for_urgent_emails(hours_ago=2)
         data["recent_emails"] = list_emails(max_results=5, hours_ago=4)
-        print(f"[{now_local()}] Gmail: {data['unread_count']} unread, {len(data['urgent_emails'])} urgent")
+        print(
+            f"[{now_local()}] Gmail: {data['unread_count']} unread, {len(data['urgent_emails'])} urgent"
+        )
     except Exception as e:
         data["errors"]["email"] = str(e)
         print(f"[{now_local()}] Gmail error (non-fatal): {e}")
@@ -190,9 +198,12 @@ def _fetch_raw_data() -> dict[str, Any]:
             check_for_upcoming_meetings,
             get_today_events,
         )
+
         data["today_events"] = get_today_events()
         data["upcoming_events"] = check_for_upcoming_meetings(hours_ahead=4)
-        print(f"[{now_local()}] Calendar: {len(data['today_events'])} today, {len(data['upcoming_events'])} upcoming")
+        print(
+            f"[{now_local()}] Calendar: {len(data['today_events'])} today, {len(data['upcoming_events'])} upcoming"
+        )
     except Exception as e:
         data["errors"]["calendar"] = str(e)
         print(f"[{now_local()}] Calendar error (non-fatal): {e}")
@@ -203,9 +214,12 @@ def _fetch_raw_data() -> dict[str, Any]:
             get_due_soon_tasks,
             get_overdue_tasks,
         )
+
         data["overdue_tasks"] = get_overdue_tasks()
         data["due_soon_tasks"] = get_due_soon_tasks(days=3)
-        print(f"[{now_local()}] Asana: {len(data['overdue_tasks'])} overdue, {len(data['due_soon_tasks'])} due soon")
+        print(
+            f"[{now_local()}] Asana: {len(data['overdue_tasks'])} overdue, {len(data['due_soon_tasks'])} due soon"
+        )
     except Exception as e:
         data["errors"]["asana"] = str(e)
         print(f"[{now_local()}] Asana error (non-fatal): {e}")
@@ -213,6 +227,7 @@ def _fetch_raw_data() -> dict[str, Any]:
     # Slack
     try:
         from integrations.slack_api import check_for_important_messages
+
         data["slack_important"] = check_for_important_messages(hours_ago=2)
         print(f"[{now_local()}] Slack: {len(data['slack_important'])} important messages")
     except Exception as e:
@@ -260,8 +275,12 @@ def format_context_with_diff(
             if urgent_new:
                 email_section += f"\n### Urgent Emails — NEW ({len(urgent_new)})\n{format_emails_for_context(urgent_new)}\n"
             if urgent_old:
-                email_section += f"\n### Urgent Emails — unchanged ({len(urgent_old)}, already reported)\n"
-                email_section += "\n".join(f"- {e.subject} (from {e.sender})" for e in urgent_old) + "\n"
+                email_section += (
+                    f"\n### Urgent Emails — unchanged ({len(urgent_old)}, already reported)\n"
+                )
+                email_section += (
+                    "\n".join(f"- {e.subject} (from {e.sender})" for e in urgent_old) + "\n"
+                )
         else:
             email_section += "\nNo urgent emails.\n"
 
@@ -270,7 +289,9 @@ def format_context_with_diff(
         if recent_new:
             email_section += f"\n### Recent Emails — NEW ({len(recent_new)})\n{format_emails_for_context(recent_new)}"
         if recent_old:
-            email_section += f"\n### Recent Emails — unchanged ({len(recent_old)}, already reported)\n"
+            email_section += (
+                f"\n### Recent Emails — unchanged ({len(recent_old)}, already reported)\n"
+            )
             email_section += "\n".join(f"- {e.subject} (from {e.sender})" for e in recent_old)
 
         source_ids.extend(f"email:{eid}" for eid in all_emails)
@@ -285,7 +306,9 @@ def format_context_with_diff(
         today_fmt = format_events_for_context(data["today_events"])
         n_today = len(data["today_events"])
         cal_section = f"## Calendar\n\n### Today's Events ({n_today} total)\n{today_fmt}\n"
-        cal_section += f"\n### Coming Up (next 4 hours)\n{format_events_for_context(data['upcoming_events'])}"
+        cal_section += (
+            f"\n### Coming Up (next 4 hours)\n{format_events_for_context(data['upcoming_events'])}"
+        )
         for ev in data["today_events"]:
             source_ids.append(f"event:{ev.id}")
         for ev in data["upcoming_events"]:
@@ -298,7 +321,9 @@ def format_context_with_diff(
     else:
         from integrations.asana_api import format_tasks_for_context
 
-        all_task_ids = {t.gid for t in data["overdue_tasks"]} | {t.gid for t in data["due_soon_tasks"]}
+        all_task_ids = {t.gid for t in data["overdue_tasks"]} | {
+            t.gid for t in data["due_soon_tasks"]
+        }
         new_task_ids = diff["new_tasks"] if diff else all_task_ids
         changed_task_ids = diff.get("changed_tasks", set()) if diff else set()
         removed_task_ids = diff.get("removed_tasks", set()) if diff else set()
@@ -313,7 +338,13 @@ def format_context_with_diff(
                 asana_section += f"### OVERDUE — NEW/CHANGED ({len(overdue_new)} tasks)\n{format_tasks_for_context(overdue_new)}\n\n"
             if overdue_old:
                 asana_section += f"### OVERDUE — unchanged ({len(overdue_old)}, already reported)\n"
-                asana_section += "\n".join(f"- {t.name} (due {t.due_on.strftime('%Y-%m-%d, %A') if t.due_on else 'no date'})" for t in overdue_old) + "\n\n"
+                asana_section += (
+                    "\n".join(
+                        f"- {t.name} (due {t.due_on.strftime('%Y-%m-%d, %A') if t.due_on else 'no date'})"
+                        for t in overdue_old
+                    )
+                    + "\n\n"
+                )
         else:
             asana_section += "No overdue tasks.\n\n"
 
@@ -323,10 +354,15 @@ def format_context_with_diff(
             asana_section += f"### Due Soon — NEW/CHANGED ({len(due_new)})\n{format_tasks_for_context(due_new)}\n"
         if due_old:
             asana_section += f"### Due Soon — unchanged ({len(due_old)}, already reported)\n"
-            asana_section += "\n".join(f"- {t.name} (due {t.due_on.strftime('%Y-%m-%d, %A') if t.due_on else 'no date'})" for t in due_old)
+            asana_section += "\n".join(
+                f"- {t.name} (due {t.due_on.strftime('%Y-%m-%d, %A') if t.due_on else 'no date'})"
+                for t in due_old
+            )
 
         if removed_task_ids:
-            asana_section += f"\n\n### Completed/Removed ({len(removed_task_ids)} tasks no longer in list)\n"
+            asana_section += (
+                f"\n\n### Completed/Removed ({len(removed_task_ids)} tasks no longer in list)\n"
+            )
 
         for t in data["overdue_tasks"]:
             source_ids.append(f"task:{t.gid}")
@@ -340,16 +376,24 @@ def format_context_with_diff(
     else:
         from integrations.slack_api import format_messages_for_context
 
-        new_slack_ids = diff["new_slack"] if diff else {f"{m.channel}:{m.ts}" for m in data["slack_important"]}
+        new_slack_ids = (
+            diff["new_slack"] if diff else {f"{m.channel}:{m.ts}" for m in data["slack_important"]}
+        )
 
         if data["slack_important"]:
-            new_msgs = [m for m in data["slack_important"] if f"{m.channel}:{m.ts}" in new_slack_ids]
-            old_msgs = [m for m in data["slack_important"] if f"{m.channel}:{m.ts}" not in new_slack_ids]
+            new_msgs = [
+                m for m in data["slack_important"] if f"{m.channel}:{m.ts}" in new_slack_ids
+            ]
+            old_msgs = [
+                m for m in data["slack_important"] if f"{m.channel}:{m.ts}" not in new_slack_ids
+            ]
             slack_section = "## Slack\n\n"
             if new_msgs:
                 slack_section += f"### Important Messages — NEW ({len(new_msgs)})\n{format_messages_for_context(new_msgs)}\n"
             if old_msgs:
-                slack_section += f"### Important Messages — unchanged ({len(old_msgs)}, already reported)\n"
+                slack_section += (
+                    f"### Important Messages — unchanged ({len(old_msgs)}, already reported)\n"
+                )
                 slack_section += "\n".join(f"- {m.user_name}: {m.text[:80]}" for m in old_msgs)
         else:
             slack_section = "## Slack\n\nNo important messages in monitored channels."
@@ -365,9 +409,7 @@ def format_context_with_diff(
 # =============================================================================
 
 
-async def run_guardrail_check(
-    context: str, test_mode: bool = False
-) -> dict[str, Any]:
+async def run_guardrail_check(context: str, test_mode: bool = False) -> dict[str, Any]:
     """LLM-based pre-filter: evaluate heartbeat context for prompt injection.
 
     Returns dict with:
@@ -619,15 +661,24 @@ def gather_circle_drafts_context() -> tuple[str, list, list]:
             get_chat_messages,
             get_chat_rooms,
         )
+
         all_rooms = get_chat_rooms(max_results=30)
 
         # Filter to unreplied for the prompt context (Claude only needs to see what's pending)
-        unreplied = [r for r in all_rooms if r.kind == "direct" and (not OWNER_NAME or OWNER_NAME.lower() not in (r.last_message_sender or "").lower())]
+        unreplied = [
+            r
+            for r in all_rooms
+            if r.kind == "direct"
+            and (not OWNER_NAME or OWNER_NAME.lower() not in (r.last_message_sender or "").lower())
+        ]
         if unreplied:
-            sections.append(f"### Unreplied Circle DMs ({len(unreplied)} found)\n{format_chat_rooms_for_context(unreplied)}")
+            sections.append(
+                f"### Unreplied Circle DMs ({len(unreplied)} found)\n{format_chat_rooms_for_context(unreplied)}"
+            )
 
             # Fetch full messages from the last 24 hours for each unreplied DM
             from datetime import timedelta
+
             cutoff = datetime.now(LOCAL_TZ) - timedelta(hours=24)
             for room in unreplied:
                 try:
@@ -637,7 +688,9 @@ def gather_circle_drafts_context() -> tuple[str, list, list]:
                     for msg in messages:
                         if msg.sent_at:
                             try:
-                                msg_dt = datetime.fromisoformat(msg.sent_at.replace("Z", "+00:00")).astimezone(LOCAL_TZ)
+                                msg_dt = datetime.fromisoformat(
+                                    msg.sent_at.replace("Z", "+00:00")
+                                ).astimezone(LOCAL_TZ)
                                 if msg_dt >= cutoff:
                                     recent.append(msg)
                             except (ValueError, TypeError):
@@ -664,22 +717,33 @@ def gather_circle_drafts_context() -> tuple[str, list, list]:
     # Recent posts across spaces (fetch from home feed for efficiency)
     try:
         from integrations.circle_api import format_posts_for_context, get_member_posts
+
         all_posts = get_member_posts(max_results=30)
         if all_posts:
             # Filter out posts that already have a draft (active or sent)
             handled_post_ids, handled_source_ids = _get_handled_circle_post_ids()
             if handled_post_ids or handled_source_ids:
                 before = len(all_posts)
-                new_posts = [p for p in all_posts if not _is_circle_post_handled(p, handled_post_ids, handled_source_ids)]
+                new_posts = [
+                    p
+                    for p in all_posts
+                    if not _is_circle_post_handled(p, handled_post_ids, handled_source_ids)
+                ]
                 skipped = before - len(new_posts)
                 if skipped:
-                    print(f"[{now_local()}] Filtered {skipped} Circle posts that already have active/sent drafts")
+                    print(
+                        f"[{now_local()}] Filtered {skipped} Circle posts that already have active/sent drafts"
+                    )
             else:
                 new_posts = all_posts
             if new_posts:
-                sections.append(f"### Recent Circle Posts ({len(new_posts)} new, {len(all_posts)} total)\n{format_posts_for_context(new_posts)}")
+                sections.append(
+                    f"### Recent Circle Posts ({len(new_posts)} new, {len(all_posts)} total)\n{format_posts_for_context(new_posts)}"
+                )
             else:
-                sections.append("### Recent Circle Posts\nAll recent posts already have drafts (active or sent).")
+                sections.append(
+                    "### Recent Circle Posts\nAll recent posts already have drafts (active or sent)."
+                )
         else:
             sections.append("### Recent Circle Posts\nNo recent posts found.")
         print(f"[{now_local()}] Circle Posts: {len(all_posts)} recent")
@@ -735,7 +799,9 @@ def _get_handled_circle_post_ids() -> tuple[set[int], set[str]]:
     return post_ids, source_ids
 
 
-def _is_circle_post_handled(post: Any, handled_post_ids: set[int], handled_source_ids: set[str]) -> bool:
+def _is_circle_post_handled(
+    post: Any, handled_post_ids: set[int], handled_source_ids: set[str]
+) -> bool:
     """Check if a CirclePost already has a draft (active or sent)."""
     if post.id in handled_post_ids:
         return True
@@ -751,6 +817,7 @@ def gather_email_drafts_context() -> str:
     """Fetch recent unreplied emails for draft scanning, excluding those with active drafts."""
     try:
         from integrations.gmail import format_emails_for_context, get_important_unreplied_emails
+
         unreplied = get_important_unreplied_emails(hours_ago=8, max_results=10)
         if unreplied:
             # Filter out emails that already have an active draft (match by thread_id
@@ -759,12 +826,15 @@ def gather_email_drafts_context() -> str:
             if existing_ids:
                 before = len(unreplied)
                 unreplied = [
-                    e for e in unreplied
+                    e
+                    for e in unreplied
                     if e.thread_id not in existing_ids and e.id not in existing_ids
                 ]
                 skipped = before - len(unreplied)
                 if skipped:
-                    print(f"[{now_local()}] Filtered {skipped} emails that already have active drafts")
+                    print(
+                        f"[{now_local()}] Filtered {skipped} emails that already have active drafts"
+                    )
         if unreplied:
             return f"### Recent Emails for Draft Consideration ({len(unreplied)} found)\n{format_emails_for_context(unreplied)}"
         return "### Recent Emails for Draft Consideration\nNo unreplied emails needing attention."
@@ -798,6 +868,7 @@ def _delete_gmail_draft_if_exists(filepath: Path) -> None:
     if gmail_draft_id:
         try:
             from integrations.gmail import delete_gmail_draft
+
             if delete_gmail_draft(gmail_draft_id):
                 print(f"[{now_local()}] Deleted Gmail draft {gmail_draft_id} for {filepath.name}")
         except Exception as e:
@@ -848,8 +919,30 @@ def _match_draft_to_post(meta: dict[str, str], circle_posts: list) -> Any:
         return None
 
     # Extract significant keywords (skip short/common words)
-    stop_words = {"a", "an", "the", "and", "or", "but", "in", "on", "for", "to", "of", "is",
-                  "are", "was", "with", "from", "about", "that", "this", "my", "your", "i"}
+    stop_words = {
+        "a",
+        "an",
+        "the",
+        "and",
+        "or",
+        "but",
+        "in",
+        "on",
+        "for",
+        "to",
+        "of",
+        "is",
+        "are",
+        "was",
+        "with",
+        "from",
+        "about",
+        "that",
+        "this",
+        "my",
+        "your",
+        "i",
+    }
     subject_words = {w for w in subject.split() if len(w) > 2 and w not in stop_words}
 
     best_match = None
@@ -936,9 +1029,14 @@ def reconcile_active_drafts(circle_rooms: list, circle_posts: list) -> str:
             if draft_type == "circle-dm":
                 # source_id is the chat room UUID
                 room = room_by_uuid.get(source_id)
-                if room and OWNER_NAME and OWNER_NAME.lower() in (room.last_message_sender or "").lower():
+                if (
+                    room
+                    and OWNER_NAME
+                    and OWNER_NAME.lower() in (room.last_message_sender or "").lower()
+                ):
                     # Owner is the last sender — get their actual reply text
                     from integrations.circle_api import check_dm_reply
+
                     reply_text = check_dm_reply(source_id, created)
                     if reply_text:
                         _update_draft_and_move_to_sent(filepath, reply_text)
@@ -963,11 +1061,14 @@ def reconcile_active_drafts(circle_rooms: list, circle_posts: list) -> str:
                     # Use draft's created timestamp so we only detect replies
                     # sent AFTER the draft was created (not old replies on the same post).
                     from integrations.circle_api import check_post_reply
+
                     reply_text = check_post_reply(post_id, created or "2000-01-01T00:00:00")
                     if reply_text:
                         _update_draft_and_move_to_sent(filepath, reply_text)
                         moved_post += 1
-                        moved_details.append(f"  - Post: {meta.get('recipient', '')} — {meta.get('subject', source_id)}")
+                        moved_details.append(
+                            f"  - Post: {meta.get('recipient', '')} — {meta.get('subject', source_id)}"
+                        )
                         print(f"[{now_local()}] Reconciled post draft: {filepath.name}")
 
             elif draft_type == "email":
@@ -976,6 +1077,7 @@ def reconcile_active_drafts(circle_rooms: list, circle_posts: list) -> str:
                 # Use the draft's created timestamp so we only detect replies
                 # sent AFTER the draft was created (not old replies in the same thread).
                 from integrations.gmail import check_sent_reply, get_thread_id
+
                 after_ts = created or "2000-01-01T00:00:00"
                 reply_text = check_sent_reply(source_id, after_ts)
                 if reply_text is None:
@@ -1102,7 +1204,9 @@ async def run_heartbeat(test_mode: bool = False) -> str | None:
     # Check if within active hours (unless test mode)
     if not test_mode and not is_within_active_hours():
         print(f"[{now_local()}] Outside active hours, skipping heartbeat")
-        log_hook_execution("heartbeat", "scheduled", "SKIP", time.time() - _start, "outside active hours")
+        log_hook_execution(
+            "heartbeat", "scheduled", "SKIP", time.time() - _start, "outside active hours"
+        )
         return None
 
     print(f"[{now_local()}] Running heartbeat with direct integrations + state diffing...")
@@ -1148,7 +1252,9 @@ async def run_heartbeat(test_mode: bool = False) -> str | None:
     # Clean up expired drafts older than retention period
     deleted_count = cleanup_expired_drafts()
     if deleted_count:
-        print(f"[{now_local()}] Cleaned up {deleted_count} expired drafts older than {EXPIRED_DRAFT_RETENTION_DAYS}d")
+        print(
+            f"[{now_local()}] Cleaned up {deleted_count} expired drafts older than {EXPIRED_DRAFT_RETENTION_DAYS}d"
+        )
 
     # Re-gather active drafts AFTER reconciliation + expiry so Claude only sees remaining ones
     active_drafts_ctx = gather_active_drafts_context()
@@ -1159,9 +1265,15 @@ async def run_heartbeat(test_mode: bool = False) -> str | None:
         active_draft_files = [f.name for f in sorted(DRAFTS_ACTIVE_DIR.glob("*.md"))]
 
     # Build current snapshot from raw data
-    all_emails_list = list({e.id: e for e in raw_data["urgent_emails"] + raw_data["recent_emails"]}.values())
-    all_events_list = list({ev.id: ev for ev in raw_data["today_events"] + raw_data["upcoming_events"]}.values())
-    all_tasks_list = list({t.gid: t for t in raw_data["overdue_tasks"] + raw_data["due_soon_tasks"]}.values())
+    all_emails_list = list(
+        {e.id: e for e in raw_data["urgent_emails"] + raw_data["recent_emails"]}.values()
+    )
+    all_events_list = list(
+        {ev.id: ev for ev in raw_data["today_events"] + raw_data["upcoming_events"]}.values()
+    )
+    all_tasks_list = list(
+        {t.gid: t for t in raw_data["overdue_tasks"] + raw_data["due_soon_tasks"]}.values()
+    )
 
     curr_snapshot = build_snapshot(
         emails=all_emails_list,
@@ -1177,9 +1289,11 @@ async def run_heartbeat(test_mode: bool = False) -> str | None:
     if diff:
         n_new = sum(len(diff[f"new_{s}"]) for s in ("emails", "events", "tasks", "slack"))
         n_changed = sum(len(diff[f"changed_{s}"]) for s in ("emails", "events", "tasks", "slack"))
-        print(f"[{now_local()}] State diff: {n_new} new, {n_changed} changed, "
-              f"drafts_changed={diff['drafts_changed']}, habits_changed={diff['habits_changed']}, "
-              f"has_changes={diff['has_changes']}")
+        print(
+            f"[{now_local()}] State diff: {n_new} new, {n_changed} changed, "
+            f"drafts_changed={diff['drafts_changed']}, habits_changed={diff['habits_changed']}, "
+            f"has_changes={diff['has_changes']}"
+        )
     else:
         print(f"[{now_local()}] First run (no previous snapshot) — treating everything as new")
 
@@ -1195,8 +1309,11 @@ async def run_heartbeat(test_mode: bool = False) -> str | None:
     if guardrail_result["verdict"] == "fail":
         print(f"[{now_local()}] GUARDRAIL BLOCK: {guardrail_result['summary']}")
         log_hook_execution(
-            "heartbeat", "scheduled", "BLOCKED",
-            time.time() - _start, f"guardrail: {guardrail_result['summary']}",
+            "heartbeat",
+            "scheduled",
+            "BLOCKED",
+            time.time() - _start,
+            f"guardrail: {guardrail_result['summary']}",
         )
         return None
 
@@ -1224,8 +1341,12 @@ async def run_heartbeat(test_mode: bool = False) -> str | None:
         )
     elif diff:
         parts = []
-        for source, label in [("emails", "emails"), ("events", "calendar events"),
-                               ("tasks", "tasks"), ("slack", "Slack messages")]:
+        for source, label in [
+            ("emails", "emails"),
+            ("events", "calendar events"),
+            ("tasks", "tasks"),
+            ("slack", "Slack messages"),
+        ]:
             n = len(diff[f"new_{source}"])
             c = len(diff.get(f"changed_{source}", set()))
             if n or c:
@@ -1362,12 +1483,12 @@ Your final text response goes directly to {owner}'s phone. Keep it to just bulle
                 system_prompt={"type": "preset", "preset": "claude_code"},
                 # Tools for file access, drafts, habits, and memory search
                 allowed_tools=[
-                    "Read",   # Read memory files
+                    "Read",  # Read memory files
                     "Write",  # Create draft files, update HABITS.md
-                    "Edit",   # Update draft status, check off habits
-                    "Bash",   # Run memory search, move draft files
-                    "Glob",   # Find files
-                    "Grep",   # Search file contents
+                    "Edit",  # Update draft status, check off habits
+                    "Bash",  # Run memory search, move draft files
+                    "Glob",  # Find files
+                    "Grep",  # Search file contents
                 ],
                 # Auto-approve file operations
                 permission_mode="acceptEdits",
@@ -1447,9 +1568,13 @@ Your final text response goes directly to {owner}'s phone. Keep it to just bulle
                 "No text provided",
                 "I don't have any text",
             ]
-            is_confused = any(marker.lower() in formatted_text.lower() for marker in confused_markers)
+            is_confused = any(
+                marker.lower() in formatted_text.lower() for marker in confused_markers
+            )
             if formatted_text and not is_confused:
-                print(f"[{now_local()}] Formatted: {len(response_text)} → {len(formatted_text)} chars")
+                print(
+                    f"[{now_local()}] Formatted: {len(response_text)} → {len(formatted_text)} chars"
+                )
                 response_text = formatted_text
             elif is_confused:
                 print(f"[{now_local()}] Haiku returned confused response, using raw text")
@@ -1486,7 +1611,13 @@ Your final text response goes directly to {owner}'s phone. Keep it to just bulle
             send_console_notification("Second Brain Alert (TEST)", response_text)
 
         print(f"[{now_local()}] Heartbeat alert: {response_text[:100]}...")
-        log_hook_execution("heartbeat", "scheduled", "OK", time.time() - _start, f"{len(response_text)} chars alert")
+        log_hook_execution(
+            "heartbeat",
+            "scheduled",
+            "OK",
+            time.time() - _start,
+            f"{len(response_text)} chars alert",
+        )
         return response_text
 
 

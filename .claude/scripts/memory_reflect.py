@@ -111,8 +111,7 @@ async def protect_soul_file(
         return {
             "decision": "block",
             "reason": (
-                "Reflection agent cannot modify SOUL.md"
-                " — suggest changes in daily log instead"
+                "Reflection agent cannot modify SOUL.md — suggest changes in daily log instead"
             ),
         }
     return {}

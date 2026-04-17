@@ -79,20 +79,23 @@ async def validate_bash_command(
     # Also check inside subshell constructs
     commands_to_check = [normalized]
     # Extract $(...) content
-    subshells = re.findall(r'\$\(([^)]+)\)', normalized)
+    subshells = re.findall(r"\$\(([^)]+)\)", normalized)
     commands_to_check.extend(subshells)
     # Extract backtick content
-    backticks = re.findall(r'`([^`]+)`', normalized)
+    backticks = re.findall(r"`([^`]+)`", normalized)
     commands_to_check.extend(backticks)
 
     for cmd in commands_to_check:
         # Strip common binary path prefixes
-        stripped = re.sub(r'(?:/usr)?/s?bin/', '', cmd)
+        stripped = re.sub(r"(?:/usr)?/s?bin/", "", cmd)
 
         for pattern in DANGEROUS_BASH_PATTERNS:
             if pattern in stripped:
                 print(f"[SECURITY] Blocked dangerous command: {pattern}")
-                return {"decision": "block", "reason": f"Blocked dangerous command pattern: {pattern}"}
+                return {
+                    "decision": "block",
+                    "reason": f"Blocked dangerous command pattern: {pattern}",
+                }
 
     return {}
 
@@ -174,7 +177,7 @@ def with_retry(
                 retryable = e.status_code in (429, 500, 502, 503)
             if not retryable:
                 raise
-            time.sleep(backoff * (2 ** attempt))
+            time.sleep(backoff * (2**attempt))
 
 
 # =============================================================================
@@ -282,9 +285,7 @@ def file_lock(lock_path: Path, timeout: float = 30.0) -> Iterator[None]:
                 break
             except (OSError, BlockingIOError):
                 if time.monotonic() >= deadline:
-                    raise TimeoutError(
-                        f"Could not acquire lock on {lock_file} within {timeout}s"
-                    )
+                    raise TimeoutError(f"Could not acquire lock on {lock_file} within {timeout}s")
                 time.sleep(0.1)
         yield
     finally:

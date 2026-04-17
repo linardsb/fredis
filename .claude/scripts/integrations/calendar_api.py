@@ -82,16 +82,18 @@ def get_upcoming_events(
     end_time = now + timedelta(hours=hours_ahead)
 
     result: dict[str, Any] = with_retry(
-        lambda: service.events()
-        .list(
-            calendarId=cal_id,
-            timeMin=now.isoformat(),
-            timeMax=end_time.isoformat(),
-            maxResults=max_results,
-            singleEvents=True,
-            orderBy="startTime",
+        lambda: (
+            service.events()
+            .list(
+                calendarId=cal_id,
+                timeMin=now.isoformat(),
+                timeMax=end_time.isoformat(),
+                maxResults=max_results,
+                singleEvents=True,
+                orderBy="startTime",
+            )
+            .execute()
         )
-        .execute()
     )
 
     events: list[CalendarEvent] = []

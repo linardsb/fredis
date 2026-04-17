@@ -63,8 +63,7 @@ def get_google_credentials() -> Any:
 
     # Need initial auth flow
     raise RuntimeError(
-        "No valid Google OAuth token found.\n"
-        "Run 'uv run python setup_auth.py' to authenticate."
+        "No valid Google OAuth token found.\nRun 'uv run python setup_auth.py' to authenticate."
     )
 
 
@@ -88,9 +87,7 @@ def run_initial_auth(headless: bool = False) -> Any:
             "OAuth 2.0 Client ID → Desktop app → Download JSON"
         )
 
-    flow = InstalledAppFlow.from_client_secrets_file(
-        str(GOOGLE_CREDENTIALS_FILE), GOOGLE_SCOPES
-    )
+    flow = InstalledAppFlow.from_client_secrets_file(str(GOOGLE_CREDENTIALS_FILE), GOOGLE_SCOPES)
 
     if headless:
         # Manual flow for headless/remote machines:

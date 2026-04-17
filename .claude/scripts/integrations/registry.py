@@ -117,9 +117,7 @@ def get_enabled() -> dict[str, IntegrationInfo]:
             if not _has_google_token():
                 continue
             # Plus any extra required config (e.g. GOOGLE_CALENDAR_ID)
-            if info.required_config and not all(
-                os.getenv(var, "") for var in info.required_config
-            ):
+            if info.required_config and not all(os.getenv(var, "") for var in info.required_config):
                 continue
         elif info.required_config:
             # Token-based integrations need their env vars set
