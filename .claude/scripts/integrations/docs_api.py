@@ -43,7 +43,7 @@ class DocumentData:
 
 def get_docs_service() -> Any:
     """Build authenticated Docs API service."""
-    from googleapiclient.discovery import build  # type: ignore[import-untyped]
+    from googleapiclient.discovery import build
 
     from integrations.auth import get_google_credentials
 

@@ -49,7 +49,7 @@ class SpreadsheetData:
 
 def get_sheets_service() -> Any:
     """Build authenticated Sheets API service."""
-    from googleapiclient.discovery import build  # type: ignore[import-untyped]
+    from googleapiclient.discovery import build
 
     from integrations.auth import get_google_credentials
 

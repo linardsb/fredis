@@ -46,7 +46,7 @@ class AsanaTask:
 
 def get_asana_client() -> Any:
     """Create authenticated Asana API client (v5 SDK)."""
-    import asana  # type: ignore[import-untyped]
+    import asana
 
     if not ASANA_ACCESS_TOKEN:
         raise ValueError(

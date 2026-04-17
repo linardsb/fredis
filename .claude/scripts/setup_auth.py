@@ -51,7 +51,7 @@ def check_google(check_only: bool = False, headless: bool = False) -> bool:
             from integrations.auth import get_google_credentials
 
             creds = get_google_credentials()
-            from googleapiclient.discovery import build  # type: ignore[import-untyped]
+            from googleapiclient.discovery import build
 
             # Test Gmail
             gmail = build("gmail", "v1", credentials=creds)
@@ -146,8 +146,8 @@ def check_asana(check_only: bool = False) -> bool:
 
     # Validate token
     try:
-        import asana  # type: ignore[import-untyped]
-        from asana.rest import ApiException  # type: ignore[import-untyped]
+        import asana
+        from asana.rest import ApiException
 
         configuration = asana.Configuration()
         configuration.access_token = ASANA_ACCESS_TOKEN

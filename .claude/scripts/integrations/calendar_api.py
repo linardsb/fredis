@@ -41,7 +41,7 @@ class CalendarEvent:
 
 def get_calendar_service() -> Any:
     """Build authenticated Calendar API service."""
-    from googleapiclient.discovery import build  # type: ignore[import-untyped]
+    from googleapiclient.discovery import build
 
     from integrations.auth import get_google_credentials
 

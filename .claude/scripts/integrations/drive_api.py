@@ -56,7 +56,7 @@ class DriveFile:
 
 def get_drive_service() -> Any:
     """Build authenticated Drive API service."""
-    from googleapiclient.discovery import build  # type: ignore[import-untyped]
+    from googleapiclient.discovery import build
 
     from integrations.auth import get_google_credentials
 

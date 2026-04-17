@@ -47,7 +47,7 @@ class Email:
 
 def get_gmail_service() -> Any:
     """Build authenticated Gmail API service."""
-    from googleapiclient.discovery import build  # type: ignore[import-untyped]
+    from googleapiclient.discovery import build
 
     from integrations.auth import get_google_credentials
 

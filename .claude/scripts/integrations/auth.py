@@ -78,7 +78,7 @@ def run_initial_auth(headless: bool = False) -> Any:
 
     Requires google_credentials.json to be present.
     """
-    from google_auth_oauthlib.flow import InstalledAppFlow  # type: ignore[import-untyped]
+    from google_auth_oauthlib.flow import InstalledAppFlow
 
     if not GOOGLE_CREDENTIALS_FILE.exists():
         raise FileNotFoundError(
