@@ -80,7 +80,9 @@ def main() -> None:
         # Validate adapter can be instantiated
         from adapters.slack import SlackAdapter
 
-        adapter = SlackAdapter(SLACK_BOT_TOKEN, SLACK_APP_TOKEN, CHAT_ALLOWED_USERS, session_store=store)
+        adapter = SlackAdapter(
+            SLACK_BOT_TOKEN, SLACK_APP_TOKEN, CHAT_ALLOWED_USERS, session_store=store
+        )
         print("  Slack adapter OK")
 
         # Validate router
@@ -97,7 +99,9 @@ def main() -> None:
 
     from adapters.slack import SlackAdapter
 
-    adapter = SlackAdapter(SLACK_BOT_TOKEN, SLACK_APP_TOKEN, CHAT_ALLOWED_USERS, session_store=store)
+    adapter = SlackAdapter(
+        SLACK_BOT_TOKEN, SLACK_APP_TOKEN, CHAT_ALLOWED_USERS, session_store=store
+    )
 
     router = ChatRouter(engine)
     router.register(adapter)

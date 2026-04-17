@@ -7,6 +7,7 @@ import sqlite3
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 
 @dataclass
@@ -168,7 +169,12 @@ class SQLiteSessionStore:
                 """INSERT OR REPLACE INTO heartbeat_threads
                    (channel_id, thread_ts, alert_text, created_at)
                    VALUES (?, ?, ?, ?)""",
-                (thread.channel_id, thread.thread_ts, thread.alert_text, thread.created_at.isoformat()),
+                (
+                    thread.channel_id,
+                    thread.thread_ts,
+                    thread.alert_text,
+                    thread.created_at.isoformat(),
+                ),
             )
 
     def get_heartbeat_thread(self, channel_id: str, thread_ts: str) -> HeartbeatThread | None:
@@ -236,7 +242,7 @@ class PostgresSessionStore:
                 ON heartbeat_threads(channel_id, thread_ts)
         """)
 
-    def _row_to_session(self, row: tuple) -> Session:
+    def _row_to_session(self, row: tuple[Any, ...]) -> Session:
         """Convert a database row to a Session object."""
         return Session(
             session_id=row[1],
@@ -245,8 +251,12 @@ class PostgresSessionStore:
             channel_id=row[4],
             thread_id=row[5],
             user_id=row[6],
-            created_at=row[7] if isinstance(row[7], datetime) else datetime.fromisoformat(str(row[7])),
-            updated_at=row[8] if isinstance(row[8], datetime) else datetime.fromisoformat(str(row[8])),
+            created_at=row[7]
+            if isinstance(row[7], datetime)
+            else datetime.fromisoformat(str(row[7])),
+            updated_at=row[8]
+            if isinstance(row[8], datetime)
+            else datetime.fromisoformat(str(row[8])),
             message_count=row[9],
             total_cost_usd=float(row[10]),
             status=row[11],
@@ -348,7 +358,9 @@ class PostgresSessionStore:
             channel_id=row[0],
             thread_ts=row[1],
             alert_text=row[2],
-            created_at=row[3] if isinstance(row[3], datetime) else datetime.fromisoformat(str(row[3])),
+            created_at=row[3]
+            if isinstance(row[3], datetime)
+            else datetime.fromisoformat(str(row[3])),
         )
 
     def close(self) -> None:

@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Any
 
 import aiohttp
-
 from models import Attachment, Channel, IncomingMessage, OutgoingMessage, Platform, Thread, User
 
 INBOX_DIR = Path(__file__).resolve().parent.parent.parent.parent / "inbox"
@@ -234,7 +233,9 @@ class SlackAdapter:
             async with aiohttp.ClientSession() as session:
                 async with session.get(url, headers=headers) as resp:
                     if resp.status != 200:
-                        print(f"[{datetime.now()}] Failed to download {filename}: HTTP {resp.status}")
+                        print(
+                            f"[{datetime.now()}] Failed to download {filename}: HTTP {resp.status}"
+                        )
                         return None
                     data = await resp.read()
 

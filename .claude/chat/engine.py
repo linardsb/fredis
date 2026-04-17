@@ -127,18 +127,22 @@ class ConversationEngine:
                     "Only your FINAL assistant turn is shown to the user — all intermediate turns "
                     "(tool calls, research, reasoning) are invisible. Therefore:\n"
                     "- Your last message MUST contain the complete, self-contained answer.\n"
-                    "- Do NOT split your answer across multiple turns. Do all research/tool calls first, "
+                    "- Do NOT split your answer across multiple turns. "
+                    "Do all research/tool calls first, "
                     "then write one comprehensive final response.\n"
-                    "- Never end with just sources, references, or a summary — the full report belongs in the final turn.\n"
+                    "- Never end with just sources, references, or a summary — "
+                    "the full report belongs in the final turn.\n"
                     "\n## Sending Images in Slack\n"
                     "When you generate images and need to share them with the user:\n"
                     "- Include the ABSOLUTE file path(s) in your final response text "
                     "(e.g. /home/user/project/.../image.png)\n"
                     "- The chat engine automatically detects image paths in your response, "
-                    "verifies the files exist, and uploads them directly into the current Slack thread.\n"
+                    "verifies the files exist, and uploads them directly into the current "
+                    "Slack thread.\n"
                     "- NEVER call the Slack API directly to upload files (e.g. via slack_sdk). "
                     "This bypasses thread context and sends images to the wrong place.\n"
-                    "- Just mention the paths naturally in your response and the system handles delivery.\n"
+                    "- Just mention the paths naturally in your response and the system "
+                    "handles delivery.\n"
                 ),
             },
             "allowed_tools": [
@@ -190,7 +194,9 @@ class ConversationEngine:
         attachment_ctx = self._build_attachment_context(message.attachments)
         if attachment_ctx:
             message.text += attachment_ctx
-            print(f"[{datetime.now()}] Injected {len(message.attachments)} attachment(s) into prompt")
+            print(
+                f"[{datetime.now()}] Injected {len(message.attachments)} attachment(s) into prompt"
+            )
 
         options = ClaudeAgentOptions(**options_kwargs)
 
@@ -239,7 +245,10 @@ class ConversationEngine:
                             )
                             for p in image_paths
                         ]
-                        print(f"[{datetime.now()}] Detected {len(image_attachments)} image(s) to send back")
+                        print(
+                            f"[{datetime.now()}] Detected {len(image_attachments)} "
+                            f"image(s) to send back"
+                        )
                         yield OutgoingMessage(
                             text=response_text,
                             channel=message.channel,
