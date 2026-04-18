@@ -44,7 +44,7 @@ def embed_text(text: str) -> NDArray[np.float32]:
     return embedding
 
 
-def embed_batch(texts: list[str], batch_size: int = 32) -> list[NDArray[np.float32]]:
+def embed_batch(texts: list[str], batch_size: int = 256) -> list[NDArray[np.float32]]:
     """Embed a batch of texts. Returns list of 384-dim float32 vectors."""
     if not texts:
         return []

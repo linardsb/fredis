@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.linards.ssh-tunnel</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/ssh</string>
+        <string>-N</string>
+        <string>-i</string>
+        <string>__KEY_PATH__</string>
+        <string>-L</string>
+        <string>5432:localhost:5432</string>
+        <string>-o</string>
+        <string>ServerAliveInterval=30</string>
+        <string>-o</string>
+        <string>ServerAliveCountMax=3</string>
+        <string>-o</string>
+        <string>ExitOnForwardFailure=yes</string>
+        <string>__VPS_USER__@__VPS_HOST__</string>
+    </array>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+
+    <key>StandardOutPath</key>
+    <string>__REPO_ROOT__/.claude/data/logs/ssh-tunnel.out.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>__REPO_ROOT__/.claude/data/logs/ssh-tunnel.err.log</string>
+</dict>
+</plist>

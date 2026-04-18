@@ -222,7 +222,31 @@ cd .claude/scripts && uv run python memory_index.py
 
 ### SSH Tunnel for Postgres (Required on Local Machine)
 
-Memory search and chat sessions use Postgres on the VPS. The local `.env` has `DATABASE_URL` pointing to `localhost:5432`, which requires an SSH tunnel. A Windows Task Scheduler task handles this automatically:
+Memory search and chat sessions use Postgres on the VPS. The local `.env` has `DATABASE_URL` pointing to `localhost:5432`, which requires a persistent SSH tunnel.
+
+#### macOS (launchd, primary)
+
+The launchd plist lives at `.claude/scripts/schedule/com.linards.ssh-tunnel.plist`.
+It respawns the tunnel on exit (including laptop wake) and throttles restarts on auth failure.
+Full install/check/unload commands are in `.claude/scripts/schedule/README.md`.
+
+```bash
+# Install + load
+cp .claude/scripts/schedule/com.linards.ssh-tunnel.plist ~/Library/LaunchAgents/
+# (substitute __HOME__/__KEY_PATH__/__VPS_USER__/__VPS_HOST__ placeholders first — see schedule/README.md)
+launchctl load ~/Library/LaunchAgents/com.linards.ssh-tunnel.plist
+
+# Check
+launchctl list | grep com.linards.ssh-tunnel
+nc -z localhost 5432 && echo TUNNEL_OK
+
+# Unload
+launchctl unload ~/Library/LaunchAgents/com.linards.ssh-tunnel.plist
+```
+
+Skip this plist entirely if `DATABASE_URL` is unset or points at SQLite — the tunnel is only needed in VPS Postgres mode.
+
+#### Windows (Task Scheduler)
 
 ```powershell
 # Creates a persistent tunnel that starts at logon and auto-restarts on failure
@@ -245,13 +269,15 @@ Stop-ScheduledTask -TaskName "SecondBrain-SSH-Tunnel"       # stop
 Get-ScheduledTask -TaskName "SecondBrain-SSH-Tunnel"        # check status
 ```
 
-**If `memory_search.py` fails with a connection error**, the tunnel is probably down. The SSH key is passphrase-protected, so the Task Scheduler task only works if the key is loaded in ssh-agent. Ask the user to:
-1. Run `ssh-add C:\Users\you\.ssh\your-key` in a terminal
-2. Then `Start-ScheduledTask -TaskName "SecondBrain-SSH-Tunnel"` in PowerShell
+**If `memory_search.py` fails with a connection error**, the tunnel is probably down. The SSH key is passphrase-protected, so automated restarts only work once the key is loaded in `ssh-agent`:
+- macOS: `ssh-add ~/.ssh/your-key` then `launchctl kickstart -k "gui/$(id -u)/com.linards.ssh-tunnel"`
+- Windows: `ssh-add C:\Users\you\.ssh\your-key` then `Start-ScheduledTask -TaskName "SecondBrain-SSH-Tunnel"`
 
 ### SSH to VPS from Claude Code
 
-Claude Code's bash shell uses Git's bundled SSH (`/usr/bin/ssh`), which does **not** connect to the Windows SSH agent. Always use the Windows OpenSSH binary instead:
+On macOS, just use `ssh` directly — no Git-SSH-vs-Windows-SSH conflict.
+
+On Windows, Claude Code's bash shell uses Git's bundled SSH (`/usr/bin/ssh`), which does **not** connect to the Windows SSH agent. Always use the Windows OpenSSH binary instead:
 
 ```bash
 # SSH

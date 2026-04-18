@@ -22,10 +22,27 @@ from config import (
     SEARCH_DEFAULT_LIMIT,
     SEARCH_KEYWORD_WEIGHT,
     SEARCH_MIN_SCORE,
+    SEARCH_PATH_PRIOR_DEFAULT,
+    SEARCH_PATH_PRIORS,
     SEARCH_VECTOR_WEIGHT,
 )
 from db import get_memory_db
 from sanitize import sanitize_external_text
+
+# Longest-prefix-first so more-specific prefixes win over shorter parents
+# (e.g. `drafts/sent/` beats `drafts/`). Insertion order in SEARCH_PATH_PRIORS
+# is not load-bearing as a result.
+_SORTED_PATH_PRIORS: tuple[tuple[str, float], ...] = tuple(
+    sorted(SEARCH_PATH_PRIORS.items(), key=lambda kv: -len(kv[0]))
+)
+
+
+def _prior(path: str) -> float:
+    """Return path-prefix score multiplier, or the default if no prefix matches."""
+    for prefix, mult in _SORTED_PATH_PRIORS:
+        if path.startswith(prefix):
+            return mult
+    return SEARCH_PATH_PRIOR_DEFAULT
 
 
 @dataclass
@@ -55,18 +72,20 @@ def search_keyword(
     rows = db.keyword_search(query, limit, path_prefix=path_prefix)
     db.close()
 
-    return [
+    results = [
         SearchResult(
             path=r["file_path"],
             start_line=r["start_line"],
             end_line=r["end_line"],
             text=r["content"],
-            score=r["score"],
+            score=r["score"] * _prior(r["file_path"]),
             match_type="keyword",
             section_title=r.get("section_title", ""),
         )
         for r in rows
     ]
+    results.sort(key=lambda x: x.score, reverse=True)
+    return results
 
 
 def search_semantic(
@@ -88,19 +107,24 @@ def search_semantic(
     rows = db.vector_search(query_embedding, limit, path_prefix=path_prefix)
     db.close()
 
-    return [
-        SearchResult(
-            path=r["file_path"],
-            start_line=r["start_line"],
-            end_line=r["end_line"],
-            text=r["content"],
-            score=r["score"],
-            match_type="semantic",
-            section_title=r.get("section_title", ""),
+    results: list[SearchResult] = []
+    for r in rows:
+        boosted = r["score"] * _prior(r["file_path"])
+        if boosted < min_score:
+            continue
+        results.append(
+            SearchResult(
+                path=r["file_path"],
+                start_line=r["start_line"],
+                end_line=r["end_line"],
+                text=r["content"],
+                score=boosted,
+                match_type="semantic",
+                section_title=r.get("section_title", ""),
+            )
         )
-        for r in rows
-        if r["score"] >= min_score
-    ]
+    results.sort(key=lambda x: x.score, reverse=True)
+    return results
 
 
 def search_hybrid(
@@ -148,7 +172,7 @@ def search_hybrid(
     for key, data in merged.items():
         combined_score = (
             vector_weight * scores[key]["semantic"] + keyword_weight * scores[key]["keyword"]
-        )
+        ) * _prior(data["file_path"])
         if combined_score < min_score:
             continue
         results.append(
@@ -214,9 +238,9 @@ def format_results(results: list[SearchResult]) -> str:
 def _run_test_queries() -> None:
     """Run predefined test queries across all modes."""
     test_queries = [
-        ("heartbeat", "keyword"),
-        ("proactive assistant", "semantic"),
-        ("tasks overdue", "hybrid"),
+        ("SFI agriculture", "hybrid"),
+        ("Tim Jackson follow-up", "keyword"),
+        ("client draft voice", "semantic"),
     ]
 
     for query_text, mode in test_queries:

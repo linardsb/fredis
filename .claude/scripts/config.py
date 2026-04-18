@@ -16,7 +16,7 @@ load_dotenv(Path(__file__).parent / ".env")
 
 # === Paths ===
 SCRIPTS_DIR = Path(__file__).parent
-PROJECT_ROOT = SCRIPTS_DIR.parent.parent  # dynamous-engine
+PROJECT_ROOT = SCRIPTS_DIR.parent.parent  # repo root
 CLAUDE_DIR = PROJECT_ROOT / ".claude"
 MEMORY_DIR = PROJECT_ROOT / "Fredis" / "Memory"
 
@@ -123,6 +123,14 @@ SEARCH_VECTOR_WEIGHT = 0.7
 SEARCH_KEYWORD_WEIGHT = 0.3
 SEARCH_DEFAULT_LIMIT = 10
 SEARCH_MIN_SCORE = 0.2
+
+# Path-prefix → score multiplier. PRD Phase 3 personalization note:
+# draft voice-matching + meeting recall are primary use cases, so boost those.
+SEARCH_PATH_PRIORS: dict[str, float] = {
+    "drafts/sent/": 1.5,
+    "meetings/": 1.3,
+}
+SEARCH_PATH_PRIOR_DEFAULT = 1.0
 
 # === Authentication ===
 # Claude Agent SDK inherits auth from Claude Code CLI automatically.
