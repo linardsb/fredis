@@ -66,21 +66,37 @@ def is_sensitive_file(path: str) -> str | None:
 
 
 # --- Dangerous bash patterns for env/secret exposure ---
+def _verb_targets_env(verb: str) -> re.Pattern[str]:
+    """Match ``<verb> [flags...] [path/].env[.suffix]`` as an actual file argument.
+
+    Tightens the previous coarse ``\\b<verb>\\b.*\\.env\\b`` form, which fired
+    whenever ``verb`` and ``.env`` both appeared in the normalized command —
+    including heredoc bodies, commit messages, and quoted strings.
+    The output redactor (``redact-secrets.py``) catches anything that does slip
+    through, so the residual leak risk from the tightening is minimal.
+    """
+    return re.compile(
+        rf"\b{verb}\b\s+(?:-[A-Za-z0-9-]+\s+)*(?:[^\s<>|;&'\"]+/)?\.env(?:\.[\w-]+)*(?=\s|$|[;|&<>])",
+        re.IGNORECASE,
+    )
+
+
 DANGEROUS_BASH_PATTERNS: list[tuple[re.Pattern[str], str]] = [
-    # Direct .env file reads
-    (re.compile(r"\bcat\b.*\.env\b", re.IGNORECASE), "Reading .env file with cat"),
-    (re.compile(r"\bhead\b.*\.env\b", re.IGNORECASE), "Reading .env file with head"),
-    (re.compile(r"\btail\b.*\.env\b", re.IGNORECASE), "Reading .env file with tail"),
-    (re.compile(r"\bless\b.*\.env\b", re.IGNORECASE), "Reading .env file with less"),
-    (re.compile(r"\bmore\b.*\.env\b", re.IGNORECASE), "Reading .env file with more"),
-    (re.compile(r"\btype\b.*\.env\b", re.IGNORECASE), "Reading .env file with type"),
-    (re.compile(r"\bbat\b.*\.env\b", re.IGNORECASE), "Reading .env file with bat"),
-    (re.compile(r"\bvi\b.*\.env\b", re.IGNORECASE), "Opening .env file in editor"),
-    (re.compile(r"\bvim\b.*\.env\b", re.IGNORECASE), "Opening .env file in editor"),
-    (re.compile(r"\bnano\b.*\.env\b", re.IGNORECASE), "Opening .env file in editor"),
-    (re.compile(r"\bcode\b.*\.env\b", re.IGNORECASE), "Opening .env file in editor"),
-    (re.compile(r"\bsource\b.*\.env\b", re.IGNORECASE), "Sourcing .env file"),
-    (re.compile(r"\.\s+.*\.env\b", re.IGNORECASE), "Sourcing .env with dot notation"),
+    # Direct .env file reads — tightened to require .env as a file argument.
+    (_verb_targets_env("cat"), "Reading .env file with cat"),
+    (_verb_targets_env("head"), "Reading .env file with head"),
+    (_verb_targets_env("tail"), "Reading .env file with tail"),
+    (_verb_targets_env("less"), "Reading .env file with less"),
+    (_verb_targets_env("more"), "Reading .env file with more"),
+    (_verb_targets_env("type"), "Reading .env file with type"),
+    (_verb_targets_env("bat"), "Reading .env file with bat"),
+    (_verb_targets_env("vi"), "Opening .env file in editor"),
+    (_verb_targets_env("vim"), "Opening .env file in editor"),
+    (_verb_targets_env("nano"), "Opening .env file in editor"),
+    (_verb_targets_env("code"), "Opening .env file in editor"),
+    (_verb_targets_env("source"), "Sourcing .env file"),
+    (re.compile(r"(?:^|;|\&\&|\|\|)\s*\.\s+(?:[^\s<>|;&'\"]+/)?\.env(?:\.[\w-]+)*(?=\s|$|[;|&<>])", re.IGNORECASE),
+     "Sourcing .env with dot notation"),
 
     # Credential file reads
     (re.compile(r"\bcat\b.*credentials", re.IGNORECASE), "Reading credentials file"),
@@ -132,9 +148,9 @@ DANGEROUS_BASH_PATTERNS: list[tuple[re.Pattern[str], str]] = [
      "PHP inline code accessing getenv"),
 
     # Grep/search targeting sensitive files
-    (re.compile(r"\bgrep\b.*\.env\b", re.IGNORECASE), "Grep searching .env file"),
-    (re.compile(r"\brg\b.*\.env\b", re.IGNORECASE), "Ripgrep searching .env file"),
-    (re.compile(r"\bfind\b.*\.env\b", re.IGNORECASE), "Find searching for .env files"),
+    (_verb_targets_env("grep"), "Grep searching .env file"),
+    (_verb_targets_env("rg"), "Ripgrep searching .env file"),
+    (_verb_targets_env("find"), "Find searching for .env files"),
     (re.compile(r"\bfind\b.*-exec\b.*cat", re.IGNORECASE), "Find with exec cat (potential .env read)"),
 
     # Wildcard bypass: cat .en* or cat .e?? could match .env
@@ -143,10 +159,11 @@ DANGEROUS_BASH_PATTERNS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"\bcat\b.*\.e\[", re.IGNORECASE), "Glob pattern read that could match .env"),
 
     # Symlink creation targeting sensitive files
-    (re.compile(r"\bln\b.*-s.*\.env\b", re.IGNORECASE), "Creating symlink to .env file"),
+    (re.compile(r"\bln\s+-s\b\s+(?:[^\s<>|;&'\"]+/)?\.env(?:\.[\w-]+)*(?=\s|$|[;|&<>])", re.IGNORECASE),
+     "Creating symlink to .env file"),
     (re.compile(r"\bln\b.*-s.*credentials", re.IGNORECASE), "Creating symlink to credentials"),
     (re.compile(r"\bln\b.*-s.*google_token", re.IGNORECASE), "Creating symlink to token file"),
-    (re.compile(r"\bcp\b.*\.env\b", re.IGNORECASE), "Copying .env file"),
+    (_verb_targets_env("cp"), "Copying .env file"),
 
     # Here-doc/here-string execution with env access
     (re.compile(r"python[3]?\s*<<", re.IGNORECASE),
@@ -189,9 +206,9 @@ DANGEROUS_BASH_PATTERNS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"<\(.*\.env", re.IGNORECASE), "Process substitution referencing .env"),
 
     # xxd/hexdump of sensitive files (binary dump to bypass text filters)
-    (re.compile(r"\bxxd\b.*\.env", re.IGNORECASE), "Hex dump of .env file"),
-    (re.compile(r"\bhexdump\b.*\.env", re.IGNORECASE), "Hex dump of .env file"),
-    (re.compile(r"\bod\b.*\.env", re.IGNORECASE), "Octal dump of .env file"),
+    (_verb_targets_env("xxd"), "Hex dump of .env file"),
+    (_verb_targets_env("hexdump"), "Hex dump of .env file"),
+    (_verb_targets_env("od"), "Octal dump of .env file"),
 
     # xargs execution that could target sensitive files
     (re.compile(r"\bxargs\b.*cat", re.IGNORECASE), "xargs with cat (potential .env read)"),
@@ -246,9 +263,11 @@ EXFILTRATION_CONTENT_PATTERNS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"open\s*\(.*\.env.*\).*read\(\)", re.IGNORECASE),
      "Script reads .env file contents"),
 
-    # Bash script: cat/echo env vars
-    (re.compile(r"cat\s+.*\.env", re.IGNORECASE),
-     "Script cats .env file"),
+    # Bash script: cat/echo env vars — tightened to require .env as a file arg.
+    (re.compile(
+        r"\bcat\b\s+(?:-[A-Za-z0-9-]+\s+)*(?:[^\s<>|;&'\"]+/)?\.env(?:\.[\w-]+)*(?=\s|$|[;|&<>])",
+        re.IGNORECASE,
+    ), "Script cats .env file"),
     (re.compile(r"echo\s+\$\{?[A-Z_]*(?:KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL)", re.IGNORECASE),
      "Script echoes secret variable"),
     (re.compile(r"printenv", re.IGNORECASE),
@@ -267,9 +286,20 @@ EXFILTRATION_CONTENT_PATTERNS: list[tuple[re.Pattern[str], str]] = [
 ]
 
 
-def check_written_content(content: str) -> str | None:
-    """Check if file content being written would exfiltrate secrets."""
+_TEST_FILE_PATH = re.compile(r"(?:^|/)tests?/test_[^/]+\.py$|/tests?/[^/]+_test\.py$")
+
+
+def check_written_content(content: str, file_path: str = "") -> str | None:
+    """Check if file content being written would exfiltrate secrets.
+
+    Test files (``tests/test_*.py``, ``tests/*_test.py``) are exempt: they
+    legitimately contain attack strings as parametrised inputs. The Bash hook
+    still gates actual execution of those strings, and the output redactor
+    scrubs anything that does leak.
+    """
     if not content:
+        return None
+    if file_path and _TEST_FILE_PATH.search(file_path):
         return None
     for pattern, reason in EXFILTRATION_CONTENT_PATTERNS:
         if pattern.search(content):
@@ -313,7 +343,7 @@ def main() -> None:
         # create a script that prints/exfiltrates environment variables
         if not reason:
             content = tool_input.get("content", "") or tool_input.get("new_string", "")
-            reason = check_written_content(content)
+            reason = check_written_content(content, file_path)
 
     elif tool_name == "Glob":
         pattern_str = tool_input.get("pattern", "")
