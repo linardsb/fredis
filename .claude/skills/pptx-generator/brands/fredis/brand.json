@@ -1,6 +1,6 @@
 {
-  "name": "Dynamous",
-  "description": "AI education content, community, and products with a modern dark aesthetic",
+  "name": "Fredis",
+  "description": "Personal second brain and knowledge system",
 
   "colors": {
     "background": "07090F",
@@ -22,7 +22,7 @@
   },
 
   "assets": {
-    "logo": "DynamousLogo.png",
+    "logo": "FredisLogo.png",
     "logo_dark": null,
     "icon": null
   }

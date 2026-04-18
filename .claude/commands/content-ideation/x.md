@@ -14,7 +14,7 @@ Generate engaging X posts and threads.
 | Default Count | 10 |
 | Output | `Fredis/Content-Ideation/X/YYYY-MM-DD/` |
 
-## Paths (from dynamous-engine root)
+## Paths (from fredis root)
 
 **Input:**
 ```

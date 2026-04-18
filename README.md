@@ -64,8 +64,8 @@ The generated PRD has enough technical detail that Claude Code can implement eac
 ### 1. Clone and Configure
 
 ```bash
-git clone https://github.com/dynamous-community/workshops.git
-cd workshops/claude-code-second-brain
+git clone https://github.com/linardsb/fredis.git
+cd fredis
 
 # Create your master env file
 cp master.env.example master.env
@@ -93,7 +93,7 @@ uv sync
 ### 3. Open Claude Code — Onboarding Starts Automatically
 
 ```bash
-cd /path/to/dynamous-engine
+cd /path/to/fredis
 claude
 ```
 
@@ -153,7 +153,7 @@ uv run python memory_search.py "test"       # Test search
 <dict>
     <key>Label</key><string>com.secondbrain.heartbeat</string>
     <key>ProgramArguments</key>
-    <array><string>/path/to/dynamous-engine/.claude/scripts/run_heartbeat.sh</string></array>
+    <array><string>/path/to/fredis/.claude/scripts/run_heartbeat.sh</string></array>
     <key>StartInterval</key><integer>1800</integer>
     <key>RunAtLoad</key><true/>
 </dict>
@@ -169,7 +169,7 @@ launchctl load ~/Library/LaunchAgents/com.secondbrain.heartbeat.plist
 **Linux** — add a cron job:
 ```bash
 chmod +x .claude/scripts/run_heartbeat.sh
-(crontab -l 2>/dev/null; echo "*/30 * * * * /path/to/dynamous-engine/.claude/scripts/run_heartbeat.sh") | crontab -
+(crontab -l 2>/dev/null; echo "*/120 * * * * /path/to/fredis/.claude/scripts/run_heartbeat.sh") | crontab -
 ```
 
 </details>
@@ -209,7 +209,7 @@ The sync uses git-sync with a custom merge driver that auto-resolves daily log c
 <dict>
     <key>Label</key><string>com.secondbrain.reflection</string>
     <key>ProgramArguments</key>
-    <array><string>/path/to/dynamous-engine/.claude/scripts/run_reflect.sh</string></array>
+    <array><string>/path/to/fredis/.claude/scripts/run_reflect.sh</string></array>
     <key>StartCalendarInterval</key>
     <dict><key>Hour</key><integer>8</integer><key>Minute</key><integer>0</integer></dict>
 </dict>
@@ -224,7 +224,7 @@ launchctl load ~/Library/LaunchAgents/com.secondbrain.reflection.plist
 **Linux:**
 ```bash
 chmod +x .claude/scripts/run_reflect.sh
-(crontab -l 2>/dev/null; echo "0 8 * * * /path/to/dynamous-engine/.claude/scripts/run_reflect.sh") | crontab -
+(crontab -l 2>/dev/null; echo "0 8 * * * /path/to/fredis/.claude/scripts/run_reflect.sh") | crontab -
 ```
 
 </details>
@@ -403,8 +403,8 @@ echo -e '\neval "$(ssh-agent -s)" && ssh-add ~/.ssh/id_ed25519' >> ~/.bashrc
 ### 5. Clone and Configure
 
 ```bash
-git clone git@github.com:your-username/your-second-brain.git
-cd dynamous-engine
+git clone https://github.com/linardsb/fredis.git
+cd fredis
 cp master.env.example master.env
 # Fill in your API keys and IDs
 python3 setup_workspace.py
@@ -475,7 +475,7 @@ Requires=docker.service
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/path/to/dynamous-engine/.claude/scripts
+WorkingDirectory=/path/to/fredis/.claude/scripts
 ExecStart=/root/.local/bin/uv run python ../chat/main.py
 Restart=always
 RestartSec=10

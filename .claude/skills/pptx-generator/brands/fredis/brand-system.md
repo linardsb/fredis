@@ -1,6 +1,6 @@
-# Dynamous — Brand System
+# Fredis — Brand System
 
-> A complete design system for AI education content, community, and products.
+> A complete design system for Fredis — a personal second brain and knowledge system.
 
 ---
 
@@ -24,11 +24,11 @@
 
 ## Logo
 
-### The Dynamous Mark
+### The Fredis Mark
 
 A stylized blue flame/droplet shape — fluid, dynamic, and modern. Represents energy, transformation, and forward momentum.
 
-**Logo file**: `.claude/DynamousLogo.png`
+**Logo file**: `.claude/FredisLogo.png`
 
 **Usage rules:**
 - Maintain aspect ratio
@@ -38,7 +38,7 @@ A stylized blue flame/droplet shape — fluid, dynamic, and modern. Represents e
 - Never distort, rotate, or add effects
 
 **Logo colors:**
-- Primary fill: `#3B82F6` (Dynamous Blue)
+- Primary fill: `#3B82F6` (Fredis Blue)
 - Highlight gradient: lighter blue toward top-left
 - Outline: `#2563EB` (slightly darker)
 
@@ -46,21 +46,21 @@ A stylized blue flame/droplet shape — fluid, dynamic, and modern. Represents e
 
 ## Color System
 
-### Primary Accent — Dynamous Blue
+### Primary Accent — Fredis Blue
 
 The signature brand color. Used for primary actions, links, highlights, and the logo.
 
 | Name | Hex | HSL | Use |
 |------|-----|-----|-----|
-| Dynamous Blue | `#3B82F6` | 217° 91% 60% | Primary buttons, links, logo |
-| Dynamous Dark | `#2563EB` | 217° 91% 53% | Hover states, outlines |
-| Dynamous Light | `#60A5FA` | 217° 91% 67% | Secondary accents, highlights |
-| Dynamous Cyan | `#0EA5E9` | 199° 89% 48% | Tertiary accents, variations |
-| Dynamous Pale | `#DBEAFE` | 214° 95% 93% | Light mode backgrounds, fills |
+| Fredis Blue | `#3B82F6` | 217° 91% 60% | Primary buttons, links, logo |
+| Fredis Dark | `#2563EB` | 217° 91% 53% | Hover states, outlines |
+| Fredis Light | `#60A5FA` | 217° 91% 67% | Secondary accents, highlights |
+| Fredis Cyan | `#0EA5E9` | 199° 89% 48% | Tertiary accents, variations |
+| Fredis Pale | `#DBEAFE` | 214° 95% 93% | Light mode backgrounds, fills |
 
-**Rule:** Dynamous Blue is the hero. Use it for actions and emphasis. Don't dilute it by overusing.
+**Rule:** Fredis Blue is the hero. Use it for actions and emphasis. Don't dilute it by overusing.
 
-**CRITICAL: NO PURPLE.** Dynamous uses blue variations only. Never use purple (#6D28D9 or similar). For tertiary accents or AI/LLM representations, use Dynamous Cyan (#0EA5E9) or darker blues (#1E40AF) instead.
+**CRITICAL: NO PURPLE.** Fredis uses blue variations only. Never use purple (#6D28D9 or similar). For tertiary accents or AI/LLM representations, use Fredis Cyan (#0EA5E9) or darker blues (#1E40AF) instead.
 
 ### Secondary Accents — Functional Colors
 
@@ -159,7 +159,7 @@ box-shadow: 0 0 15px rgba(59, 130, 246, 0.5), 0 0 30px rgba(59, 130, 246, 0.3);
 | Body content | white/80 | Comfortable reading |
 | Descriptions | white/70 | Secondary information |
 | Muted/meta | white/60 | Timestamps, labels |
-| Links | Dynamous Blue | `#3B82F6` with hover glow |
+| Links | Fredis Blue | `#3B82F6` with hover glow |
 
 ---
 
@@ -188,7 +188,7 @@ box-shadow: 0 0 15px rgba(59, 130, 246, 0.5), 0 0 30px rgba(59, 130, 246, 0.3);
 
 | Type | Background | Text | Use |
 |------|------------|------|-----|
-| Primary | Dynamous Blue | White | Main actions, CTAs |
+| Primary | Fredis Blue | White | Main actions, CTAs |
 | Secondary | white/10 | White | Secondary actions |
 | Outline | Transparent | White | Tertiary, paired with primary |
 | Ghost | Transparent | White | Navigation, subtle actions |
@@ -307,7 +307,7 @@ animation: fade-in 0.6s ease-out forwards;
 
 ### Glass Card
 
-The defining UI pattern for Dynamous. Frosted glass effect over dark backgrounds.
+The defining UI pattern for Fredis. Frosted glass effect over dark backgrounds.
 
 **Use for:**
 - Content cards
@@ -458,11 +458,11 @@ Subtle background texture that adds depth without distraction.
 ```css
 :root {
   /* Colors - Primary */
-  --dynamous-blue: #3B82F6;
-  --dynamous-dark: #2563EB;
-  --dynamous-light: #60A5FA;
-  --dynamous-cyan: #0EA5E9;
-  --dynamous-pale: #DBEAFE;
+  --fredis-blue: #3B82F6;
+  --fredis-dark: #2563EB;
+  --fredis-light: #60A5FA;
+  --fredis-cyan: #0EA5E9;
+  --fredis-pale: #DBEAFE;
 
   /* Colors - Semantic */
   --success: #047857;
@@ -519,9 +519,9 @@ Subtle background texture that adds depth without distraction.
 
 ## Quick Reference
 
-### Dynamous Blue vs Other Blues
+### Fredis Blue vs Other Blues
 
-| Dynamous Blue | Other Blues |
+| Fredis Blue | Other Blues |
 |---------------|-------------|
 | Primary buttons | Never |
 | Links | - |

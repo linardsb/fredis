@@ -14,7 +14,7 @@ Generate high-performing LinkedIn posts.
 | Default Count | 5 |
 | Output | `Fredis/Content-Ideation/LinkedIn/YYYY-MM-DD/` |
 
-## Paths (from dynamous-engine root)
+## Paths (from fredis root)
 
 **Input:**
 ```

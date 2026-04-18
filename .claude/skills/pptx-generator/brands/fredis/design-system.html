@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dynamous Design System</title>
+  <title>Fredis Design System</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Montserrat:wght@700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -13,10 +13,10 @@
        ======================================== */
     :root {
       /* Colors - Primary */
-      --dynamous-blue: #3B82F6;
-      --dynamous-dark: #2563EB;
-      --dynamous-light: #60A5FA;
-      --dynamous-pale: #DBEAFE;
+      --fredis-blue: #3B82F6;
+      --fredis-dark: #2563EB;
+      --fredis-light: #60A5FA;
+      --fredis-pale: #DBEAFE;
 
       /* Colors - Semantic */
       --success: #047857;
@@ -164,7 +164,7 @@
     }
 
     .nav a:hover {
-      color: var(--dynamous-blue);
+      color: var(--fredis-blue);
     }
 
     /* Sections */
@@ -191,7 +191,7 @@
       content: '';
       width: 4px;
       height: 1.5em;
-      background: var(--dynamous-blue);
+      background: var(--fredis-blue);
       border-radius: 2px;
     }
 
@@ -306,7 +306,7 @@
       width: 80px;
       font-family: var(--font-mono);
       font-size: 0.75rem;
-      color: var(--dynamous-blue);
+      color: var(--fredis-blue);
     }
 
     .type-size {
@@ -356,7 +356,7 @@
     .text-primary-demo { color: var(--text-primary); }
     .text-secondary-demo { color: var(--text-secondary); }
     .text-muted-demo { color: var(--text-muted); }
-    .text-link-demo { color: var(--dynamous-blue); }
+    .text-link-demo { color: var(--fredis-blue); }
 
     /* ========================================
        BUTTONS
@@ -414,13 +414,13 @@
 
     /* Button Variants */
     .btn-primary {
-      background: var(--dynamous-blue);
+      background: var(--fredis-blue);
       color: white;
       box-shadow: 0 4px 14px -4px rgba(59, 130, 246, 0.4);
     }
 
     .btn-primary:hover {
-      background: var(--dynamous-dark);
+      background: var(--fredis-dark);
       box-shadow: 0 6px 20px -4px rgba(59, 130, 246, 0.5);
       transform: translateY(-1px);
     }
@@ -442,7 +442,7 @@
 
     .btn-outline:hover {
       background: rgba(59, 130, 246, 0.1);
-      border-color: var(--dynamous-blue);
+      border-color: var(--fredis-blue);
     }
 
     .btn-ghost {
@@ -473,7 +473,7 @@
       width: 60px;
       font-family: var(--font-mono);
       font-size: 0.875rem;
-      color: var(--dynamous-blue);
+      color: var(--fredis-blue);
     }
 
     .spacing-value {
@@ -485,7 +485,7 @@
 
     .spacing-bar {
       height: 24px;
-      background: var(--dynamous-blue);
+      background: var(--fredis-blue);
       border-radius: var(--radius-sm);
       opacity: 0.7;
     }
@@ -506,7 +506,7 @@
     .radius-preview {
       width: 80px;
       height: 80px;
-      background: var(--dynamous-blue);
+      background: var(--fredis-blue);
       margin-bottom: var(--space-sm);
     }
 
@@ -602,7 +602,7 @@
     .animation-box {
       width: 60px;
       height: 60px;
-      background: var(--dynamous-blue);
+      background: var(--fredis-blue);
       border-radius: var(--radius-md);
       margin: 0 auto var(--space-base);
     }
@@ -650,7 +650,7 @@
     }
 
     .animate-shimmer {
-      background: linear-gradient(90deg, var(--dynamous-blue) 0%, var(--dynamous-light) 50%, var(--dynamous-blue) 100%);
+      background: linear-gradient(90deg, var(--fredis-blue) 0%, var(--fredis-light) 50%, var(--fredis-blue) 100%);
       background-size: 200% 100%;
       animation: shimmer 2s linear infinite;
     }
@@ -719,7 +719,7 @@
 
     .input:focus {
       outline: none;
-      border-color: var(--dynamous-blue);
+      border-color: var(--fredis-blue);
       box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
     }
 
@@ -763,7 +763,7 @@
       position: absolute;
       width: 200px;
       height: 200px;
-      background: var(--dynamous-blue);
+      background: var(--fredis-blue);
       filter: blur(80px);
       opacity: 0.3;
       top: 50%;
@@ -789,7 +789,7 @@
       color: var(--text-secondary);
     }
 
-    .code-block .keyword { color: var(--dynamous-light); }
+    .code-block .keyword { color: var(--fredis-light); }
     .code-block .property { color: #A7F3D0; }
     .code-block .value { color: #FED7AA; }
     .code-block .comment { color: var(--text-muted); }
@@ -840,7 +840,7 @@
       position: fixed;
       bottom: var(--space-xl);
       right: var(--space-xl);
-      background: var(--dynamous-blue);
+      background: var(--fredis-blue);
       color: white;
       padding: var(--space-md) var(--space-lg);
       border-radius: var(--radius-md);
@@ -903,10 +903,10 @@
     <!-- Header -->
     <header class="header">
       <div class="logo-display">
-        <img src="DynamousLogo.png" alt="Dynamous Logo">
+        <img src="FredisLogo.png" alt="Fredis Logo">
       </div>
-      <h1>Dynamous <span class="text-glow" style="color: var(--dynamous-blue);">Design System</span></h1>
-      <p class="subtitle">A complete visual reference for AI education content, community, and products.</p>
+      <h1>Fredis <span class="text-glow" style="color: var(--fredis-blue);">Design System</span></h1>
+      <p class="subtitle">A complete visual reference for Fredis — a personal second brain and knowledge system.</p>
     </header>
 
     <!-- Colors Section -->
@@ -914,39 +914,39 @@
       <h2 class="section-title">Colors</h2>
 
       <div class="subsection">
-        <h3 class="subsection-title">Primary — Dynamous Blue</h3>
+        <h3 class="subsection-title">Primary — Fredis Blue</h3>
         <p class="description">The signature brand color. Click any swatch to copy the hex code.</p>
         <div class="color-grid">
           <div class="color-swatch" onclick="copyToClipboard('#3B82F6', this)">
             <div class="color-preview" style="background: #3B82F6;"></div>
             <div class="color-info">
-              <div class="color-name">Dynamous Blue</div>
+              <div class="color-name">Fredis Blue</div>
               <div class="color-hex">#3B82F6</div>
-              <div class="color-var">--dynamous-blue</div>
+              <div class="color-var">--fredis-blue</div>
             </div>
           </div>
           <div class="color-swatch" onclick="copyToClipboard('#2563EB', this)">
             <div class="color-preview" style="background: #2563EB;"></div>
             <div class="color-info">
-              <div class="color-name">Dynamous Dark</div>
+              <div class="color-name">Fredis Dark</div>
               <div class="color-hex">#2563EB</div>
-              <div class="color-var">--dynamous-dark</div>
+              <div class="color-var">--fredis-dark</div>
             </div>
           </div>
           <div class="color-swatch" onclick="copyToClipboard('#60A5FA', this)">
             <div class="color-preview" style="background: #60A5FA;"></div>
             <div class="color-info">
-              <div class="color-name">Dynamous Light</div>
+              <div class="color-name">Fredis Light</div>
               <div class="color-hex">#60A5FA</div>
-              <div class="color-var">--dynamous-light</div>
+              <div class="color-var">--fredis-light</div>
             </div>
           </div>
           <div class="color-swatch" onclick="copyToClipboard('#DBEAFE', this)">
             <div class="color-preview" style="background: #DBEAFE;"></div>
             <div class="color-info">
-              <div class="color-name">Dynamous Pale</div>
+              <div class="color-name">Fredis Pale</div>
               <div class="color-hex">#DBEAFE</div>
-              <div class="color-var">--dynamous-pale</div>
+              <div class="color-var">--fredis-pale</div>
             </div>
           </div>
         </div>
@@ -1054,7 +1054,7 @@
           <p class="text-primary-demo"><strong>Primary (98%)</strong> — Main headings and emphasis</p>
           <p class="text-secondary-demo"><strong>Secondary (80%)</strong> — Body text and descriptions</p>
           <p class="text-muted-demo"><strong>Muted (70%)</strong> — Meta info, timestamps, labels</p>
-          <p class="text-link-demo"><strong>Link (Dynamous Blue)</strong> — Interactive text elements</p>
+          <p class="text-link-demo"><strong>Link (Fredis Blue)</strong> — Interactive text elements</p>
         </div>
       </div>
     </section>
@@ -1290,14 +1290,14 @@
     <!-- Glass Cards Section -->
     <section class="section" id="glass">
       <h2 class="section-title">Glass Cards</h2>
-      <p class="description">The signature UI pattern for Dynamous. Frosted glass effect over dark backgrounds.</p>
+      <p class="description">The signature UI pattern for Fredis. Frosted glass effect over dark backgrounds.</p>
 
       <div class="glass-demo-grid">
         <div class="glass-card">
           <h3 class="glass-card-title">Default Glass Card</h3>
           <p class="glass-card-text">Background: rgba(0, 0, 0, 0.4)<br>Backdrop blur: 16px<br>Border: rgba(255, 255, 255, 0.1)<br>Border radius: 12px</p>
         </div>
-        <div class="glass-card" style="border-color: var(--dynamous-blue); box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);">
+        <div class="glass-card" style="border-color: var(--fredis-blue); box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);">
           <h3 class="glass-card-title">Highlighted Card</h3>
           <p class="glass-card-text">Same base with blue border and subtle glow for emphasis.</p>
         </div>
@@ -1333,13 +1333,13 @@
           <div class="glow-demo-label">box-shadow: 0 0 15px rgba(59, 130, 246, 0.5)</div>
         </div>
         <div class="glow-demo" style="background: var(--surface); border: 1px solid var(--border);">
-          <div class="glow-demo-title text-glow" style="color: var(--dynamous-blue);">Text Glow</div>
+          <div class="glow-demo-title text-glow" style="color: var(--fredis-blue);">Text Glow</div>
           <div class="glow-demo-label">text-shadow: 0 0 10px rgba(59, 130, 246, 0.5)</div>
         </div>
         <div class="glow-demo" style="background: var(--surface); border: 1px solid var(--border);">
-          <div class="glow-demo-title" style="color: var(--dynamous-blue);">Combined</div>
+          <div class="glow-demo-title" style="color: var(--fredis-blue);">Combined</div>
           <div class="glow-demo-label">
-            <span class="text-glow" style="color: var(--dynamous-blue);">Text</span> +
+            <span class="text-glow" style="color: var(--fredis-blue);">Text</span> +
             <span style="display: inline-block; padding: 2px 8px; border-radius: 4px;" class="blue-glow">Box</span>
           </div>
         </div>
@@ -1382,7 +1382,7 @@
         </div>
         <div class="animation-demo" id="fade-demo">
           <div class="animation-box" id="fade-box"></div>
-          <div class="animation-label">Fade In (0.6s) — <a href="javascript:void(0)" onclick="replayFadeIn()" style="color: var(--dynamous-blue);">Replay</a></div>
+          <div class="animation-label">Fade In (0.6s) — <a href="javascript:void(0)" onclick="replayFadeIn()" style="color: var(--fredis-blue);">Replay</a></div>
         </div>
       </div>
 
@@ -1418,11 +1418,11 @@
         </div>
         <div>
           <label class="input-label">Focused Input</label>
-          <input type="text" class="input" placeholder="Click to see focus state" style="border-color: var(--dynamous-blue); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);">
+          <input type="text" class="input" placeholder="Click to see focus state" style="border-color: var(--fredis-blue); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);">
         </div>
         <div>
           <label class="input-label">With Value</label>
-          <input type="text" class="input" value="hello@dynamous.ai">
+          <input type="text" class="input" value="hello@example.com">
         </div>
       </div>
     </section>
@@ -1516,10 +1516,10 @@
         <button class="copy-btn" onclick="copyCode(this)">Copy All</button>
         <code><span class="keyword">:root</span> {
   <span class="comment">/* Colors - Primary */</span>
-  <span class="property">--dynamous-blue</span>: <span class="value">#3B82F6</span>;
-  <span class="property">--dynamous-dark</span>: <span class="value">#2563EB</span>;
-  <span class="property">--dynamous-light</span>: <span class="value">#60A5FA</span>;
-  <span class="property">--dynamous-pale</span>: <span class="value">#DBEAFE</span>;
+  <span class="property">--fredis-blue</span>: <span class="value">#3B82F6</span>;
+  <span class="property">--fredis-dark</span>: <span class="value">#2563EB</span>;
+  <span class="property">--fredis-light</span>: <span class="value">#60A5FA</span>;
+  <span class="property">--fredis-pale</span>: <span class="value">#DBEAFE</span>;
 
   <span class="comment">/* Colors - Semantic */</span>
   <span class="property">--success</span>: <span class="value">#047857</span>;

@@ -16,7 +16,7 @@ Generate content for YouTube, LinkedIn, X, and YouTube Shorts from a single rese
 | X | 10 | `Fredis/Content-Ideation/X/YYYY-MM-DD/` |
 | Shorts | 5 | `Fredis/Content-Ideation/Shorts/YYYY-MM-DD/` |
 
-## Paths (from dynamous-engine root)
+## Paths (from fredis root)
 
 **Input:**
 ```

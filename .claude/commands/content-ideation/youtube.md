@@ -14,7 +14,7 @@ Generate production-ready YouTube scripts.
 | Default Count | 3 |
 | Output | `Fredis/Content-Ideation/YouTube/YYYY-MM-DD/` |
 
-## Paths (from dynamous-engine root)
+## Paths (from fredis root)
 
 **Input:**
 ```

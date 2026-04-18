@@ -90,7 +90,7 @@ class TestPatternDetection:
 
     def test_you_are_now_welcome(self) -> None:
         """Community notification: 'You are now a member' is not injection."""
-        assert not check_injection_patterns("You are now a member of the Dynamous community!")
+        assert not check_injection_patterns("You are now a member of the Obsidian community!")
 
     def test_you_are_now_invited(self) -> None:
         assert not check_injection_patterns("You are now invited to the workshop")
@@ -285,7 +285,7 @@ class TestNonDisruption:
         assert result == text
 
     def test_circle_community_notification_unchanged(self) -> None:
-        text = "You are now a member of the Dynamous community!"
+        text = "You are now a member of the Obsidian community!"
         result = sanitize_external_text(text, "circle")
         assert result == text
         assert "[FLAGGED:" not in result

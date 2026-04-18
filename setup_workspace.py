@@ -21,78 +21,14 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 # Repository definitions
 # ---------------------------------------------------------------------------
-REPOS = [
-    {
-        "name": "content-engine",
-        "url": "https://github.com/your-username/content-engine.git",
-        "path": "content-engine",
-    },
-    {
-        "name": "video-processor",
-        "url": "https://github.com/your-username/video-processor.git",
-        "path": "video-processor",
-    },
-    {
-        "name": "obsidian-ai-agent",
-        "url": "https://github.com/dynamous-community/obsidian-ai-agent.git",
-        "path": "obsidian-ai-agent",
-    },
-]
+REPOS: list[dict[str, str]] = []
 
 # ---------------------------------------------------------------------------
 # Env file definitions
 #
 # Each entry maps: target_var_name -> master_var_name
-# When names conflict across repos, the master file uses prefixed names
-# (CE_ for content-engine, OA_ for obsidian-agent).
 # ---------------------------------------------------------------------------
 ENV_FILES = {
-    # --- Content Engine ---
-    "content-engine/.env": {
-        "DATABASE_URL": "CE_DATABASE_URL",
-        "OPENROUTER_API_KEY": "OPENROUTER_API_KEY",
-        "SUPADATA_API_KEY": "SUPADATA_API_KEY",
-        "BRAVE_API_KEY": "CE_BRAVE_API_KEY",
-        "PERPLEXITY_API_KEY": "PERPLEXITY_API_KEY",
-        "REDDIT_CLIENT_ID": "REDDIT_CLIENT_ID",
-        "REDDIT_CLIENT_SECRET": "REDDIT_CLIENT_SECRET",
-        "GITHUB_TOKEN": "GITHUB_TOKEN",
-        "TRIAGE_MODEL": "TRIAGE_MODEL",
-        "ANALYSIS_MODEL": "ANALYSIS_MODEL",
-        "SYNTHESIS_MODEL": "SYNTHESIS_MODEL",
-    },
-    # --- Video Processor ---
-    "video-processor/.env": {
-        "OPENAI_API_KEY": "OPENAI_API_KEY",
-        "WHISPER_MODEL": "WHISPER_MODEL",
-        "GEMINI_API_KEY": "GEMINI_API_KEY",
-        "GEMINI_MODEL": "GEMINI_MODEL",
-        "GEMINI_THUMBNAIL_MODEL": "GEMINI_THUMBNAIL_MODEL",
-        "REPLICATE_API_TOKEN": "REPLICATE_API_TOKEN",
-    },
-    # --- Obsidian AI Agent ---
-    "obsidian-ai-agent/.env": {
-        "APP_NAME": "APP_NAME",
-        "VERSION": "VERSION",
-        "ENVIRONMENT": "ENVIRONMENT",
-        "LOG_LEVEL": "LOG_LEVEL",
-        "API_PREFIX": "API_PREFIX",
-        "ALLOWED_ORIGINS": "ALLOWED_ORIGINS",
-        "ANTHROPIC_API_KEY": "ANTHROPIC_API_KEY",
-        "LLM_MODEL": "LLM_MODEL",
-        "BRAVE_API_KEY": "OA_BRAVE_API_KEY",
-        "OBSIDIAN_VAULT_PATH": "OBSIDIAN_VAULT_PATH",
-        "DATABASE_URL": "OA_DATABASE_URL",
-        "SUPABASE_PROJECT_URL": "SUPABASE_PROJECT_URL",
-        "SUPABASE_KEY": "SUPABASE_KEY",
-        "ENABLE_RAG": "ENABLE_RAG",
-        "RAG_PIPELINE_ID": "RAG_PIPELINE_ID",
-        "SUPABASE_URL": "SUPABASE_URL",
-        "SUPABASE_SERVICE_KEY": "SUPABASE_SERVICE_KEY",
-        "EMBEDDING_BASE_URL": "EMBEDDING_BASE_URL",
-        "EMBEDDING_API_KEY": "EMBEDDING_API_KEY",
-        "EMBEDDING_MODEL_CHOICE": "EMBEDDING_MODEL_CHOICE",
-    },
     # --- Second Brain (Heartbeat & Scripts) ---
     ".claude/scripts/.env": {
         "OWNER_NAME": "OWNER_NAME",
@@ -118,23 +54,6 @@ ENV_FILES = {
 # Defaults — written to target .env if the master doesn't define them
 # ---------------------------------------------------------------------------
 DEFAULTS = {
-    "TRIAGE_MODEL": "openrouter:anthropic/claude-haiku-4.5",
-    "ANALYSIS_MODEL": "openrouter:anthropic/claude-sonnet-4.5",
-    "SYNTHESIS_MODEL": "openrouter:anthropic/claude-sonnet-4.5",
-    "WHISPER_MODEL": "whisper-1",
-    "GEMINI_MODEL": "gemini-3-flash-preview",
-    "GEMINI_THUMBNAIL_MODEL": "gemini-3-pro-image-preview",
-    "APP_NAME": "Obsidian Agent Project",
-    "VERSION": "0.1.0",
-    "ENVIRONMENT": "development",
-    "LOG_LEVEL": "INFO",
-    "API_PREFIX": "/api",
-    "ALLOWED_ORIGINS": '["http://localhost:3000","http://localhost:8123","app://obsidian.md","capacitor://localhost"]',
-    "LLM_MODEL": "claude-haiku-4-5",
-    "ENABLE_RAG": "true",
-    "RAG_PIPELINE_ID": "obsidian-vault-rag",
-    "EMBEDDING_BASE_URL": "https://api.openai.com/v1",
-    "EMBEDDING_MODEL_CHOICE": "text-embedding-3-small",
     "HEARTBEAT_INTERVAL_MINUTES": "30",
     "HEARTBEAT_ACTIVE_HOURS_START": "08:00",
     "HEARTBEAT_ACTIVE_HOURS_END": "22:00",
@@ -216,46 +135,6 @@ def generate_master_template(root: Path) -> None:
     """Generate a master.env.example with all required variables."""
     template = root / "master.env.example"
     sections = [
-        (
-            "Shared / Multi-Repo Keys",
-            [
-                ("OPENAI_API_KEY", "OpenAI (video-processor transcription + obsidian-agent embeddings)"),
-                ("ANTHROPIC_API_KEY", "Anthropic (obsidian-agent LLM)"),
-                ("GITHUB_TOKEN", "GitHub PAT (content-engine rate limit)"),
-            ],
-        ),
-        (
-            "Content Engine",
-            [
-                ("CE_DATABASE_URL", "PostgreSQL connection (e.g. postgresql://user:pass@host:6543/db)"),
-                ("CE_BRAVE_API_KEY", "Brave Search API key for content-engine"),
-                ("OPENROUTER_API_KEY", "OpenRouter API key"),
-                ("SUPADATA_API_KEY", "Supadata API key (YouTube transcripts)"),
-                ("PERPLEXITY_API_KEY", "Perplexity API key"),
-                ("REDDIT_CLIENT_ID", "Reddit app client ID"),
-                ("REDDIT_CLIENT_SECRET", "Reddit app client secret"),
-            ],
-        ),
-        (
-            "Video Processor",
-            [
-                ("GEMINI_API_KEY", "Google Gemini API key"),
-                ("REPLICATE_API_TOKEN", "Replicate API token (face swap)"),
-            ],
-        ),
-        (
-            "Obsidian AI Agent",
-            [
-                ("OA_DATABASE_URL", "PostgreSQL+asyncpg connection for obsidian-agent"),
-                ("OA_BRAVE_API_KEY", "Brave Search API key for obsidian-agent"),
-                ("OBSIDIAN_VAULT_PATH", "Absolute path to Obsidian vault"),
-                ("SUPABASE_PROJECT_URL", "Supabase project URL"),
-                ("SUPABASE_KEY", "Supabase anon/service key"),
-                ("SUPABASE_URL", "Supabase URL (for RAG)"),
-                ("SUPABASE_SERVICE_KEY", "Supabase service role key (for RAG)"),
-                ("EMBEDDING_API_KEY", "Embedding API key (usually same as OPENAI_API_KEY)"),
-            ],
-        ),
         (
             "Second Brain (Heartbeat & Scripts)",
             [
@@ -369,7 +248,7 @@ def generate_hooks_settings(root: Path, dry_run: bool = False) -> None:
         print(f"  WRITE .claude/settings.local.json ({platform} hooks)")
 
 
-TEMPLATE_FILES = ["SOUL.md", "USER.md", "MEMORY.md", "HEARTBEAT.md", "BOOTSTRAP.md"]
+TEMPLATE_FILES = ["SOUL.md", "USER.md", "MEMORY.md", "HEARTBEAT.md", "HABITS.md"]
 
 
 def init_memory_templates(root: Path, dry_run: bool = False) -> None:
@@ -401,18 +280,6 @@ def init_memory_templates(root: Path, dry_run: bool = False) -> None:
             shutil.copy2(src, dst)
             print(f"  COPY  templates/memory/{filename} -> Fredis/Memory/{filename}")
 
-    # Copy tone-of-voice template to .claude/ if it doesn't exist
-    tov_src = root / "templates" / "tone-of-voice.md"
-    tov_dst = root / ".claude" / "tone-of-voice.md"
-    if tov_src.exists() and not tov_dst.exists():
-        if dry_run:
-            print("  COPY  templates/tone-of-voice.md -> .claude/tone-of-voice.md")
-        else:
-            shutil.copy2(tov_src, tov_dst)
-            print("  COPY  templates/tone-of-voice.md -> .claude/tone-of-voice.md")
-    elif tov_dst.exists():
-        print("  SKIP  tone-of-voice.md (already exists)")
-
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Set up Fredis workspace")
@@ -438,7 +305,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    # Root is wherever this script lives (dynamous-engine root)
+    # Root is wherever this script lives (fredis root)
     root = Path(__file__).parent.resolve()
     print(f"Workspace root: {root}")
     print()
@@ -487,10 +354,7 @@ def main() -> None:
         print("Setup complete!")
         print()
         print("Next steps:")
-        print("  1. cd content-engine && uv sync")
-        print("  2. cd video-processor && uv sync")
-        print("  3. cd obsidian-ai-agent && uv sync")
-        print("  4. cd .claude/scripts && uv sync")
+        print("  1. cd .claude/scripts && uv sync")
 
 
 if __name__ == "__main__":

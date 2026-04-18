@@ -14,7 +14,7 @@ Generate high-performing YouTube Shorts scripts.
 | Default Count | 5 |
 | Output | `Fredis/Content-Ideation/Shorts/YYYY-MM-DD/` |
 
-## Paths (from dynamous-engine root)
+## Paths (from fredis root)
 
 **Input:**
 ```
