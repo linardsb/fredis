@@ -163,6 +163,49 @@ def test_append_to_daily_log_creates_file(tmp_path: Path, monkeypatch: pytest.Mo
     assert "first entry body" in content
 
 
+def test_append_to_daily_log_routes_under_parent_section(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """When parent_section is given, the entry lands inside that ## block."""
+    daily_dir = tmp_path / "daily"
+    log_path = daily_dir / "today.md"
+    monkeypatch.setattr("shared.get_today_log_path", lambda: log_path)
+
+    # Two routed entries + one unrouted entry that should still append at end
+    append_to_daily_log("session entry", "Session End Flush", "Sessions")
+    append_to_daily_log("heartbeat entry", "Heartbeat", "Heartbeats")
+    append_to_daily_log("legacy entry", "Pre-Compaction Flush")
+
+    content = log_path.read_text(encoding="utf-8")
+
+    sessions_idx = content.index("## Sessions")
+    heartbeats_idx = content.index("## Heartbeats")
+    maintenance_idx = content.index("## Memory Maintenance")
+    session_entry_idx = content.index("### Session End Flush")
+    heartbeat_entry_idx = content.index("### Heartbeat")
+    legacy_idx = content.index("### Pre-Compaction Flush")
+
+    assert sessions_idx < session_entry_idx < heartbeats_idx
+    assert heartbeats_idx < heartbeat_entry_idx < maintenance_idx
+    assert legacy_idx > maintenance_idx  # unrouted = appended at end
+
+
+def test_append_to_daily_log_falls_back_when_parent_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An unknown parent_section appends to the end instead of raising."""
+    daily_dir = tmp_path / "daily"
+    log_path = daily_dir / "today.md"
+    monkeypatch.setattr("shared.get_today_log_path", lambda: log_path)
+
+    append_to_daily_log("orphan", "Orphan Section", "Nonexistent")
+
+    content = log_path.read_text(encoding="utf-8")
+    assert "### Orphan Section" in content
+    # Came after the standard scaffolded sections
+    assert content.index("### Orphan Section") > content.index("## Memory Maintenance")
+
+
 def test_append_to_daily_log_escapes_trust_boundary(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

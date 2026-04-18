@@ -163,7 +163,7 @@ async def _run_reflection_inner(test_mode: bool = False, days: int = 1) -> str |
     if not logs:
         msg = f"No daily logs found for the last {days} day(s), skipping reflection"
         print(f"[{now_local()}] {msg}")
-        append_to_daily_log(f"REFLECTION_SKIPPED - {msg}", "Reflection")
+        append_to_daily_log(f"REFLECTION_SKIPPED - {msg}", "Reflection", "Memory Maintenance")
         return None
 
     # Build log context
@@ -291,7 +291,9 @@ If nothing is worth updating in any file, respond with exactly: REFLECTION_OK
 
     except Exception as e:
         print(f"[{now_local()}] Reflection error: {e}")
-        append_to_daily_log(f"**ERROR**: Reflection failed - {e}", "Reflection")
+        append_to_daily_log(
+            f"**ERROR**: Reflection failed - {e}", "Reflection", "Memory Maintenance"
+        )
         return None
 
     # Update state
@@ -305,11 +307,19 @@ If nothing is worth updating in any file, respond with exactly: REFLECTION_OK
     response_text = response_text.strip()
 
     if "REFLECTION_OK" in response_text:
-        append_to_daily_log("REFLECTION_OK - Nothing to promote from recent logs", "Reflection")
+        append_to_daily_log(
+            "REFLECTION_OK - Nothing to promote from recent logs",
+            "Reflection",
+            "Memory Maintenance",
+        )
         print(f"[{now_local()}] Reflection OK - nothing to promote")
         return None
     else:
-        append_to_daily_log(f"Promoted items from last {days} day(s) to MEMORY.md", "Reflection")
+        append_to_daily_log(
+            f"Promoted items from last {days} day(s) to MEMORY.md",
+            "Reflection",
+            "Memory Maintenance",
+        )
 
         if test_mode:
             print(f"[{now_local()}] DRY RUN - would have promoted:\n{response_text[:500]}")

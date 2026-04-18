@@ -496,7 +496,9 @@ Respond with ONLY valid JSON (no markdown, no explanation):
         summary = f"Unparseable guardrail response: {result_text[:100]}"
 
     # Log to daily log
-    append_to_daily_log(f"Guardrail: {verdict} — {summary or 'clean'}", "Heartbeat")
+    append_to_daily_log(
+        f"Guardrail: {verdict} — {summary or 'clean'}", "Heartbeat", "Heartbeats"
+    )
 
     # Save state
     guardrail_state = {
@@ -1523,7 +1525,9 @@ Your final text response goes directly to {owner}'s phone. Keep it to just bulle
 
     except Exception as e:
         print(f"[{now_local()}] Heartbeat error: {e}")
-        append_to_daily_log(f"**ERROR**: Heartbeat failed - {e}", "Heartbeat")
+        append_to_daily_log(
+            f"**ERROR**: Heartbeat failed - {e}", "Heartbeat", "Heartbeats"
+        )
         log_hook_execution("heartbeat", "scheduled", "ERROR", time.time() - _start, str(e))
         return None
 
@@ -1594,13 +1598,15 @@ Your final text response goes directly to {owner}'s phone. Keep it to just bulle
 
     if "HEARTBEAT_OK" in response_text:
         # Nothing to report
-        append_to_daily_log("HEARTBEAT_OK - Nothing needs attention", "Heartbeat")
+        append_to_daily_log(
+            "HEARTBEAT_OK - Nothing needs attention", "Heartbeat", "Heartbeats"
+        )
         print(f"[{now_local()}] Heartbeat OK - nothing to report")
         log_hook_execution("heartbeat", "scheduled", "OK", time.time() - _start, "HEARTBEAT_OK")
         return None
     else:
         # Something needs attention
-        append_to_daily_log(response_text, "Heartbeat")
+        append_to_daily_log(response_text, "Heartbeat", "Heartbeats")
 
         if not test_mode:
             slack_result = send_toast_notification("Second Brain Alert", response_text)

@@ -39,6 +39,23 @@ from shared import append_to_daily_log, file_lock, load_state, save_state
 
 FLUSH_STATE_FILE = STATE_DIR / "flush-state.json"
 
+# Routing: how each flush source is labelled and which top-level section
+# of the daily log it lands under.
+SOURCE_ROUTING: dict[str, tuple[str, str]] = {
+    "pre-compact": ("Pre-Compaction Flush", "Memory Maintenance"),
+    "session-end": ("Session End Flush", "Sessions"),
+}
+
+
+def _safe_unlink(path: Path) -> None:
+    """Delete the context file, swallowing missing-file errors."""
+    try:
+        path.unlink()
+    except FileNotFoundError:
+        pass
+    except OSError as e:
+        print(f"[{now_local()}] Warning: Could not delete context file {path}: {e}")
+
 
 def _extract_session_id(context_file: Path) -> str:
     """Extract session_id from context filename like flush-context-{session_id}-{timestamp}.md."""
@@ -59,20 +76,28 @@ def _extract_session_id(context_file: Path) -> str:
 # =============================================================================
 
 
-async def run_flush(context_file: Path, test_mode: bool = False) -> str | None:
+async def run_flush(
+    context_file: Path,
+    test_mode: bool = False,
+    source: str = "pre-compact",
+) -> str | None:
     """Run the memory flush with concurrency guard.
 
     Wraps the inner flush with a file lock to prevent simultaneous runs.
     """
     try:
         with file_lock(FLUSH_STATE_FILE, timeout=5.0):
-            return await _run_flush_inner(context_file, test_mode)
+            return await _run_flush_inner(context_file, test_mode, source)
     except TimeoutError:
         print(f"[{now_local()}] Another flush is already running, skipping")
         return None
 
 
-async def _run_flush_inner(context_file: Path, test_mode: bool = False) -> str | None:
+async def _run_flush_inner(
+    context_file: Path,
+    test_mode: bool = False,
+    source: str = "pre-compact",
+) -> str | None:
     """Run the memory flush using Agent SDK.
 
     Args:
@@ -88,6 +113,10 @@ async def _run_flush_inner(context_file: Path, test_mode: bool = False) -> str |
         ResultMessage,
         TextBlock,
         query,
+    )
+
+    section_name, parent_section = SOURCE_ROUTING.get(
+        source, SOURCE_ROUTING["pre-compact"]
     )
 
     if not context_file.exists():
@@ -106,6 +135,7 @@ async def _run_flush_inner(context_file: Path, test_mode: bool = False) -> str |
                 last_flush_time = last_flush_time.replace(tzinfo=LOCAL_TZ)
             if (now_local() - last_flush_time).total_seconds() < 60:
                 print(f"[{now_local()}] Skipping duplicate flush for session {session_id}")
+                _safe_unlink(context_file)
                 return None
         except ValueError:
             pass  # Malformed timestamp, proceed with flush
@@ -113,6 +143,7 @@ async def _run_flush_inner(context_file: Path, test_mode: bool = False) -> str |
     context_content = context_file.read_text(encoding="utf-8").strip()
     if not context_content:
         print("[memory-flush] Context file is empty, nothing to flush")
+        _safe_unlink(context_file)
         return None
 
     # Truncate if needed
@@ -134,7 +165,8 @@ async def _run_flush_inner(context_file: Path, test_mode: bool = False) -> str |
     flush_prompt = f"""Pre-compaction memory flush. The session is near auto-compaction.
 {dry_run_note}
 Review the conversation context below and respond with a concise summary of important items.
-Do NOT use any tools — just return plain text.
+You have NO tools available — respond with plain text only. Do not attempt to call
+Write, Edit, or any other tool; the daily-log file will be written by the caller.
 
 Format your response as bullet points covering:
 {priority_bullet}
@@ -171,7 +203,7 @@ If nothing is worth saving, respond with exactly: FLUSH_OK
             options=ClaudeAgentOptions(
                 cwd=str(PROJECT_ROOT),
                 allowed_tools=[],
-                max_turns=2,
+                max_turns=4,
             ),
         ):
             if isinstance(message, AssistantMessage):
@@ -185,7 +217,10 @@ If nothing is worth saving, respond with exactly: FLUSH_OK
 
     except Exception as e:
         print(f"[{now_local()}] Flush error: {e}")
-        append_to_daily_log(f"**ERROR**: Memory flush failed - {e}", "Pre-Compaction Flush")
+        append_to_daily_log(
+            f"**ERROR**: Memory flush failed - {e}", section_name, parent_section
+        )
+        _safe_unlink(context_file)
         return None
 
     response_text = response_text.strip()
@@ -198,16 +233,15 @@ If nothing is worth saving, respond with exactly: FLUSH_OK
     save_state(state, FLUSH_STATE_FILE)
 
     # Clean up context file
-    try:
-        context_file.unlink()
-        print(f"[{now_local()}] Cleaned up context file: {context_file}")
-    except OSError as e:
-        print(f"[{now_local()}] Warning: Could not delete context file: {e}")
+    _safe_unlink(context_file)
+    print(f"[{now_local()}] Cleaned up context file: {context_file}")
 
     if "FLUSH_OK" in response_text:
         print(f"[{now_local()}] Flush OK - nothing worth saving")
         append_to_daily_log(
-            "FLUSH_OK - Nothing worth saving from this session", "Pre-Compaction Flush"
+            "FLUSH_OK - Nothing worth saving from this session",
+            section_name,
+            parent_section,
         )
         return None
 
@@ -215,7 +249,7 @@ If nothing is worth saving, respond with exactly: FLUSH_OK
         print(f"[{now_local()}] DRY RUN - would have saved:\n{response_text[:500]}")
     else:
         # Write the analysis to the daily log directly
-        append_to_daily_log(response_text, "Pre-Compaction Flush")
+        append_to_daily_log(response_text, section_name, parent_section)
         print(f"[{now_local()}] Flush saved items to daily log")
     return response_text
 
@@ -232,6 +266,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Memory flush background agent")
     parser.add_argument("--context-file", required=True, help="Path to context file")
     parser.add_argument("--test", action="store_true", help="Dry run mode")
+    parser.add_argument(
+        "--source",
+        choices=sorted(SOURCE_ROUTING),
+        default="pre-compact",
+        help="Which hook spawned this flush (controls daily-log routing)",
+    )
     args = parser.parse_args()
 
     context_file = Path(args.context_file)
@@ -239,7 +279,9 @@ def main() -> None:
     if args.test:
         print("Running in TEST MODE (dry run, no file edits)")
 
-    result = asyncio.run(run_flush(context_file=context_file, test_mode=args.test))
+    result = asyncio.run(
+        run_flush(context_file=context_file, test_mode=args.test, source=args.source)
+    )
 
     if result:
         try:

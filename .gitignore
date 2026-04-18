@@ -23,6 +23,7 @@ workspace/
 
 # Heartbeat scripts
 .claude/scripts/.env
+.claude/scripts/*.lock
 .claude/scripts/.venv/
 .claude/scripts/heartbeat_runs.log
 .claude/scripts/reflection_runs.log

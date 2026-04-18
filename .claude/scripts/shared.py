@@ -195,8 +195,17 @@ def _create_daily_log(log_path: Path) -> None:
     log_path.write_text(header, encoding="utf-8")
 
 
-def append_to_daily_log(content: str, section_name: str = "Entry") -> None:
-    """Append content to today's daily log under a named section."""
+def append_to_daily_log(
+    content: str,
+    section_name: str = "Entry",
+    parent_section: str | None = None,
+) -> None:
+    """Append content to today's daily log under a named section.
+
+    If ``parent_section`` is given (e.g. ``"Sessions"``), the new ``### {section_name}``
+    block is inserted at the end of that ``## {parent_section}`` block instead of
+    appended to the file. Falls back to plain append if the parent is missing.
+    """
     log_path = get_today_log_path()
     log_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -205,12 +214,49 @@ def append_to_daily_log(content: str, section_name: str = "Entry") -> None:
 
     with file_lock(log_path, timeout=5.0):
         timestamp = now_local().strftime("%H:%M")
+        block = f"### {section_name} ({timestamp})\n\n{safe_content}\n\n"
 
         if not log_path.exists():
             _create_daily_log(log_path)
 
+        if parent_section:
+            current = log_path.read_text(encoding="utf-8")
+            updated = _insert_under_section(current, parent_section, block)
+            if updated is not None:
+                log_path.write_text(updated, encoding="utf-8")
+                return
+
         with open(log_path, "a", encoding="utf-8") as f:
-            f.write(f"### {section_name} ({timestamp})\n\n{safe_content}\n\n")
+            f.write(block)
+
+
+def _insert_under_section(doc: str, parent_section: str, block: str) -> str | None:
+    """Insert ``block`` at the end of the ``## {parent_section}`` section.
+
+    Returns the new document, or None if the parent heading isn't present.
+    """
+    lines = doc.splitlines(keepends=True)
+    parent_heading = f"## {parent_section}"
+    insert_at: int | None = None
+
+    for i, line in enumerate(lines):
+        if line.rstrip() == parent_heading:
+            # Find next top-level section, or EOF
+            j = i + 1
+            while j < len(lines) and not lines[j].startswith("## "):
+                j += 1
+            insert_at = j
+            break
+
+    if insert_at is None:
+        return None
+
+    # Trim trailing blank lines inside the parent block so spacing stays tidy
+    while insert_at > 0 and lines[insert_at - 1].strip() == "":
+        insert_at -= 1
+
+    new_lines = lines[:insert_at] + ["\n", block] + lines[insert_at:]
+    return "".join(new_lines)
 
 
 # =============================================================================

@@ -189,6 +189,8 @@ def main() -> None:
         "memory_flush.py",
         "--context-file",
         str(context_path),
+        "--source",
+        "session-end",
     ]
 
     # On Windows, avoid flash console window
