@@ -102,10 +102,34 @@ DESTRUCTIVE_PATTERNS: list[tuple[re.Pattern[str], str]] = [
 ]
 
 
+# Git subcommands whose output/content is documentation, not execution.
+# Their command strings can legitimately quote any pattern family as text
+# (commit messages mentioning blocked API names, git-log searches for
+# destructive SQL keywords, etc.) — scanning them produces only false
+# positives. Actually-dangerous git operations (push --force, reset
+# --hard, clean -fd, branch -D) remain covered by DESTRUCTIVE_PATTERNS
+# via explicit verb-flag regexes above.
+_GIT_BENIGN_PREFIXES = (
+    "git commit",
+    "git log",
+    "git show",
+    "git blame",
+    "git diff",
+    "git status",
+)
+
+
+def _is_benign_git_subcommand(normalized: str) -> bool:
+    return any(normalized.startswith(prefix) for prefix in _GIT_BENIGN_PREFIXES)
+
+
 def check_bash_command(command: str) -> str | None:
     """Return a block reason if `command` trips any family pattern."""
     # Normalize: collapse whitespace so multi-line heredocs match single-line patterns
     normalized = " ".join(command.split()).strip()
+
+    if _is_benign_git_subcommand(normalized):
+        return None
 
     for family, label in [
         (OUTBOUND_MUTATION_PATTERNS, "outbound mutation"),
@@ -168,8 +192,11 @@ def main() -> None:
         if not reason:
             content = tool_input.get("content", "") or tool_input.get("new_string", "")
             if content:
-                # Test files legitimately contain deny-pattern strings as fixtures.
-                if not re.search(r"(?:^|/)tests?/", file_path):
+                # Exempt paths where deny-pattern strings appear legitimately:
+                #   * tests/ — fixtures enumerate attack strings as parametrised inputs
+                #   * .claude/hooks/ — hook source files ARE the pattern catalog
+                exempt = re.search(r"(?:^|/)(tests?|\.claude/hooks)/", file_path)
+                if not exempt:
                     reason = check_bash_command(content)
 
     if reason:

@@ -169,3 +169,39 @@ def test_allows_write_of_outbound_script_in_tests_dir() -> None:
     bad_content = "# fixture for hook tests\ncmd = 'DROP TABLE users;'"
     result = _run("Write", {"file_path": good_path, "content": bad_content})
     assert result.returncode == 0
+
+
+# ---------------------------------------------------------------------------
+# Git-commit + hook-source exemptions (self-referential false-positive fixes)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("cmd", [
+    "git commit -m 'docs: describe DROP TABLE handling'",
+    'git commit -m "blocks chat.postMessage and drafts.send"',
+    "git log --grep='rm -rf'",
+    "git log --oneline -20",
+    "git show HEAD",
+    "git blame README.md",
+    "git diff HEAD~1",
+    "git status",
+])
+def test_allows_benign_git_subcommands(cmd: str) -> None:
+    """git commit message bodies + git log output can legitimately quote deny-pattern
+    strings. These subcommands never execute their string contents as shell."""
+    result = _run("Bash", {"command": cmd})
+    assert result.returncode == 0, f"Should have allowed: {cmd!r}\nstderr={result.stderr!r}"
+
+
+def test_git_push_force_still_blocked_despite_git_prefix() -> None:
+    """The git-benign exemption must not weaken destructive git operations."""
+    result = _run("Bash", {"command": "git push --force origin main"})
+    assert result.returncode == 2
+
+
+def test_allows_edit_of_hook_source() -> None:
+    """Hook source files contain deny-pattern regexes as their catalog; must be editable."""
+    hook_path = str(REPO_ROOT / ".claude" / "hooks" / "block-dangerous-commands.py")
+    content = 're.compile(r"chat\\.postMessage")  # outbound mutation pattern'
+    result = _run("Edit", {"file_path": hook_path, "new_string": content})
+    assert result.returncode == 0, f"stderr={result.stderr!r}"
