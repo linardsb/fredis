@@ -47,6 +47,9 @@ select = ["E", "F", "I", "N", "W", "UP"]
 # string; wrapping its sentences would change the rendered prompt. E501 is
 # disabled here so the prompt stays human-readable while every other rule applies.
 "heartbeat.py" = ["E501"]
+# query.py is an argparse-heavy CLI wrapper; long add_argument help strings
+# stay readable on one line.
+"query.py" = ["E501"]
 
 [tool.mypy]
 python_version = "3.12"

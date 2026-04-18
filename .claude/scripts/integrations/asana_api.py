@@ -574,24 +574,31 @@ def get_due_soon_tasks(days: int = 3, assignee: str | None = None) -> list[Asana
 
 
 def format_tasks_for_context(tasks: list[AsanaTask]) -> str:
-    """Format tasks for inclusion in Claude's context prompt."""
+    """Format tasks for Claude's context, grouped by project for scannability."""
     if not tasks:
         return "No tasks found."
 
-    output: list[str] = []
+    by_project: dict[str, list[AsanaTask]] = {}
     for task in tasks:
-        due_str = task.due_on.strftime("%Y-%m-%d, %A") if task.due_on else "No due date"
+        key = task.project or "No project"
+        by_project.setdefault(key, []).append(task)
 
-        entry = f"- **{sanitize_external_text(task.name, 'asana')}** (GID: {task.gid})"
-        entry += f"\n  Due: {due_str}"
-        if task.project:
-            entry += f" | Project: {sanitize_external_text(task.project, 'asana')}"
-        if task.notes:
-            entry += f"\n  Notes: {sanitize_external_text(task.notes[:100], 'asana')}..."
+    sections: list[str] = []
+    # Stable ordering: named projects first alphabetically, "No project" last.
+    named = sorted(k for k in by_project if k != "No project")
+    ordered = named + (["No project"] if "No project" in by_project else [])
 
-        output.append(entry)
+    for project_name in ordered:
+        sections.append(f"## {sanitize_external_text(project_name, 'asana')}")
+        for task in by_project[project_name]:
+            due_str = task.due_on.strftime("%Y-%m-%d, %A") if task.due_on else "No due date"
+            entry = f"- **{sanitize_external_text(task.name, 'asana')}** (GID: {task.gid})"
+            entry += f"\n  Due: {due_str}"
+            if task.notes:
+                entry += f"\n  Notes: {sanitize_external_text(task.notes[:100], 'asana')}..."
+            sections.append(entry)
 
-    return "\n\n".join(output)
+    return "\n\n".join(sections)
 
 
 # CLI for testing

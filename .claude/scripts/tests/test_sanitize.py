@@ -284,15 +284,9 @@ class TestNonDisruption:
         result = sanitize_external_text(text, "asana")
         assert result == text
 
-    def test_circle_community_notification_unchanged(self) -> None:
-        text = "You are now a member of the Obsidian community!"
-        result = sanitize_external_text(text, "circle")
-        assert result == text
-        assert "[FLAGGED:" not in result
-
     def test_ai_content_discussion_unchanged(self) -> None:
         text = "Great video about prompt injection defense techniques"
-        result = sanitize_external_text(text, "circle")
+        result = sanitize_external_text(text, "gmail")
         assert result == text
         assert "[FLAGGED:" not in result
 

@@ -21,10 +21,6 @@ import json
 import sys
 from pathlib import Path
 
-# Add the scripts directory to Python path for integration imports
-SCRIPTS_DIR = Path(__file__).resolve().parents[3] / "scripts"
-sys.path.insert(0, str(SCRIPTS_DIR))
-
 
 def cmd_gmail(args: argparse.Namespace) -> None:
     """Handle Gmail commands."""
@@ -349,6 +345,12 @@ def cmd_slack(args: argparse.Namespace) -> None:
         print(format_messages_for_context(msgs))
 
     elif args.action == "send":
+        if not getattr(args, "i_confirm_send", False):
+            print(
+                "Advisor mode: `slack send` is gated to prevent drift from the draft workflow.\n"
+                "Pass --i-confirm-send if you genuinely want this command to post to Slack."
+            )
+            sys.exit(1)
         if not args.channel or not args.message:
             print("Error: channel and message required")
             sys.exit(1)
@@ -443,70 +445,61 @@ def cmd_docs(args: argparse.Namespace) -> None:
         print(f"Content length: ~{char_count} chars")
 
 
-def cmd_circle(args: argparse.Namespace) -> None:
-    """Handle Circle commands (read-only)."""
-    from integrations.circle_api import (
-        format_chat_rooms_for_context,
-        format_messages_for_context,
-        format_notifications_for_context,
-        format_posts_for_context,
-        format_spaces_for_context,
-        get_chat_messages,
-        get_chat_rooms,
-        get_member_posts,
-        get_notifications,
-        get_post,
-        get_posts,
-        get_spaces,
-        search_posts,
+def cmd_monday(args: argparse.Namespace) -> None:
+    """Handle Monday.com commands (read-only)."""
+    from integrations.monday_api import (
+        board_items,
+        format_items_for_context,
+        list_boards,
+        my_items,
+        overdue_items,
+        search,
     )
 
-    if args.action == "spaces":
-        spaces = get_spaces()
-        print(format_spaces_for_context(spaces))
+    if args.action == "boards":
+        for b in list_boards():
+            print(f"- {b['name']} (id: {b['id']}, items: {b['items_count']})")
 
-    elif args.action == "posts":
+    elif args.action == "board":
         if not args.target_id:
-            print("Error: space_id required. Run 'circle spaces' first.")
+            print("Error: board_id required. Run 'monday boards' first.")
             sys.exit(1)
-        posts = get_posts(int(args.target_id), max_results=args.max)
-        print(format_posts_for_context(posts))
+        print(format_items_for_context(board_items(args.target_id, limit=args.max)))
 
-    elif args.action == "post":
-        if not args.target_id:
-            print("Error: post_id required")
-            sys.exit(1)
-        post = get_post(int(args.target_id))
-        if post:
-            print(format_posts_for_context([post]))
-        else:
-            print("Post not found")
+    elif args.action == "my-items":
+        print(format_items_for_context(my_items(limit=args.max)))
+
+    elif args.action == "overdue":
+        print(format_items_for_context(overdue_items(limit=args.max)))
 
     elif args.action == "search":
         if not args.query:
-            print("Error: search query required")
+            print("Error: --query required")
             sys.exit(1)
-        posts = search_posts(args.query, max_results=args.max)
-        print(format_posts_for_context(posts))
+        print(format_items_for_context(search(args.query, limit=args.max)))
 
-    elif args.action == "dms":
-        rooms = get_chat_rooms(max_results=args.max)
-        print(format_chat_rooms_for_context(rooms))
 
-    elif args.action == "dm":
-        if not args.target_id:
-            print("Error: chat_room_uuid required. Run 'circle dms' first.")
-            sys.exit(1)
-        messages = get_chat_messages(args.target_id, max_results=args.max)
-        print(format_messages_for_context(messages))
+def cmd_github(args: argparse.Namespace) -> None:
+    """Handle GitHub commands (read-only)."""
+    from integrations.github_api import (
+        format_events_for_context,
+        issues_mentioning_me,
+        recent_commits,
+        review_requests,
+        ship_signal,
+    )
 
-    elif args.action == "notifications":
-        notifications = get_notifications(max_results=args.max)
-        print(format_notifications_for_context(notifications))
+    if args.action == "recent":
+        print(format_events_for_context(recent_commits(hours=args.hours)))
 
-    elif args.action == "feed":
-        posts = get_member_posts(max_results=args.max)
-        print(format_posts_for_context(posts))
+    elif args.action == "review-requests":
+        print(format_events_for_context(review_requests()))
+
+    elif args.action == "mentions":
+        print(format_events_for_context(issues_mentioning_me(hours=args.hours)))
+
+    elif args.action == "ship":
+        print("ship_signal:", ship_signal(hours=args.hours))
 
 
 def cmd_drive(args: argparse.Namespace) -> None:
@@ -589,11 +582,19 @@ def main() -> None:
 
     # Slack
     slack_parser = subparsers.add_parser("slack", help="Slack operations")
+    # `send` stays in choices so programmatic callers can invoke it, but it's
+    # gated behind --i-confirm-send in cmd_slack (advisor mode).
     slack_parser.add_argument("action", choices=["channels", "messages", "send", "update", "check"])
     slack_parser.add_argument("channel", nargs="?", default=None)
     slack_parser.add_argument("message", nargs="?", default=None)
     slack_parser.add_argument("--ts", default=None, help="Message timestamp for update")
     slack_parser.add_argument("--hours", type=int, default=2)
+    slack_parser.add_argument(
+        "--i-confirm-send",
+        dest="i_confirm_send",
+        action="store_true",
+        help="Required to run `slack send`. Advisor mode — draft-first by default.",
+    )
 
     # Google Sheets
     sheets_parser = subparsers.add_parser("sheets", help="Google Sheets operations")
@@ -609,12 +610,17 @@ def main() -> None:
     docs_parser.add_argument("target_id", nargs="?", default=None, help="Document ID")
     docs_parser.add_argument("--max-chars", type=int, default=4000)
 
-    # Circle
-    circle_parser = subparsers.add_parser("circle", help="Circle community operations (read-only)")
-    circle_parser.add_argument("action", choices=["spaces", "posts", "post", "search", "dms", "dm", "notifications", "feed"])
-    circle_parser.add_argument("target_id", nargs="?", default=None, help="space_id, post_id, or chat_room_uuid")
-    circle_parser.add_argument("--query", default=None, help="Search query for search action")
-    circle_parser.add_argument("--max", type=int, default=10)
+    # Monday.com
+    monday_parser = subparsers.add_parser("monday", help="Monday.com operations (read-only)")
+    monday_parser.add_argument("action", choices=["boards", "board", "my-items", "overdue", "search"])
+    monday_parser.add_argument("target_id", nargs="?", default=None, help="Board ID for 'board' action")
+    monday_parser.add_argument("--max", type=int, default=25)
+    monday_parser.add_argument("--query", default=None, help="Search query for 'search' action")
+
+    # GitHub
+    github_parser = subparsers.add_parser("github", help="GitHub operations (read-only)")
+    github_parser.add_argument("action", choices=["recent", "review-requests", "mentions", "ship"])
+    github_parser.add_argument("--hours", type=int, default=24)
 
     # Google Drive
     drive_parser = subparsers.add_parser("drive", help="Google Drive operations")
@@ -639,8 +645,10 @@ def main() -> None:
             cmd_sheets(args)
         elif args.service == "docs":
             cmd_docs(args)
-        elif args.service == "circle":
-            cmd_circle(args)
+        elif args.service == "monday":
+            cmd_monday(args)
+        elif args.service == "github":
+            cmd_github(args)
         elif args.service == "drive":
             cmd_drive(args)
     except Exception as e:

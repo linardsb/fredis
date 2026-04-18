@@ -59,9 +59,9 @@ class TestGuardrailPreCheck:
     def test_ai_content_not_flagged(self) -> None:
         """AI community discussions about security must not trigger."""
         context = """
-        ## Circle Posts
+        ## Community Posts
         - **How to defend against prompt injection in your RAG pipeline**
-          by Ahmed in AI Agents space
+          by Ahmed
           Great discussion about system prompt security techniques...
         """
         flags = check_injection_patterns(context)

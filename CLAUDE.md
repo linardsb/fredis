@@ -1,3 +1,14 @@
+## Advisor Mode
+
+Fredis is an **advisor**, not an agent with send-authority. Heartbeats and scheduled runs draft into `Fredis/Memory/drafts/active/` — Linards reviews and sends from Gmail/Slack himself. No `slack.postMessage`, no `drafts.send`, no social-media POSTs in any automated path. See `SOUL.md` for the full never-send boundary.
+
+## Completed Phases
+
+- **Phase 1** — Memory-layer personalisation (SOUL/USER/MEMORY/HABITS/HEARTBEAT drafting via `phase1-ready` skill).
+- **Phase 2** — Heartbeat + draft loop (scheduled gather → reconcile → prompt → Slack).
+- **Phase 3** — Hybrid memory search (SQLite/Postgres + FastEmbed) + Slack chat interface.
+- **Phase 4** — Integrations reconciliation: Circle removed; Monday.com + GitHub added; advisor-mode belt tightened; heartbeat defaults set to Europe/London 05:00–20:00, 120 min interval.
+
 ## Memory Files
 
 This project uses an Obsidian vault (`Fredis/Memory/`) as persistent memory across sessions. These files are auto-loaded into context via the `SessionStart` hook — no manual reading required.
@@ -33,7 +44,7 @@ First-run personalisation is a TUI + skill pair that converts the 103-question i
 
 ## Heartbeat System (Proactive Second Brain)
 
-The heartbeat is a scheduled script that proactively checks the user's calendar, email, Asana tasks, and content deadlines using the Claude Agent SDK. It runs every 30 minutes during active hours and sends native desktop notifications when something needs attention.
+The heartbeat is a scheduled script that proactively checks the user's draft inbox, overdue tasks across Asana + Monday.com, calendar, email, Slack, market/policy/AI research signals, and habit pillars using the Claude Agent SDK. It runs every 120 minutes during active hours (Europe/London, 05:00–20:00) and sends a Slack DM + native macOS notification when something needs attention.
 
 **Location:** `.claude/scripts/`
 
@@ -48,9 +59,9 @@ The heartbeat is a scheduled script that proactively checks the user's calendar,
 
 ### How It Works
 
-1. OS scheduler runs the wrapper script every 30 minutes
+1. OS scheduler runs the wrapper script every 120 minutes
 2. Wrapper runs `uv run python heartbeat.py` in `.claude/scripts/`
-3. `heartbeat.py` gathers data from Gmail, Calendar, Asana, Slack via direct Python API calls
+3. `heartbeat.py` gathers data from Gmail, Calendar, Asana, Slack, Monday.com, and GitHub via direct Python API calls
 4. State diffing compares current data against the previous snapshot — only new/changed items get full context
 5. Guardrail pre-filter (deterministic pattern matching + Haiku LLM) checks for prompt injection in external data
 6. Pre-fetched, diff-annotated data is injected into Claude's prompt; Claude reasons over it and decides what needs attention
@@ -218,7 +229,7 @@ cd .claude/scripts && uv run python memory_index.py
 - **SQLite database:** `.claude/data/memory.db` (git-ignored, regenerable via `memory_index.py`)
 - **Postgres:** Set `DATABASE_URL` in `.claude/scripts/.env` (pgvector required)
 - **Model cache:** `.claude/data/models/` (auto-downloaded ~80MB on first run)
-- **Auto-indexing:** Heartbeat re-indexes every 30 minutes (unchanged files skipped)
+- **Auto-indexing:** Heartbeat re-indexes every 120 minutes (unchanged files skipped)
 
 ### SSH Tunnel for Postgres (Required on Local Machine)
 
@@ -330,72 +341,74 @@ A scheduled script that uses Claude Agent SDK to review yesterday's daily log an
 
 ## Direct Platform Integrations
 
-The `direct-integrations` skill provides direct API access to Gmail, Calendar, Asana, Slack, Google Sheets, Google Docs, Google Drive, and Circle without going through Zapier MCP. **Always prefer direct integrations over Zapier.**
+The `direct-integrations` skill provides direct API access to Gmail, Calendar, Asana, Slack, Google Sheets, Google Docs, and Google Drive without going through Zapier MCP. **Always prefer direct integrations over Zapier.** The CLI wrapper lives at `.claude/scripts/query.py` (moved from the skill directory in Phase 4 so it sits sibling to `integrations/`).
 
-### Usage via Skill
+### Usage
 
 ```bash
 # Gmail
-python .claude/skills/direct-integrations/scripts/query.py gmail list --max 5
-python .claude/skills/direct-integrations/scripts/query.py gmail urgent --hours 2
-python .claude/skills/direct-integrations/scripts/query.py gmail unread
-python .claude/skills/direct-integrations/scripts/query.py gmail read <message_id>
-python .claude/skills/direct-integrations/scripts/query.py gmail thread <thread_id>
-python .claude/skills/direct-integrations/scripts/query.py gmail search "subject or query"
-python .claude/skills/direct-integrations/scripts/query.py gmail attachments <message_id>
-python .claude/skills/direct-integrations/scripts/query.py gmail download-attachment <message_id> --attachment-id <id> [--output-dir <path>]
-python .claude/skills/direct-integrations/scripts/query.py gmail create-draft --from-file "Fredis/Memory/drafts/active/<draft>.md"
-python .claude/skills/direct-integrations/scripts/query.py gmail create-draft --to "Name <email>" --subject "Re: Subject" --body "Reply text" --thread-id <thread_id> <message_id>
+python .claude/scripts/query.py gmail list --max 5
+python .claude/scripts/query.py gmail urgent --hours 2
+python .claude/scripts/query.py gmail unread
+python .claude/scripts/query.py gmail read <message_id>
+python .claude/scripts/query.py gmail thread <thread_id>
+python .claude/scripts/query.py gmail search "subject or query"
+python .claude/scripts/query.py gmail attachments <message_id>
+python .claude/scripts/query.py gmail download-attachment <message_id> --attachment-id <id> [--output-dir <path>]
+python .claude/scripts/query.py gmail create-draft --from-file "Fredis/Memory/drafts/active/<draft>.md"
+python .claude/scripts/query.py gmail create-draft --to "Name <email>" --subject "Re: Subject" --body "Reply text" --thread-id <thread_id> <message_id>
 
 # Calendar
-python .claude/skills/direct-integrations/scripts/query.py calendar today
-python .claude/skills/direct-integrations/scripts/query.py calendar upcoming --hours 48
-python .claude/skills/direct-integrations/scripts/query.py calendar soon
+python .claude/scripts/query.py calendar today
+python .claude/scripts/query.py calendar upcoming --hours 48
+python .claude/scripts/query.py calendar soon
 
 # Asana
-python .claude/skills/direct-integrations/scripts/query.py asana my-tasks --max 10
-python .claude/skills/direct-integrations/scripts/query.py asana my-tasks --assignee <name> --max 10
-python .claude/skills/direct-integrations/scripts/query.py asana project <project_id>
-python .claude/skills/direct-integrations/scripts/query.py asana overdue
-python .claude/skills/direct-integrations/scripts/query.py asana due-soon --days 3
-python .claude/skills/direct-integrations/scripts/query.py asana create --name "Task name" --due 2026-03-01 --project <project_id> --notes "Details"
-python .claude/skills/direct-integrations/scripts/query.py asana comment <task_gid> --comment "Comment text"
-python .claude/skills/direct-integrations/scripts/query.py asana complete <task_gid>
-python .claude/skills/direct-integrations/scripts/query.py asana move <task_gid> --to-project <project_id> --from-project <project_id>
+python .claude/scripts/query.py asana my-tasks --max 10
+python .claude/scripts/query.py asana my-tasks --assignee <name> --max 10
+python .claude/scripts/query.py asana project <project_id>
+python .claude/scripts/query.py asana overdue
+python .claude/scripts/query.py asana due-soon --days 3
+python .claude/scripts/query.py asana create --name "Task name" --due 2026-03-01 --project <project_id> --notes "Details"
+python .claude/scripts/query.py asana comment <task_gid> --comment "Comment text"
+python .claude/scripts/query.py asana complete <task_gid>
+python .claude/scripts/query.py asana move <task_gid> --to-project <project_id> --from-project <project_id>
 
-# Slack
-python .claude/skills/direct-integrations/scripts/query.py slack channels
-python .claude/skills/direct-integrations/scripts/query.py slack messages <channel> --hours 2
-python .claude/skills/direct-integrations/scripts/query.py slack send <channel> "message"
-python .claude/skills/direct-integrations/scripts/query.py slack update <channel> "new text" --ts <message_ts>
-python .claude/skills/direct-integrations/scripts/query.py slack check
+# Slack (read-only; `send` intentionally omitted — Task 9 will add it behind --i-confirm-send)
+python .claude/scripts/query.py slack channels
+python .claude/scripts/query.py slack messages <channel> --hours 2
+python .claude/scripts/query.py slack update <channel> "new text" --ts <message_ts>
+python .claude/scripts/query.py slack check
 
 # Google Sheets
-python .claude/skills/direct-integrations/scripts/query.py sheets read <spreadsheet_id>
-python .claude/skills/direct-integrations/scripts/query.py sheets read <spreadsheet_id> --range "Sheet1!A1:Z100"
-python .claude/skills/direct-integrations/scripts/query.py sheets info <spreadsheet_id>
-python .claude/skills/direct-integrations/scripts/query.py sheets write <spreadsheet_id> --range "A1" --values '[["a","b"]]'
-python .claude/skills/direct-integrations/scripts/query.py sheets append <spreadsheet_id> --range "A:Z" --values '[["new","row"]]'
+python .claude/scripts/query.py sheets read <spreadsheet_id>
+python .claude/scripts/query.py sheets read <spreadsheet_id> --range "Sheet1!A1:Z100"
+python .claude/scripts/query.py sheets info <spreadsheet_id>
+python .claude/scripts/query.py sheets write <spreadsheet_id> --range "A1" --values '[["a","b"]]'
+python .claude/scripts/query.py sheets append <spreadsheet_id> --range "A:Z" --values '[["new","row"]]'
 
 # Google Docs
-python .claude/skills/direct-integrations/scripts/query.py docs read <document_id>
-python .claude/skills/direct-integrations/scripts/query.py docs info <document_id>
+python .claude/scripts/query.py docs read <document_id>
+python .claude/scripts/query.py docs info <document_id>
 
 # Google Drive
-python .claude/skills/direct-integrations/scripts/query.py drive find "search term"
-python .claude/skills/direct-integrations/scripts/query.py drive find "search term" --type spreadsheet
-python .claude/skills/direct-integrations/scripts/query.py drive list --type document --max 10
-python .claude/skills/direct-integrations/scripts/query.py drive get <file_id>
+python .claude/scripts/query.py drive find "search term"
+python .claude/scripts/query.py drive find "search term" --type spreadsheet
+python .claude/scripts/query.py drive list --type document --max 10
+python .claude/scripts/query.py drive get <file_id>
 
-# Circle (Community Platform)
-python .claude/skills/direct-integrations/scripts/query.py circle spaces
-python .claude/skills/direct-integrations/scripts/query.py circle posts <space_id> [--max 10]
-python .claude/skills/direct-integrations/scripts/query.py circle post <post_id>
-python .claude/skills/direct-integrations/scripts/query.py circle search --query "search term"
-python .claude/skills/direct-integrations/scripts/query.py circle dms [--max 10]
-python .claude/skills/direct-integrations/scripts/query.py circle dm <chat_room_uuid>
-python .claude/skills/direct-integrations/scripts/query.py circle notifications [--max 10]
-python .claude/skills/direct-integrations/scripts/query.py circle feed [--max 10]
+# Monday.com (read-only — GraphQL)
+python .claude/scripts/query.py monday boards
+python .claude/scripts/query.py monday board <board_id> --max 25
+python .claude/scripts/query.py monday my-items --max 25
+python .claude/scripts/query.py monday overdue
+python .claude/scripts/query.py monday search --query "invoice"
+
+# GitHub (read-only — REST)
+python .claude/scripts/query.py github recent --hours 24
+python .claude/scripts/query.py github review-requests
+python .claude/scripts/query.py github mentions --hours 168
+python .claude/scripts/query.py github ship
 ```
 
 ### Authentication
@@ -403,7 +416,8 @@ python .claude/skills/direct-integrations/scripts/query.py circle feed [--max 10
 - **Gmail + Calendar + Sheets + Docs + Drive:** Google OAuth2 (shared token, `gmail.readonly` + `gmail.compose` + `calendar.readonly` + `spreadsheets` + `documents.readonly` + `drive.readonly` scopes)
 - **Asana:** Personal Access Token in `.env` (`ASANA_ACCESS_TOKEN`)
 - **Slack:** Bot Token in `.env` (`SLACK_BOT_TOKEN`)
-- **Circle:** Admin V2 token + Headless Auth token in `.env` (`CIRCLE_ADMIN_TOKEN`, `CIRCLE_HEADLESS_TOKEN`, `CIRCLE_MEMBER_EMAIL`)
+- **Monday.com:** API v2 token in `.env` (`MONDAY_API_TOKEN`) — note: header is `Authorization: <token>`, NO `Bearer ` prefix. Board IDs in `MONDAY_BOARD_IDS` (Name:ID pairs), user ID in `MONDAY_USER_ID`.
+- **GitHub:** PAT in `.env` (`GITHUB_TOKEN`, reused from the shared top-of-env var), username in `GITHUB_USERNAME`.
 - **Setup:** `cd .claude/scripts && uv run python setup_auth.py`
 - **Re-auth after scope changes:** Delete `google_token.json` and re-run `setup_auth.py`
 

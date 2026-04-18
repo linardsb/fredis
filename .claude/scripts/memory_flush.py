@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import os
+import re
 from datetime import datetime
 from pathlib import Path
 
@@ -45,6 +46,32 @@ SOURCE_ROUTING: dict[str, tuple[str, str]] = {
     "pre-compact": ("Pre-Compaction Flush", "Memory Maintenance"),
     "session-end": ("Session End Flush", "Sessions"),
 }
+
+
+# Secret-shape patterns. The transcript excerpt is captured by Claude Code during
+# compaction/session-end and may legitimately contain tool_result blocks that echo
+# .env values. Scrub before handing to the flush reasoner so token-shaped strings
+# never reach the SDK call (defense-in-depth layered on redact-secrets hook).
+_SECRET_PATTERNS: tuple[re.Pattern[str], ...] = (
+    re.compile(r"xoxb-[0-9A-Za-z-]{10,}"),                # Slack bot token
+    re.compile(r"xapp-[0-9A-Za-z-]{10,}"),                # Slack app-level token
+    re.compile(r"xoxp-[0-9A-Za-z-]{10,}"),                # Slack user token
+    re.compile(r"ghp_[0-9A-Za-z]{20,}"),                  # GitHub classic PAT
+    re.compile(r"gho_[0-9A-Za-z]{20,}"),                  # GitHub OAuth token
+    re.compile(r"ghs_[0-9A-Za-z]{20,}"),                  # GitHub server-to-server
+    re.compile(r"github_pat_[0-9A-Za-z_]{20,}"),          # GitHub fine-grained PAT
+    re.compile(r"sk-ant-[0-9A-Za-z_-]{20,}"),             # Anthropic API key
+    re.compile(r"\b2/\d+/\d+:[0-9a-f]{20,}"),             # Asana PAT
+    # JWT shape (covers Monday.com tokens as well).
+    re.compile(r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}"),
+)
+
+
+def _scrub_secrets(text: str) -> str:
+    """Replace token-shaped substrings with <REDACTED_SECRET> before LLM exposure."""
+    for pattern in _SECRET_PATTERNS:
+        text = pattern.sub("<REDACTED_SECRET>", text)
+    return text
 
 
 def _safe_unlink(path: Path) -> None:
@@ -145,6 +172,9 @@ async def _run_flush_inner(
         print("[memory-flush] Context file is empty, nothing to flush")
         _safe_unlink(context_file)
         return None
+
+    # Scrub token-shaped strings before they cross the SDK boundary.
+    context_content = _scrub_secrets(context_content)
 
     # Truncate if needed
     if len(context_content) > 15_000:

@@ -1,6 +1,6 @@
 # Second Brain — Personal AI Assistant on Claude Code
 
-A proactive AI assistant built on Claude Code that monitors your email, calendar, tasks, Slack, and community platforms. It runs scheduled heartbeats, maintains long-term memory across sessions, manages drafts, tracks habits, and can respond to chat via Slack DMs. Everything is configurable — use the integrations you want, skip the ones you don't.
+A proactive AI assistant built on Claude Code that monitors your email, calendar, tasks (Asana + Monday.com), Slack, and GitHub activity. It runs scheduled heartbeats, maintains long-term memory across sessions, manages drafts, tracks habits, and can respond to chat via Slack DMs. Everything is configurable — use the integrations you want, skip the ones you don't.
 
 > **This is my personal system** — not a framework to install and run as-is. The skills, brand references, and workflow patterns are tuned to my content creation process. The goal is for you to see the architecture and patterns, then build something that's truly yours. Each piece (memory, hooks, heartbeat, integrations) is independently useful.
 
@@ -22,7 +22,7 @@ The generated PRD has enough technical detail that Claude Code can implement eac
 
 ## What It Does
 
-- **Proactive heartbeats** — Checks email, calendar, tasks, Slack, and Circle DMs on a schedule. Sends native desktop notifications when something needs your attention.
+- **Proactive heartbeats** — Checks email, calendar, tasks (Asana + Monday.com), and Slack on a schedule. Sends a Slack DM + native desktop notification when something needs your attention.
 - **Long-term memory** — Remembers decisions, preferences, and context across sessions via markdown files in an Obsidian vault (synced via Git between machines).
 - **Hybrid memory search** — Find anything in your memory with keyword + semantic vector search. Fully local, no API calls. Scope searches to specific folders (sent drafts, daily logs, etc.) for voice-matching when drafting replies.
 - **Chat interface** — Talk to your Second Brain through Slack DMs or @mentions. Each thread is a separate persistent conversation backed by the Agent SDK.
@@ -40,10 +40,10 @@ The generated PRD has enough technical detail that Claude Code can implement eac
 | Component | Location | Purpose |
 |-----------|----------|---------|
 | **Memory files** | `Fredis/Memory/` | SOUL.md, USER.md, MEMORY.md, daily logs (synced via Git) |
-| **Heartbeat** | `.claude/scripts/heartbeat.py` | Scheduled check of email, calendar, tasks, Slack, Circle |
+| **Heartbeat** | `.claude/scripts/heartbeat.py` | Scheduled check of email, calendar, Asana + Monday.com tasks, Slack |
 | **Memory search** | `.claude/scripts/memory_search.py` | Hybrid keyword + vector search over memory |
 | **Chat interface** | `.claude/chat/main.py` | Slack DM/mention handler using Agent SDK |
-| **Integrations** | `.claude/scripts/integrations/` | Gmail, Calendar, Asana, Slack, Sheets, Docs, Drive, Circle wrappers |
+| **Integrations** | `.claude/scripts/integrations/` | Gmail, Calendar, Asana, Slack, Sheets, Docs, Drive wrappers |
 | **Integration registry** | `.claude/scripts/integrations/registry.py` | Discovers which integrations are configured |
 | **Draft management** | `Fredis/Memory/drafts/` | Active, sent, and expired draft tracking |
 | **Habit tracking** | `Fredis/Memory/HABITS.md` | Recurring habit checklist surfaced during heartbeats |
@@ -116,7 +116,6 @@ All integrations are optional. Configure the ones you want — the system detect
 | Google Sheets | Google OAuth credentials file | Google OAuth | Read/write spreadsheets |
 | Google Docs | Google OAuth credentials file | Google OAuth | Read documents |
 | Google Drive | Google OAuth credentials file | Google OAuth | Search and list files |
-| Circle | `CIRCLE_ADMIN_TOKEN` + tokens | Admin + Headless tokens | Monitor community DMs, posts, notifications |
 
 **Google integrations** (Gmail, Calendar, Sheets, Docs, Drive) share a single OAuth token. Set up once, access all five.
 
@@ -154,7 +153,7 @@ uv run python memory_search.py "test"       # Test search
     <key>Label</key><string>com.secondbrain.heartbeat</string>
     <key>ProgramArguments</key>
     <array><string>/path/to/fredis/.claude/scripts/run_heartbeat.sh</string></array>
-    <key>StartInterval</key><integer>1800</integer>
+    <key>StartInterval</key><integer>7200</integer>
     <key>RunAtLoad</key><true/>
 </dict>
 </plist>
@@ -169,7 +168,7 @@ launchctl load ~/Library/LaunchAgents/com.secondbrain.heartbeat.plist
 **Linux** — add a cron job:
 ```bash
 chmod +x .claude/scripts/run_heartbeat.sh
-(crontab -l 2>/dev/null; echo "*/120 * * * * /path/to/fredis/.claude/scripts/run_heartbeat.sh") | crontab -
+(crontab -l 2>/dev/null; echo "0 */2 * * * /path/to/fredis/.claude/scripts/run_heartbeat.sh") | crontab -
 ```
 
 </details>
@@ -291,61 +290,52 @@ The `direct-integrations` skill gives Claude (and you) a CLI for querying all in
 
 ```bash
 # Gmail
-python .claude/skills/direct-integrations/scripts/query.py gmail list --max 5
-python .claude/skills/direct-integrations/scripts/query.py gmail urgent --hours 2
-python .claude/skills/direct-integrations/scripts/query.py gmail unread
-python .claude/skills/direct-integrations/scripts/query.py gmail read <message_id>
+python .claude/scripts/query.py gmail list --max 5
+python .claude/scripts/query.py gmail urgent --hours 2
+python .claude/scripts/query.py gmail unread
+python .claude/scripts/query.py gmail read <message_id>
 
 # Calendar
-python .claude/skills/direct-integrations/scripts/query.py calendar today
-python .claude/skills/direct-integrations/scripts/query.py calendar upcoming --hours 48
-python .claude/skills/direct-integrations/scripts/query.py calendar soon
+python .claude/scripts/query.py calendar today
+python .claude/scripts/query.py calendar upcoming --hours 48
+python .claude/scripts/query.py calendar soon
 
 # Asana — read and write
-python .claude/skills/direct-integrations/scripts/query.py asana my-tasks --max 10
-python .claude/skills/direct-integrations/scripts/query.py asana my-tasks --assignee <name> --max 10
-python .claude/skills/direct-integrations/scripts/query.py asana project <project_id>
-python .claude/skills/direct-integrations/scripts/query.py asana overdue
-python .claude/skills/direct-integrations/scripts/query.py asana overdue --assignee <name>
-python .claude/skills/direct-integrations/scripts/query.py asana due-soon --days 3
-python .claude/skills/direct-integrations/scripts/query.py asana create --name "Task name" --due 2026-03-01 --assignee <name> --project <project_id> --notes "Details"
-python .claude/skills/direct-integrations/scripts/query.py asana comment <task_gid> --comment "Comment text"
-python .claude/skills/direct-integrations/scripts/query.py asana complete <task_gid>
-python .claude/skills/direct-integrations/scripts/query.py asana move <task_gid> --to-project <project_id> --from-project <project_id>
+python .claude/scripts/query.py asana my-tasks --max 10
+python .claude/scripts/query.py asana my-tasks --assignee <name> --max 10
+python .claude/scripts/query.py asana project <project_id>
+python .claude/scripts/query.py asana overdue
+python .claude/scripts/query.py asana overdue --assignee <name>
+python .claude/scripts/query.py asana due-soon --days 3
+python .claude/scripts/query.py asana create --name "Task name" --due 2026-03-01 --assignee <name> --project <project_id> --notes "Details"
+python .claude/scripts/query.py asana comment <task_gid> --comment "Comment text"
+python .claude/scripts/query.py asana complete <task_gid>
+python .claude/scripts/query.py asana move <task_gid> --to-project <project_id> --from-project <project_id>
 
-# Slack
-python .claude/skills/direct-integrations/scripts/query.py slack channels
-python .claude/skills/direct-integrations/scripts/query.py slack messages <channel> --hours 2
-python .claude/skills/direct-integrations/scripts/query.py slack send <channel> "message"
-python .claude/skills/direct-integrations/scripts/query.py slack check
+# Slack (read-only; `send` is gated behind --i-confirm-send — advisor mode)
+python .claude/scripts/query.py slack channels
+python .claude/scripts/query.py slack messages <channel> --hours 2
+python .claude/scripts/query.py slack check
 
 # Google Sheets
-python .claude/skills/direct-integrations/scripts/query.py sheets read <spreadsheet_id>
-python .claude/skills/direct-integrations/scripts/query.py sheets read <spreadsheet_id> --range "Sheet1!A1:Z100"
-python .claude/skills/direct-integrations/scripts/query.py sheets info <spreadsheet_id>
-python .claude/skills/direct-integrations/scripts/query.py sheets write <spreadsheet_id> --range "A1" --values '[["a","b"]]'
-python .claude/skills/direct-integrations/scripts/query.py sheets append <spreadsheet_id> --range "A:Z" --values '[["new","row"]]'
+python .claude/scripts/query.py sheets read <spreadsheet_id>
+python .claude/scripts/query.py sheets read <spreadsheet_id> --range "Sheet1!A1:Z100"
+python .claude/scripts/query.py sheets info <spreadsheet_id>
+python .claude/scripts/query.py sheets write <spreadsheet_id> --range "A1" --values '[["a","b"]]'
+python .claude/scripts/query.py sheets append <spreadsheet_id> --range "A:Z" --values '[["new","row"]]'
 
 # Google Docs
-python .claude/skills/direct-integrations/scripts/query.py docs read <document_id>
-python .claude/skills/direct-integrations/scripts/query.py docs info <document_id>
+python .claude/scripts/query.py docs read <document_id>
+python .claude/scripts/query.py docs info <document_id>
 
 # Google Drive
-python .claude/skills/direct-integrations/scripts/query.py drive find "search term"
-python .claude/skills/direct-integrations/scripts/query.py drive find "search term" --type spreadsheet
-python .claude/skills/direct-integrations/scripts/query.py drive list --type document --max 10
-python .claude/skills/direct-integrations/scripts/query.py drive get <file_id>
-
-# Circle (community platform)
-python .claude/skills/direct-integrations/scripts/query.py circle spaces
-python .claude/skills/direct-integrations/scripts/query.py circle posts <space_id> --max 10
-python .claude/skills/direct-integrations/scripts/query.py circle post <post_id>
-python .claude/skills/direct-integrations/scripts/query.py circle search --query "search term"
-python .claude/skills/direct-integrations/scripts/query.py circle dms --max 10
-python .claude/skills/direct-integrations/scripts/query.py circle dm <chat_room_uuid>
-python .claude/skills/direct-integrations/scripts/query.py circle notifications --max 10
-python .claude/skills/direct-integrations/scripts/query.py circle feed --max 10
+python .claude/scripts/query.py drive find "search term"
+python .claude/scripts/query.py drive find "search term" --type spreadsheet
+python .claude/scripts/query.py drive list --type document --max 10
+python .claude/scripts/query.py drive get <file_id>
 ```
+
+Monday.com + GitHub subcommands land in Phase 4 tasks 6–7.
 
 </details>
 
@@ -457,7 +447,7 @@ uv run python setup_auth.py --headless
 
 ```bash
 chmod +x .claude/scripts/run_heartbeat.sh
-(crontab -l 2>/dev/null; echo "*/30 * * * * $(pwd)/.claude/scripts/run_heartbeat.sh") | crontab -
+(crontab -l 2>/dev/null; echo "0 */2 * * * $(pwd)/.claude/scripts/run_heartbeat.sh") | crontab -
 ```
 
 > **Note:** Cron uses a minimal `PATH`. The `run_heartbeat.sh` script adds `~/.local/bin` to `PATH` for `uv`. If your `uv` is installed elsewhere, update the `export PATH` line in that script accordingly.
@@ -564,10 +554,10 @@ All variables go in `.claude/scripts/.env`. When using `setup_workspace.py`, set
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `HEARTBEAT_INTERVAL_MINUTES` | `30` | Minutes between heartbeat runs |
-| `HEARTBEAT_ACTIVE_HOURS_START` | `08:00` | Don't run before this time (24h format) |
-| `HEARTBEAT_ACTIVE_HOURS_END` | `22:00` | Don't run after this time (24h format) |
-| `HEARTBEAT_TIMEZONE` | `America/Chicago` | Timezone for active hours (IANA format, e.g. `America/New_York`) |
+| `HEARTBEAT_INTERVAL_MINUTES` | `120` | Minutes between heartbeat runs |
+| `HEARTBEAT_ACTIVE_HOURS_START` | `05:00` | Don't run before this time (24h format) |
+| `HEARTBEAT_ACTIVE_HOURS_END` | `20:00` | Don't run after this time (24h format) |
+| `HEARTBEAT_TIMEZONE` | `Europe/London` | Timezone for active hours (IANA format, e.g. `America/New_York`) |
 | `REFLECTION_HOUR` | `8` | Hour to run daily reflection (0–23) |
 | `DRAFT_EXPIRY_HOURS` | `24` | Hours before an unsent active draft is moved to expired |
 | `EXPIRED_DRAFT_RETENTION_DAYS` | `7` | Days before expired drafts are permanently deleted |
@@ -598,15 +588,6 @@ Google OAuth also requires `google_credentials.json` in `.claude/scripts/integra
 | `SLACK_OWNER_USER_ID` | | Your Slack user ID — used for @mention filtering and heartbeat thread reply detection |
 | `SLACK_NOTIFICATION_CHANNEL` | | Channel where heartbeat alerts are posted (e.g. `#second-brain`) |
 | `SLACK_MONITORED_CHANNELS` | | Comma-separated channel names to read during heartbeats |
-
-### Circle
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `CIRCLE_ADMIN_TOKEN` | | Admin V2 API token from Circle community settings |
-| `CIRCLE_HEADLESS_TOKEN` | | Headless Auth token for member-scoped API access |
-| `CIRCLE_MEMBER_EMAIL` | | Your Circle account email address |
-| `CIRCLE_COMMUNITY_MEMBER_ID` | | Your Circle member ID (numeric) |
 
 ### Chat Interface
 

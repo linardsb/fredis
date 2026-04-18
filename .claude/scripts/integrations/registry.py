@@ -86,12 +86,19 @@ _REGISTRY: dict[str, IntegrationInfo] = {
         required_config=[],
         module_path="integrations.drive_api",
     ),
-    "circle": IntegrationInfo(
-        name="circle",
-        display_name="Circle",
+    "monday": IntegrationInfo(
+        name="monday",
+        display_name="Monday.com",
         auth_type="token",
-        required_config=["CIRCLE_ADMIN_TOKEN"],
-        module_path="integrations.circle_api",
+        required_config=["MONDAY_API_TOKEN"],
+        module_path="integrations.monday_api",
+    ),
+    "github": IntegrationInfo(
+        name="github",
+        display_name="GitHub",
+        auth_type="token",
+        required_config=["GITHUB_TOKEN"],
+        module_path="integrations.github_api",
     ),
 }
 

@@ -94,11 +94,31 @@ CHAT_ALLOWED_USERS = os.getenv("CHAT_ALLOWED_USERS", SLACK_OWNER_USER_ID).split(
 # Calendar
 GOOGLE_CALENDAR_ID = os.getenv("GOOGLE_CALENDAR_ID", "")
 
-# Circle
-CIRCLE_ADMIN_TOKEN = os.getenv("CIRCLE_ADMIN_TOKEN", "")
-CIRCLE_HEADLESS_TOKEN = os.getenv("CIRCLE_HEADLESS_TOKEN", "")
-CIRCLE_MEMBER_EMAIL = os.getenv("CIRCLE_MEMBER_EMAIL", "")
-CIRCLE_COMMUNITY_MEMBER_ID = int(os.getenv("CIRCLE_COMMUNITY_MEMBER_ID", "0"))
+# Monday.com
+MONDAY_API_TOKEN = os.getenv("MONDAY_API_TOKEN", "")
+MONDAY_USER_ID = os.getenv("MONDAY_USER_ID", "")
+
+# Monday board mapping — friendly name to numeric board ID.
+# Two input formats are supported (use whichever reads better in your .env):
+#   (1) Per-board vars: MONDAY_BOARD_DEALS=1234, MONDAY_BOARD_CLIENT_PROJECTS=5678
+#       Underscores in the key turn into spaces + title case in the display name.
+#   (2) Combined:       MONDAY_BOARD_IDS=Deals:1234,Client Projects:5678
+MONDAY_BOARDS: dict[str, str] = {}
+for _k, _v in os.environ.items():
+    if _k.startswith("MONDAY_BOARD_") and _k != "MONDAY_BOARD_IDS" and _v:
+        _name = _k[len("MONDAY_BOARD_"):].replace("_", " ").title()
+        MONDAY_BOARDS[_name] = _v.strip()
+_monday_boards_raw = os.getenv("MONDAY_BOARD_IDS", "")
+if _monday_boards_raw:
+    for pair in _monday_boards_raw.split(","):
+        pair = pair.strip()
+        if ":" in pair:
+            bname, bid = pair.split(":", 1)
+            MONDAY_BOARDS.setdefault(bname.strip(), bid.strip())
+
+# GitHub
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
+GITHUB_USERNAME = os.getenv("GITHUB_USERNAME", "")
 
 # === Drafts & Habits ===
 DRAFTS_DIR = MEMORY_DIR / "drafts"
@@ -138,10 +158,10 @@ SEARCH_PATH_PRIOR_DEFAULT = 1.0
 # Task Scheduler runs as your user, so it has access to your credentials.
 
 # === Heartbeat Configuration ===
-HEARTBEAT_INTERVAL_MINUTES = int(os.getenv("HEARTBEAT_INTERVAL_MINUTES", "30"))
-HEARTBEAT_ACTIVE_START = os.getenv("HEARTBEAT_ACTIVE_HOURS_START", "08:00")
-HEARTBEAT_ACTIVE_END = os.getenv("HEARTBEAT_ACTIVE_HOURS_END", "22:00")
-HEARTBEAT_TIMEZONE = os.getenv("HEARTBEAT_TIMEZONE", "America/Chicago")
+HEARTBEAT_INTERVAL_MINUTES = int(os.getenv("HEARTBEAT_INTERVAL_MINUTES", "120"))
+HEARTBEAT_ACTIVE_START = os.getenv("HEARTBEAT_ACTIVE_HOURS_START", "05:00")
+HEARTBEAT_ACTIVE_END = os.getenv("HEARTBEAT_ACTIVE_HOURS_END", "20:00")
+HEARTBEAT_TIMEZONE = os.getenv("HEARTBEAT_TIMEZONE", "Europe/London")
 
 # === Daily Log Template ===
 DAILY_LOG_SECTIONS = ["Sessions", "Heartbeats", "Memory Maintenance"]

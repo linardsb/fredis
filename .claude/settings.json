@@ -10,6 +10,16 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": "Bash|Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR/.claude/scripts\" && PATH=\"$PATH:/root/.local/bin\" uv run python \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-dangerous-commands.py\"",
+            "timeout": 5
+          }
+        ]
       }
     ],
     "PostToolUse": [
