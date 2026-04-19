@@ -127,6 +127,38 @@ def test_allows_benign(cmd: str) -> None:
 
 
 # ---------------------------------------------------------------------------
+# `git checkout -- <path>` — only blocks the standalone `.` (discards all),
+# not paths that happen to start with `.` (e.g. .agent/, .gitignore).
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("cmd", [
+    "git checkout -- .agent/plans/second-brain-prd.md",
+    "git checkout -- .gitignore",
+    "git checkout -- ./src/file.py",
+    "git checkout -- .claude/hooks/block-dangerous-commands.py",
+    "git checkout -- .env.example",
+])
+def test_allows_git_checkout_dotpath(cmd: str) -> None:
+    """git checkout -- .<path> restores a specific file and must not be confused
+    with `git checkout -- .` (discards all unstaged changes)."""
+    result = _run("Bash", {"command": cmd})
+    assert result.returncode == 0, f"Should have allowed: {cmd!r}\nstderr={result.stderr!r}"
+
+
+@pytest.mark.parametrize("cmd", [
+    "git checkout -- .",
+    "git checkout -- . ",  # trailing whitespace
+    "git checkout -- . ; echo done",
+    "git checkout -- . && echo reset",
+])
+def test_still_blocks_git_checkout_dot_standalone(cmd: str) -> None:
+    """The tightened regex must still catch the real destructive form."""
+    result = _run("Bash", {"command": cmd})
+    assert result.returncode == 2, f"Should have blocked: {cmd!r}\nstderr={result.stderr!r}"
+
+
+# ---------------------------------------------------------------------------
 # Write path sandboxing
 # ---------------------------------------------------------------------------
 
