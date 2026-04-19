@@ -3,143 +3,149 @@ name: obsidian-vault-structure
 description: |
   Reference for the Fredis Obsidian vault organization and file structure.
   Use when Claude needs to understand where content is stored, how files are organized,
-  or where to save new content. Helpful for: (1) Finding existing notes or content,
-  (2) Understanding date-based folder conventions, (3) Knowing where to save new
-  content ideas, daily notes, or media assets, (4) Understanding the relationship
-  between different content types.
+  or where to save new content. Helpful for: (1) Finding existing notes, drafts, or
+  research, (2) Understanding date-based conventions in daily logs and sent drafts,
+  (3) Knowing where new research, drafts, or domain entities belong, (4) Understanding
+  the relationship between the top-level Phase-1 memory files and the topical folders.
 ---
 
 # Fredis Obsidian Vault Structure
 
-**Location:** `Fredis/` (relative to project root)
+**Location:** `Fredis/Memory/` (relative to project root).
+
+The vault is a single tree rooted at `Fredis/Memory/`. Everything persistent the
+assistant reads or writes lives here. The vault is sync'd across machines by
+`git-sync` (see `CLAUDE.md` → Vault Sync).
 
 ## Directory Overview
 
 ```
-Fredis/
-|-- .obsidian/                          # Obsidian configuration
-|-- Agentic Coding Course/              # Course materials with Excalidraw diagrams
-|-- AI Agent Mastery Course/            # Course materials with Excalidraw diagrams
-|-- Content-Ideation/                   # Content planning organized by platform
-|   |-- LinkedIn/                       # LinkedIn post ideas (date folders)
-|   |-- Shorts/                         # YouTube Shorts scripts (date folders)
-|   |-- Thumbnails/                     # Thumbnail images and concepts (date folders)
-|   |-- X/                              # X/Twitter post ideas (date folders)
-|   |-- YouTube/                        # YouTube video ideas (date folders)
-|   +-- Presentations/                  # Presentation files (.pptx)
-|-- Daily Notes/                        # Daily journal entries
-|-- Excalidraw/                         # Visual diagrams for videos and office hours
-|-- Meeting Notes/                      # Meeting notes and research files
-|-- Permanent Notes/                    # Evergreen notes - video ideas, topic research
-|-- Personal/                           # Personal strategy and planning documents
-|-- Recordings/                         # Media assets - logos, images, screenshots
-|-- Reference Notes/                    # External references and tutorial summaries
-|-- Templates/                          # Note templates
-|-- Workflows/                          # Workflow tracking files (.base)
-+-- Workshops/                          # Workshop Excalidraw materials
+Fredis/Memory/
+├── SOUL.md                    # Personality, communication style, never-send boundary
+├── USER.md                    # User profile, account IDs, integrations, preferences
+├── MEMORY.md                  # Decisions, lessons, active projects, durable facts
+├── HABITS.md                  # Habit pillars tracked by heartbeat
+├── HEARTBEAT.md               # Checklist of what each heartbeat should check
+│
+├── daily/                     # Daily logs (YYYY-MM-DD.md) — heartbeat + session entries
+│   ├── 2026-04-19.md
+│   └── 2026-04-19.md.lock     # File locks written by heartbeat/reflection
+│
+├── drafts/                    # Outbound drafts — advisor mode, Linards sends manually
+│   ├── active/                # Awaiting review/send
+│   │   └── research/          # Research topic drafts (ai.md, markets.md, …)
+│   ├── sent/                  # Archived after send, grouped by campaign
+│   │   └── lv-seed/           # e.g. YYYY-MM-DD_slug.md
+│   └── expired/               # Drafts that aged out without being sent
+│
+├── research/                  # Long-lived topic research (one folder per domain)
+│   ├── ai/          {README.md, papers/}
+│   ├── markets/     {README.md, watchlist-tickers.md, papers/}
+│   ├── agriculture/ {README.md, latvia-landscape.md, papers/}
+│   ├── materials/   {README.md, 3d_printing/, mycelium/, papers/}
+│   ├── policy/      {README.md, papers/}
+│   └── robotics/    {README.md, papers/}
+│
+├── competitors/               # Competitive landscape notes
+│   ├── README.md
+│   ├── _summary.md
+│   └── ai-consultancy-landscape.md
+│
+├── collaborators/             # People Linards partners with
+│   ├── README.md
+│   ├── _network.md
+│   └── <firstname-lastname>.md
+│
+├── investors/                 # Investor pipeline + per-person notes
+│   ├── README.md
+│   ├── _pipeline.md
+│   └── <firstname-lastname>.md
+│
+├── retainers/                 # Active retainer clients (README.md placeholder today)
+└── case-studies/              # Published/shipped work writeups (README.md placeholder today)
 ```
 
-## Date-Based Organization
+## Top-Level Memory Files
 
-### Content-Ideation Platform Folders
+Auto-loaded into context by the `SessionStart` hook — Claude does not need to read them manually.
 
-Each platform folder (LinkedIn, Shorts, X, YouTube) uses **YYYY-MM-DD date folders**:
+| File | Contains | Update When |
+|------|----------|-------------|
+| `SOUL.md` | Personality, behavioral rules, communication style, never-send boundary | Changing how the assistant should behave |
+| `USER.md` | User profile, account IDs, integration config, preferences, team info | Learning about the user or adding an integration account |
+| `MEMORY.md` | Key decisions, lessons learned, active projects, important facts | Making a significant decision or learning a reusable lesson |
+| `HABITS.md` | Habit pillars + cadence, used by heartbeat | Changing what the assistant nudges on |
+| `HEARTBEAT.md` | Checklist of what each heartbeat should check | Adjusting the heartbeat's scope |
 
-```
-Content-Ideation/LinkedIn/
-|-- 2026-01-21/
-|   |-- index.md                        # Summary of all ideas for this date
-|   |-- topic-name-1.md                 # Individual content idea
-|   +-- topic-name-2.md
-+-- 2026-01-23/
-    +-- ...
-```
+## Daily Logs
 
-- Each date folder contains an `index.md` summarizing all ideas generated that day
-- Individual `.md` files are named by topic using kebab-case
+- Filename: `daily/YYYY-MM-DD.md`
+- Written by: heartbeat, reflection, `PreCompact`/`SessionEnd` hooks, and ad-hoc Claude sessions
+- `.lock` sidecars are file locks (`shared.py`) — never edit or commit them; git ignores them via `.gitignore`
+- Daily logs use the `concat-both` merge driver so simultaneous appends from multiple machines auto-merge (see `CLAUDE.md` → Vault Sync)
 
-### Thumbnails Folder
+## Drafts (Advisor Mode)
 
-```
-Content-Ideation/Thumbnails/
-|-- 2026-01-23/
-|   |-- thumbnail.png
-|   |-- thumbnail_1.png
-|   +-- linkedin-infographic.png
-+-- agent-browser/                      # Named concept folders also allowed
-    |-- idea-1-split-screen/
-    +-- idea-2-vercel-github/
-```
-
-### Daily Notes
-
-Daily notes use **YYYY-MM-DD.md** filename format:
+Fredis is an **advisor**, not a sender. Scheduled/automated flows write drafts here; Linards reviews and sends from Gmail/Slack himself.
 
 ```
-Daily Notes/
-|-- 2026-01-21.md
-|-- 2026-01-22.md
-+-- 2026-01-23.md
+drafts/
+├── active/    # pending review — safe target for new drafts
+├── sent/      # archive after send, grouped by campaign folder
+│   └── <campaign-slug>/YYYY-MM-DD_<kebab-slug>.md
+└── expired/   # drafts that aged out without being sent
 ```
 
-## Folder Purposes
+- Sent-draft filenames: `YYYY-MM-DD_<kebab-case-subject>.md`
+- `drafts/sent/` doubles as the voice-matching corpus — `memory_search.py --path-prefix drafts/sent` pulls examples when drafting new replies
+- New research-topic drafts go in `drafts/active/research/<topic>.md`
 
-| Folder | Purpose | File Types |
-|--------|---------|------------|
-| **Permanent Notes** | Evergreen video ideas, topic research, book notes | `.md` |
-| **Reference Notes** | Tutorial summaries, external documentation | `.md` |
-| **Meeting Notes** | Meeting notes, research summaries | `.md` |
-| **Excalidraw** | Visual diagrams for videos, office hours, topics | `.md`, `.excalidraw` |
-| **Recordings** | Media assets for thumbnails and content | `.png`, `.jpg`, `.gif`, `.svg` |
-| **Templates** | Reusable note templates | `.md` |
-| **Workflows** | Workflow tracking (YouTube Production, Ideation) | `.base` |
-| **Personal** | Strategy docs, roadmaps, personal planning | `.md` |
+## Research
 
-## Course Folders
+Each domain folder is self-contained:
 
-Both course folders contain Excalidraw diagram files for course modules:
+- `README.md` — overview / running index of what lives in this topic
+- `papers/` — downloaded papers, notes on them
+- Topic-specific files at the folder root (e.g. `markets/watchlist-tickers.md`, `agriculture/latvia-landscape.md`)
 
-```
-Agentic Coding Course/
-|-- Excal-1-CourseIntroduction.md
-|-- Excal-2-SystemGap.md
-|-- Excal-3-PIVLoop.md
-|-- Module 3 Speaking Notes.md
-+-- ...
+When adding a new research domain, scaffold `<domain>/README.md` + `<domain>/papers/` to match the existing pattern.
 
-AI Agent Mastery Course/
-|-- Excal-1-Evaluation-Framework.md
-|-- Excal-2-Golden-Dataset.md
-+-- ...
-```
+## Relationship Folders
 
-## Workshop Materials
+`competitors/`, `collaborators/`, `investors/`, `retainers/`, `case-studies/` all follow the same shape:
 
-```
-Workshops/
-|-- Excal-1-Workshop-Guide.md
-|-- Excal-2-SystemGap.md
-+-- ...
-```
+- `README.md` — what the folder is for, index of entries
+- `_<aggregate>.md` — rollup file (e.g. `_summary.md`, `_network.md`, `_pipeline.md`)
+- `<firstname-lastname>.md` or `<entity-slug>.md` — one file per person/entity
 
-## Key Naming Conventions
+## Naming Conventions
 
-1. **Date folders:** `YYYY-MM-DD`
-2. **Daily notes:** `YYYY-MM-DD.md`
-3. **Content ideas:** `kebab-case-topic-name.md`
-4. **Excalidraw files:** `Excal-{number}-{TopicName}.md` or `Drawing YYYY-MM-DD HH.MM.SS.excalidraw.md`
-5. **Office hours:** `YYYY-MM-DD-FredisOfficeHours.md` (in Excalidraw folder)
+| Thing | Pattern |
+|-------|---------|
+| Daily logs | `YYYY-MM-DD.md` |
+| Sent drafts | `YYYY-MM-DD_<kebab-slug>.md` |
+| People | `<firstname-lastname>.md` |
+| Topics / entities | `kebab-case.md` |
+| Rollup files | `_<name>.md` (underscore prefix sorts them to top) |
+| Folder READMEs | `README.md` (one per topical folder) |
 
 ## Common Operations
 
-**Find today's content ideas:**
-- LinkedIn: `Content-Ideation/LinkedIn/YYYY-MM-DD/`
-- YouTube: `Content-Ideation/YouTube/YYYY-MM-DD/`
-- Shorts: `Content-Ideation/Shorts/YYYY-MM-DD/`
-- X: `Content-Ideation/X/YYYY-MM-DD/`
+| Task | Location |
+|------|----------|
+| Today's daily log | `Fredis/Memory/daily/YYYY-MM-DD.md` |
+| Draft a reply Linards will send | `Fredis/Memory/drafts/active/<slug>.md` |
+| Look up past sent phrasing for voice-match | `memory_search.py "<topic>" --path-prefix drafts/sent` |
+| Add a new research note | `Fredis/Memory/research/<domain>/<slug>.md` (or `papers/`) |
+| Add a person (investor/collab) | `Fredis/Memory/<folder>/<firstname-lastname>.md` + link from `_pipeline.md` / `_network.md` |
+| Record a durable decision | Append to `Fredis/Memory/MEMORY.md` |
 
-**Find media assets:** `Recordings/` (logos, screenshots, images)
+## What Is *Not* In The Vault
 
-**Find video research:** `Permanent Notes/` (evergreen topic notes)
+These live elsewhere in the repo and should not be duplicated into `Fredis/Memory/`:
 
-**Find today's daily note:** `Daily Notes/YYYY-MM-DD.md`
+- Onboarding interview → `.agent/plans/phase1-onboarding-interview.md`
+- Project PRD → `.agent/plans/second-brain-prd.md`
+- Heartbeat / reflection / chat state → `.claude/data/state/*.json`
+- Memory search index → `.claude/data/memory.db` (regenerable)
+- Skills, hooks, scripts → `.claude/`
