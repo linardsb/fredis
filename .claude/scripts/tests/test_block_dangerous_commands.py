@@ -159,6 +159,39 @@ def test_still_blocks_git_checkout_dot_standalone(cmd: str) -> None:
 
 
 # ---------------------------------------------------------------------------
+# `rm -rf <path>` — sandbox-aware: allow paths strictly inside the repo,
+# block the repo root itself and anything outside the repo/Fredis/temp.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("cmd", [
+    f"rm -rf {REPO_ROOT}/.claude/skills/create-second-brain-prd",
+    f"rm -rf {REPO_ROOT}/tools/diagrams",
+    f"rm -rf {REPO_ROOT}/templates/memory",
+    f"rm -rf {REPO_ROOT}/.claude/scripts/integrations/__pycache__",
+    f"rm -rf {REPO_ROOT}/Fredis/Memory/drafts/expired",
+])
+def test_allows_rm_inside_repo(cmd: str) -> None:
+    """rm -rf of subdirectories INSIDE the repo is legitimate cleanup work."""
+    result = _run("Bash", {"command": cmd})
+    assert result.returncode == 0, f"Should have allowed: {cmd!r}\nstderr={result.stderr!r}"
+
+
+@pytest.mark.parametrize("cmd", [
+    f"rm -rf {REPO_ROOT}",                   # the repo root itself — dangerous
+    f"rm -rf {REPO_ROOT}/",                  # with trailing slash, still the root
+    "rm -rf /Users/Berzins",                 # user home — outside repo
+    "rm -rf /Users/someone-else/Desktop",    # other user's path
+    "rm -rf /etc/passwd",
+    "rm -rf /usr/local/bin",
+])
+def test_still_blocks_rm_outside_repo(cmd: str) -> None:
+    """Paths outside the repo (and the repo root itself) remain blocked."""
+    result = _run("Bash", {"command": cmd})
+    assert result.returncode == 2, f"Should have blocked: {cmd!r}\nstderr={result.stderr!r}"
+
+
+# ---------------------------------------------------------------------------
 # Write path sandboxing
 # ---------------------------------------------------------------------------
 

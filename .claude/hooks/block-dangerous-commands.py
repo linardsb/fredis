@@ -81,8 +81,21 @@ FINANCIAL_PATTERNS: list[tuple[re.Pattern[str], str]] = [
      "Stripe SDK financial mutation"),
 ]
 
+# Build the rm-target allowlist dynamically so cleanup inside the project
+# sandbox (repo or Fredis vault) isn't blocked as "root-level". The
+# `[^\s;|&<>]` suffix after each sandbox prefix requires at least one more
+# character so `rm -rf /<repo>/` (the sandbox root itself) stays blocked —
+# only strict subpaths are allowed. `/tmp/` and `/var/folders/` keep their
+# pre-existing bare-prefix behaviour (deleting all of /tmp is uncommon but
+# not something this hook tried to prevent before).
+_rm_sandbox_allowlist = (
+    r"tmp/|var/folders/|"
+    + re.escape(REPO_ROOT.lstrip("/"))
+    + r"/[^\s;|&<>]"
+)
+
 DESTRUCTIVE_PATTERNS: list[tuple[re.Pattern[str], str]] = [
-    (re.compile(r"\brm\s+-[rRf]+\s+/(?!tmp/|var/folders/)", re.IGNORECASE),
+    (re.compile(rf"\brm\s+-[rRf]+\s+/(?!({_rm_sandbox_allowlist}))", re.IGNORECASE),
      "rm -rf against a root-level path"),
     (re.compile(r"\brm\s+-[rRf]+\s+~", re.IGNORECASE), "rm -rf against $HOME"),
     (re.compile(r"\brm\s+-[rRf]+\s+\$HOME", re.IGNORECASE), "rm -rf against $HOME"),
