@@ -365,7 +365,9 @@ def cmd_slack(args: argparse.Namespace) -> None:
         print(f"Updated! (ts={result['ts']})" if result else "Failed to update")
 
     elif args.action == "check":
-        important = check_for_important_messages(hours_ago=args.hours)
+        important, warnings = check_for_important_messages(hours_ago=args.hours)
+        for w in warnings:
+            print(f"WARN: {w}", file=sys.stderr)
         if important:
             print(f"Found {len(important)} important messages:\n")
             print(format_messages_for_context(important))

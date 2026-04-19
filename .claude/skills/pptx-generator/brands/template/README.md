@@ -16,18 +16,14 @@ Use this template to add a new brand to the PPTX generator skill.
 
 3. **Edit `brand-system.md`** with your brand guidelines:
    - This file provides context to the AI when generating content
-   - Include color rationale, typography rules, and visual principles
+   - Include color rationale, typography rules, visual principles, voice attributes, example phrases, and dos/don'ts
 
-4. **Edit `tone-of-voice.md`** with writing guidelines:
-   - This file guides the AI in writing slide content
-   - Include voice attributes, example phrases, and dos/don'ts
-
-5. **Add assets** to the `assets/` folder:
+4. **Add assets** to the `assets/` folder:
    - `logo.png` - Primary logo
    - `logo-dark.png` - Logo variant for dark backgrounds (optional)
    - `icon.png` - Square icon (optional)
 
-6. **Edit `config.json`** with output and generation settings:
+5. **Edit `config.json`** with output and generation settings:
    - Output directory (where PPTX files are saved)
    - Batch generation settings
    - File naming conventions

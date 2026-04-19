@@ -33,9 +33,6 @@ workspace/
 # Memory search data (Phase 3)
 .claude/data/
 
-# User-specific tone of voice (copied from templates on setup)
-.claude/tone-of-voice.md
-
 # Phase 5: Integration credentials & tokens
 .claude/scripts/integrations/google_credentials.json
 .claude/scripts/integrations/google_token.json

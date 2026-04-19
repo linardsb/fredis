@@ -12,6 +12,7 @@ Usage:
 
 from __future__ import annotations
 
+import re
 import sys
 import time
 from dataclasses import dataclass
@@ -28,6 +29,24 @@ from shared import with_retry  # noqa: E402
 
 # Cache for user name resolution (user_id -> display_name)
 _user_name_cache: dict[str, str] = {}
+
+# Slack channel/DM/group IDs are uppercase alphanumeric strings starting with
+# C/D/G followed by 8+ uppercase-alphanumeric characters. Used to distinguish
+# a raw ID from a channel name in SLACK_MONITORED_CHANNELS.
+_SLACK_ID_RE = re.compile(r"[CDG][A-Z0-9]{8,}")
+
+
+class SlackChannelNotJoinedError(Exception):
+    """Raised when the bot isn't a member of a channel it's trying to read.
+
+    Distinct from other Slack errors because it's a config/provisioning issue
+    — the caller should surface it as an operator-visible warning rather than
+    silently returning no messages.
+    """
+
+    def __init__(self, channel_id: str) -> None:
+        super().__init__(f"bot is not a member of channel {channel_id}")
+        self.channel_id = channel_id
 
 
 @dataclass
@@ -151,6 +170,14 @@ def get_recent_messages(
 
         return messages
     except Exception as e:
+        # slack-sdk raises SlackApiError with .response["error"] = "not_in_channel"
+        # when the bot is invited to the workspace but not added to the channel —
+        # treat that as a provisioning error so callers can surface it instead
+        # of silently returning an empty list.
+        response = getattr(e, "response", None)
+        err = response.get("error") if response is not None else None
+        if err == "not_in_channel":
+            raise SlackChannelNotJoinedError(channel_id) from e
         print(f"Error fetching messages: {e}")
         return []
 
@@ -226,25 +253,42 @@ def update_message(channel: str, ts: str, text: str) -> dict[str, Any] | None:
 def check_for_important_messages(
     channels: list[str] | None = None,
     hours_ago: int = 2,
-) -> list[SlackMessage]:
+) -> tuple[list[SlackMessage], list[str]]:
     """
     Check monitored channels for important messages.
 
     Args:
         channels: Channel names to check (defaults to SLACK_MONITORED_CHANNELS)
         hours_ago: How far back to look
+
+    Returns:
+        (important_messages, warnings) — warnings are operator-visible strings
+        describing channels the bot couldn't read (e.g. because it wasn't
+        invited). Callers should surface these on the alert path so Slack
+        monitoring doesn't degrade silently.
     """
     channel_names = channels or SLACK_MONITORED_CHANNELS
     all_messages: list[SlackMessage] = []
+    warnings: list[str] = []
 
     for ch_name in channel_names:
         ch_name = ch_name.strip()
-        ch_id = get_channel_id(ch_name)
+        if _SLACK_ID_RE.fullmatch(ch_name):
+            ch_id: str | None = ch_name
+        else:
+            ch_id = get_channel_id(ch_name)
         if not ch_id:
             print(f"Warning: Could not find channel #{ch_name}")
+            warnings.append(f"#{ch_name}: channel not found — check SLACK_MONITORED_CHANNELS")
             continue
 
-        messages = get_recent_messages(ch_id, hours_ago=hours_ago, limit=10)
+        try:
+            messages = get_recent_messages(ch_id, hours_ago=hours_ago, limit=10)
+        except SlackChannelNotJoinedError:
+            warnings.append(
+                f"#{ch_name}: bot not in channel — invite with /invite @Second Brain"
+            )
+            continue
 
         # Filter for potentially important messages (mentions owner or keywords)
         for msg in messages:
@@ -261,7 +305,7 @@ def check_for_important_messages(
             if is_important:
                 all_messages.append(msg)
 
-    return all_messages
+    return all_messages, warnings
 
 
 def format_messages_for_context(messages: list[SlackMessage], max_chars: int = 2000) -> str:
@@ -336,7 +380,9 @@ if __name__ == "__main__":
         print(f"Updated! (ts={result['ts']})" if result else "Failed to update")
 
     elif args.command == "check":
-        important = check_for_important_messages(hours_ago=args.hours)
+        important, warnings = check_for_important_messages(hours_ago=args.hours)
+        for w in warnings:
+            print(f"WARN: {w}", file=sys.stderr)
         if important:
             print(f"Found {len(important)} important messages:")
             print(format_messages_for_context(important))

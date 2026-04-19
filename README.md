@@ -6,19 +6,7 @@ A proactive AI assistant built on Claude Code that monitors your email, calendar
 
 ### Want to Build Your Own?
 
-This repo includes a **PRD generator skill** that creates a personalized build plan for your own Second Brain. Instead of copying this codebase, you answer a short requirements template (your name, platforms, top tasks, proactivity level, security boundaries) and the skill generates a phased PRD tailored to your stack.
-
-1. Copy the entire skill folder `.claude/skills/create-second-brain-prd/` into your own project's `.claude/skills/` directory
-2. Copy the blank template from the skill (`my-second-brain-requirements.md`) to your workspace root and fill it out (takes ~5 minutes)
-3. Copy the entire command folder `.claude/commands` into your own project's `.claude` directory if you want to use the same commands I use in the workshop
-4. Run `/create-second-brain-prd ./my-second-brain-requirements.md` in Claude Code
-5. You get a 9-phase build plan customized to your platforms, preferences, and infrastructure
-
-You can also ask your coding agent to copy this for you with a prompt like: 
-
-> I want you to copy the commands folder in .claude and also the create-second-brain-prd skill to [your-folder-path]. Make sure that we have it in the .claude commands and .claude skills folder. I'm going to use this as my starting point to create my second brain.
-
-The generated PRD has enough technical detail that Claude Code can implement each phase with minimal hand-holding. Use this repo as a reference for how the patterns look in practice, but build from your own PRD so the result is truly yours.
+This repo is a reference implementation rather than a framework to install and run. To build your own Second Brain, clone or fork it, then work through the phases in `.agent/plans/second-brain-prd.md` — tweaking each piece for your own stack, integrations, and preferences. The memory scaffolding, hooks, heartbeat loop, and integration adapters are independently reusable.
 
 ## What It Does
 
@@ -51,7 +39,6 @@ The generated PRD has enough technical detail that Claude Code can implement eac
 | **State files** | `.claude/data/state/` | Per-machine operational state (not synced) |
 | **Sanitization** | `.claude/scripts/sanitize.py` | 3-layer prompt injection defense (pattern detection, markdown escaping, XML wrapping) |
 | **Vault sync** | `.claude/scripts/git-sync` | Git-based vault sync with custom merge driver for daily logs |
-| **Templates** | `templates/memory/` | Starter memory files copied during first-time setup |
 
 ## Quick Start (Local)
 
@@ -75,13 +62,12 @@ cp master.env.example master.env
 python setup_workspace.py
 ```
 
-`setup_workspace.py` runs five steps:
+`setup_workspace.py` runs four steps:
 
 1. Reads your `master.env`
 2. Clones companion repositories (content-engine, video-processor, obsidian-ai-agent) — skips any that fail (they're optional)
 3. Writes `.env` files to each project from your `master.env`
 4. Generates platform-specific Claude Code hooks in `.claude/settings.local.json`
-5. Copies starter memory templates to `Fredis/Memory/` (skips files that already exist)
 
 ### 2. Install Dependencies
 
@@ -90,18 +76,17 @@ cd .claude/scripts
 uv sync
 ```
 
-### 3. Open Claude Code — Onboarding Starts Automatically
+### 3. Personalize the Memory Layer
+
+The memory files under `Fredis/Memory/` (`SOUL.md`, `USER.md`, `MEMORY.md`, `HEARTBEAT.md`, `HABITS.md`) are the agent's long-term context — edit them directly with your name, timezones, integration IDs, and voice.
+
+For a guided fill-in, run the onboarding TUI against the 103-question interview at `.agent/plans/phase1-onboarding-interview.md`:
 
 ```bash
-cd /path/to/fredis
-claude
+cd .claude/scripts && uv run python onboard.py
 ```
 
-On your first session, Claude detects the bootstrap file and starts a **conversational onboarding**. It asks about your name, timezone, role, preferences, and which integrations you plan to use. Your answers personalize the memory files (`USER.md`, `SOUL.md`, `HEARTBEAT.md`).
-
-This is a one-time conversation. Once complete, the bootstrap file is deleted and it won't trigger again.
-
-> **Prefer manual setup?** Skip onboarding by deleting `Fredis/Memory/BOOTSTRAP.md` and editing the memory files in `Fredis/Memory/` directly.
+Once you've answered the interview, say `phase 1 answers ready` in a Claude Code session and the `phase1-ready` skill drafts the five memory files from your answers (see `.claude/skills/phase1-ready/` for details).
 
 ### 4. Choose Your Integrations
 
@@ -333,9 +318,20 @@ python .claude/scripts/query.py drive find "search term"
 python .claude/scripts/query.py drive find "search term" --type spreadsheet
 python .claude/scripts/query.py drive list --type document --max 10
 python .claude/scripts/query.py drive get <file_id>
-```
 
-Monday.com + GitHub subcommands land in Phase 4 tasks 6–7.
+# Monday.com (read-only — GraphQL)
+python .claude/scripts/query.py monday boards
+python .claude/scripts/query.py monday board <board_id> --max 25
+python .claude/scripts/query.py monday my-items --max 25
+python .claude/scripts/query.py monday overdue
+python .claude/scripts/query.py monday search --query "invoice"
+
+# GitHub (read-only — REST)
+python .claude/scripts/query.py github recent --hours 24
+python .claude/scripts/query.py github review-requests
+python .claude/scripts/query.py github mentions --hours 168
+python .claude/scripts/query.py github ship
+```
 
 </details>
 
@@ -680,16 +676,6 @@ The `run_heartbeat.sh` and `run_reflect.sh` scripts add `~/.local/bin` to `PATH`
 2. Confirm Socket Mode is enabled in your Slack app settings (API dashboard)
 3. Verify your Slack user ID matches `SLACK_OWNER_USER_ID` or is listed in `CHAT_ALLOWED_USERS`
 4. Check service logs: `sudo journalctl -u secondbrain-chat -f` (VPS) or run `uv run python ../chat/main.py` directly to see output
-
-### Onboarding doesn't trigger on first session
-
-Onboarding requires `Fredis/Memory/BOOTSTRAP.md` to exist. If it's missing, copy it manually:
-
-```bash
-cp templates/memory/BOOTSTRAP.md Fredis/Memory/BOOTSTRAP.md
-```
-
-Then start a new Claude Code session.
 
 ### Heartbeat thread replies don't open a conversation
 

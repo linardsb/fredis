@@ -152,11 +152,9 @@ Ask the user for (or extract from provided materials):
    }
    ```
 
-4. **Create brand-system.md** - Copy from template and fill in brand guidelines
+4. **Create brand-system.md** - Copy from template and fill in brand guidelines (voice, visuals, dos/don'ts)
 
-5. **Create tone-of-voice.md** - Copy from template and fill in voice guidelines
-
-6. **Add assets** - Copy logo/images to `brands/{brand-name}/assets/`
+5. **Add assets** - Copy logo/images to `brands/{brand-name}/assets/`
 
 ### Step 4: Verify
 
@@ -564,7 +562,7 @@ This applies to single slides, batches, and full presentations. Planning prevent
 
    **Note:** All color values in brand.json are hex WITHOUT the `#` prefix.
 
-2. **Write content in brand's voice** (from tone-of-voice.md)
+2. **Write content in brand's voice** (from brand-system.md)
 3. **Preserve layout structure** (decorative elements, spacing, hierarchy)
 
 ### Step 5: Batch Generation (CRITICAL)
@@ -774,7 +772,7 @@ LinkedIn carousels are multi-page PDFs in square (1:1) format. Each page is a sw
 
 ### Step 1: Brand Discovery
 
-Same as Mode 1 - read brand.json, config.json, and tone-of-voice.md.
+Same as Mode 1 - read brand.json, config.json, and brand-system.md.
 
 ### Step 2: Carousel Layout Discovery
 

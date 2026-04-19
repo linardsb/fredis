@@ -176,6 +176,7 @@ def _fetch_raw_data() -> dict[str, Any]:
         "overdue_tasks": [],
         "due_soon_tasks": [],
         "slack_important": [],
+        "slack_warnings": [],
         "monday_overdue": [],
         "monday_my_items": [],
         "github_commits": [],
@@ -237,8 +238,13 @@ def _fetch_raw_data() -> dict[str, Any]:
     try:
         from integrations.slack_api import check_for_important_messages
 
-        data["slack_important"] = check_for_important_messages(hours_ago=2)
-        print(f"[{now_local()}] Slack: {len(data['slack_important'])} important messages")
+        data["slack_important"], data["slack_warnings"] = check_for_important_messages(hours_ago=2)
+        print(
+            f"[{now_local()}] Slack: {len(data['slack_important'])} important messages, "
+            f"{len(data['slack_warnings'])} channel warning(s)"
+        )
+        for w in data["slack_warnings"]:
+            print(f"[{now_local()}] Slack warning: {w}")
     except Exception as e:
         data["errors"]["slack"] = str(e)
         print(f"[{now_local()}] Slack error (non-fatal): {e}")
@@ -435,6 +441,9 @@ def format_context_with_diff(
                 slack_section += "\n".join(f"- {m.user_name}: {m.text[:80]}" for m in old_msgs)
         else:
             slack_section = "## Slack\n\nNo important messages in monitored channels."
+        if data.get("slack_warnings"):
+            slack_section += "\n\n### Monitoring Degraded\n"
+            slack_section += "\n".join(f"- {w}" for w in data["slack_warnings"])
         for m in data["slack_important"]:
             source_ids.append(f"slack:{m.channel}:{m.ts}")
         sections.append(wrap_external_data(slack_section, "slack"))

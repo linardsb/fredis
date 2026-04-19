@@ -20,6 +20,16 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR/.claude/scripts\" && PATH=\"$PATH:/root/.local/bin\" uv run python \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-template-residue.py\"",
+            "timeout": 5
+          }
+        ]
       }
     ],
     "PostToolUse": [

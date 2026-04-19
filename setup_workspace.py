@@ -13,7 +13,6 @@ Usage:
 import argparse
 import json
 import os
-import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -30,6 +29,10 @@ REPOS: list[dict[str, str]] = []
 # ---------------------------------------------------------------------------
 ENV_FILES = {
     # --- Second Brain (Heartbeat & Scripts) ---
+    # NOTE: Monday boards must be supplied via the combined MONDAY_BOARD_IDS
+    # form in master.env (e.g. "Deals:1234,Client Projects:5678"). The
+    # per-board MONDAY_BOARD_<NAME>=<id> form isn't propagated — see
+    # config.py for the parsing rules.
     ".claude/scripts/.env": {
         "OWNER_NAME": "OWNER_NAME",
         "DATABASE_URL": "SB_DATABASE_URL",
@@ -37,6 +40,9 @@ ENV_FILES = {
         "HEARTBEAT_ACTIVE_HOURS_START": "HEARTBEAT_ACTIVE_HOURS_START",
         "HEARTBEAT_ACTIVE_HOURS_END": "HEARTBEAT_ACTIVE_HOURS_END",
         "HEARTBEAT_TIMEZONE": "HEARTBEAT_TIMEZONE",
+        "REFLECTION_HOUR": "REFLECTION_HOUR",
+        "DRAFT_EXPIRY_HOURS": "DRAFT_EXPIRY_HOURS",
+        "EXPIRED_DRAFT_RETENTION_DAYS": "EXPIRED_DRAFT_RETENTION_DAYS",
         "ASANA_ACCESS_TOKEN": "ASANA_ACCESS_TOKEN",
         "ASANA_WORKSPACE_ID": "ASANA_WORKSPACE_ID",
         "ASANA_PROJECT_ID": "ASANA_PROJECT_ID",
@@ -47,17 +53,24 @@ ENV_FILES = {
         "SLACK_NOTIFICATION_CHANNEL": "SLACK_NOTIFICATION_CHANNEL",
         "SLACK_MONITORED_CHANNELS": "SLACK_MONITORED_CHANNELS",
         "GOOGLE_CALENDAR_ID": "GOOGLE_CALENDAR_ID",
+        "MONDAY_API_TOKEN": "MONDAY_API_TOKEN",
+        "MONDAY_USER_ID": "MONDAY_USER_ID",
+        "MONDAY_BOARD_IDS": "MONDAY_BOARD_IDS",
+        "GITHUB_TOKEN": "GITHUB_TOKEN",
+        "GITHUB_USERNAME": "GITHUB_USERNAME",
     },
 }
 
 # ---------------------------------------------------------------------------
-# Defaults — written to target .env if the master doesn't define them
+# Defaults — written to target .env if the master doesn't define them.
+# Must stay in sync with .claude/scripts/config.py's os.getenv() fallbacks,
+# otherwise the per-script .env will silently override the config defaults.
 # ---------------------------------------------------------------------------
 DEFAULTS = {
-    "HEARTBEAT_INTERVAL_MINUTES": "30",
-    "HEARTBEAT_ACTIVE_HOURS_START": "08:00",
-    "HEARTBEAT_ACTIVE_HOURS_END": "22:00",
-    "HEARTBEAT_TIMEZONE": "America/Chicago",
+    "HEARTBEAT_INTERVAL_MINUTES": "120",
+    "HEARTBEAT_ACTIVE_HOURS_START": "05:00",
+    "HEARTBEAT_ACTIVE_HOURS_END": "20:00",
+    "HEARTBEAT_TIMEZONE": "Europe/London",
 }
 
 
@@ -131,53 +144,6 @@ def write_env_files(root: Path, master: dict[str, str], dry_run: bool = False) -
             print(f"  WRITE {rel_path} ({len(lines)} vars)")
 
 
-def generate_master_template(root: Path) -> None:
-    """Generate a master.env.example with all required variables."""
-    template = root / "master.env.example"
-    sections = [
-        (
-            "Second Brain (Heartbeat & Scripts)",
-            [
-                ("OWNER_NAME", "Your name (used in heartbeat prompts)"),
-                ("SB_DATABASE_URL", "PostgreSQL connection (leave empty for local SQLite)"),
-                ("ASANA_ACCESS_TOKEN", "Asana Personal Access Token"),
-                ("ASANA_WORKSPACE_ID", "Asana Workspace ID"),
-                ("ASANA_PROJECT_ID", "Asana Project ID"),
-                ("SLACK_BOT_TOKEN", "Slack Bot Token (xoxb-...)"),
-                ("SLACK_APP_TOKEN", "Slack App Token for Socket Mode (xapp-...)"),
-                ("SLACK_OWNER_USER_ID", "Your Slack user ID (for @mention filtering)"),
-                ("GOOGLE_CALENDAR_ID", "Google Calendar ID (usually your email)"),
-            ],
-        ),
-    ]
-
-    lines = [
-        "# =============================================================================",
-        "# Master Environment File — All variables for the Fredis workspace",
-        "# =============================================================================",
-        "# Copy to master.env and fill in your values.",
-        "# Run: python setup_workspace.py --env master.env",
-        "# Variables with defaults (models, config) are auto-filled if omitted.",
-        "",
-    ]
-
-    for section_name, vars_list in sections:
-        lines.append(f"# === {section_name} ===")
-        for var, comment in vars_list:
-            lines.append(f"# {comment}")
-            lines.append(f"{var}=")
-        lines.append("")
-
-    lines.append("# === Optional Overrides (defaults used if omitted) ===")
-    for var, default in sorted(DEFAULTS.items()):
-        lines.append(f"# {var}={default}")
-    lines.append("")
-
-    content = "\n".join(lines) + "\n"
-    template.write_text(content, encoding="utf-8")
-    print(f"  WRITE master.env.example ({len(sections)} sections)")
-
-
 def generate_hooks_settings(root: Path, dry_run: bool = False) -> None:
     """Generate .claude/settings.local.json with platform-specific hook commands."""
     target = root / ".claude" / "settings.local.json"
@@ -248,39 +214,6 @@ def generate_hooks_settings(root: Path, dry_run: bool = False) -> None:
         print(f"  WRITE .claude/settings.local.json ({platform} hooks)")
 
 
-TEMPLATE_FILES = ["SOUL.md", "USER.md", "MEMORY.md", "HEARTBEAT.md", "HABITS.md"]
-
-
-def init_memory_templates(root: Path, dry_run: bool = False) -> None:
-    """Copy memory templates to Fredis/Memory/ if files don't already exist."""
-    templates_dir = root / "templates" / "memory"
-    memory_dir = root / "Fredis" / "Memory"
-
-    if not templates_dir.exists():
-        print("  SKIP  templates/memory/ not found")
-        return
-
-    # Ensure memory directory exists
-    if not dry_run:
-        memory_dir.mkdir(parents=True, exist_ok=True)
-        (memory_dir / "daily").mkdir(parents=True, exist_ok=True)
-
-    for filename in TEMPLATE_FILES:
-        src = templates_dir / filename
-        dst = memory_dir / filename
-
-        if not src.exists():
-            continue
-
-        if dst.exists():
-            print(f"  SKIP  {filename} (already exists)")
-        elif dry_run:
-            print(f"  COPY  templates/memory/{filename} -> Fredis/Memory/{filename}")
-        else:
-            shutil.copy2(src, dst)
-            print(f"  COPY  templates/memory/{filename} -> Fredis/Memory/{filename}")
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description="Set up Fredis workspace")
     parser.add_argument(
@@ -298,11 +231,6 @@ def main() -> None:
         action="store_true",
         help="Show what would happen without doing it",
     )
-    parser.add_argument(
-        "--generate-template",
-        action="store_true",
-        help="Generate master.env.example template and exit",
-    )
     args = parser.parse_args()
 
     # Root is wherever this script lives (fredis root)
@@ -310,42 +238,31 @@ def main() -> None:
     print(f"Workspace root: {root}")
     print()
 
-    if args.generate_template:
-        print("[1/1] Generating master.env.example...")
-        generate_master_template(root)
-        print("\nDone! Fill in master.env.example -> save as master.env -> run setup.")
-        return
-
     # Parse master env
     master_path = Path(args.env)
     if not master_path.is_absolute():
         master_path = root / master_path
-    print(f"[1/5] Reading master env: {master_path}")
+    print(f"[1/4] Reading master env: {master_path}")
     master = parse_env_file(master_path)
     print(f"       Loaded {len(master)} variables")
     print()
 
     # Clone repos
     if args.env_only:
-        print("[2/5] Skipping clone (--env-only)")
+        print("[2/4] Skipping clone (--env-only)")
     else:
-        print("[2/5] Cloning repositories...")
+        print("[2/4] Cloning repositories...")
         clone_repos(root, dry_run=args.dry_run)
     print()
 
     # Write env files
-    print("[3/5] Writing .env files...")
+    print("[3/4] Writing environment files...")
     write_env_files(root, master, dry_run=args.dry_run)
     print()
 
     # Generate platform-specific hooks
-    print("[4/5] Generating platform-specific hooks...")
+    print("[4/4] Generating platform-specific hooks...")
     generate_hooks_settings(root, dry_run=args.dry_run)
-    print()
-
-    # Initialize memory templates
-    print("[5/5] Initializing memory templates...")
-    init_memory_templates(root, dry_run=args.dry_run)
     print()
 
     if args.dry_run:

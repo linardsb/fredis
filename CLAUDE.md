@@ -7,7 +7,7 @@ Fredis is an **advisor**, not an agent with send-authority. Heartbeats and sched
 - **Phase 1** — Memory-layer personalisation (SOUL/USER/MEMORY/HABITS/HEARTBEAT drafting via `phase1-ready` skill).
 - **Phase 2** — Heartbeat + draft loop (scheduled gather → reconcile → prompt → Slack).
 - **Phase 3** — Hybrid memory search (SQLite/Postgres + FastEmbed) + Slack chat interface.
-- **Phase 4** — Integrations reconciliation: Circle removed; Monday.com + GitHub added; advisor-mode belt tightened; heartbeat defaults set to Europe/London 05:00–20:00, 120 min interval.
+- **Phase 4** — Integrations reconciliation: added Monday.com + GitHub; advisor-mode belt tightened; heartbeat defaults set to Europe/London 05:00–20:00, 120 min interval.
 
 ## Memory Files
 
@@ -374,7 +374,7 @@ python .claude/scripts/query.py asana comment <task_gid> --comment "Comment text
 python .claude/scripts/query.py asana complete <task_gid>
 python .claude/scripts/query.py asana move <task_gid> --to-project <project_id> --from-project <project_id>
 
-# Slack (read-only; `send` intentionally omitted — Task 9 will add it behind --i-confirm-send)
+# Slack (`send` gated behind --i-confirm-send — advisor mode refuses otherwise)
 python .claude/scripts/query.py slack channels
 python .claude/scripts/query.py slack messages <channel> --hours 2
 python .claude/scripts/query.py slack update <channel> "new text" --ts <message_ts>
@@ -463,13 +463,13 @@ The process needs to stay running — it connects via Socket Mode (outbound WebS
 
 Before committing changes under `.claude/scripts/`, run the lint, type, and
 test checks. The baseline is clean (0 ruff errors, 0 mypy errors,
-113 tests passing) — keep it that way.
+≥249 tests passing as of 2026-04-18) — keep it that way.
 
 ```bash
 cd .claude/scripts
 uv run ruff check .                         # 0 errors expected
 uv run --with mypy mypy . --ignore-missing-imports  # 0 errors expected
-uv run pytest tests/                        # 113 passed expected
+uv run pytest tests/                        # all green expected
 ```
 
 Notes:
