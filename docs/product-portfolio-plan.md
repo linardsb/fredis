@@ -1,7 +1,7 @@
 ---
 title: Product Portfolio & Skill-Stack Plan
 date: 2026-04-19
-status: planning (nothing authored yet; gated on open questions)
+status: planning — Wave 1 authored 2026-04-19; Wave 2 product-shape + role-skills deferred; Wave 3 ship/govern + deep-engineering roles deferred; open questions §10 may still gate Archon wiring
 context: post-Phase-9 product-building thesis + Archon integration + Fredis skill stack
 ---
 
@@ -217,3 +217,45 @@ Chris Lori-style: evidence first, then verdict. No hedging. Direct pushback wher
 - Cole Medin's workshops (proprietary, locally cloned at `/Users/Berzins/Desktop/workshops`) — 30+ workshop repos, content-skill library, Archon pedagogy
 - Fredis memory files: `Fredis/Memory/SOUL.md`, `USER.md`, `MEMORY.md`, `HEARTBEAT.md`
 - Fredis PRD: `.agent/plans/second-brain-prd.md` (Phase 9 deployment spec)
+
+---
+
+## 13. Wave 1 Authoring Log (2026-04-19)
+
+Execute-pass of `.agent/plans/phase5-skill-stack.md`. See that plan for decisions, port
+tables, and gating context. Decision file: `Fredis/Memory/daily/2026-04-19-phase5-port-decisions.md`.
+
+**Ported from [alirezarezvani/claude-skills](https://github.com/alirezarezvani/claude-skills) (MIT) — 25 skills:**
+
+- C-level advisors (7): `ceo-advisor`, `cto-advisor`, `ciso-advisor`, `scenario-war-room`, `strategic-alignment`, `company-os`, `founder-coach`
+- Engineering roles (10): `senior-architect`, `senior-backend`, `ai-security`, `senior-data-scientist`, `senior-qa`, `tdd-guide`, `senior-security`, `senior-secops`, `cloud-security`, `security-pen-testing`
+- Statistics + experimentation (2): `statistical-analyst`, `experiment-designer`
+- Product (3): `product-strategist`, `product-discovery`, `product-manager-toolkit`
+- Personas (3): `startup-cto`, `solo-founder`, `product-manager`
+
+**De novo (Fredis-authored) — 3 skills:**
+
+- `ip-overhang-guard` — UK CDPA 1988 s.11(2) + Patents Act 1977 s.39 + clean-room playbook + Merkle-letter template.
+- `business-cycle-analyst` — Dalio short + long debt cycles + Kondratieff waves + sector rotation + Chris-Lori voice.
+- `robotics-engineer` — ROS2 architecture + ISO 10218 / 13482 / 15066 safety regimes + motion planning (RRT*, MPC, PRM, A*/D*).
+
+**Deferred:**
+
+- `playwright-pro` — upstream is a 60+ file plugin with MCP integrations and sub-skills; port strategy needs a Wave-2 call (vendor full tree vs. reference-only).
+- Archon sub-agent port — per Phase 5.1 plan Amendment 4, deferred until post-Fredis-completion Archon install (Archon's sub-agents run inside Archon workflows natively).
+
+**Validation results (2026-04-19):**
+
+- `quick_validate.py`: 0 failures / 40 skill dirs
+- `ruff check`: all checks passed
+- `mypy --ignore-missing-imports`: 0 errors in 50 source files
+- `pytest`: 282 passed (up from 249 baseline — no regressions)
+- Strict frontmatter (Anthropic `name` + `description` only): 28 new skills clean; `skill-creator` retains pre-existing `license` field (allowed by validator).
+- Injection-signal grep on ported content: no prompt-injection patterns; "System:" hits are legitimate template placeholders in threat-model / vuln-report outputs.
+
+**Output-path scaffolding:** `Fredis/Memory/drafts/active/<skill>/.gitkeep` present for all 28 new skills.
+
+**Not done in this pass (requires fresh Claude Code session):**
+
+- Task 13 manual per-skill trigger-phrase dry-runs — trigger-phrase matching cannot be self-tested mid-session.
+- Commit — gated on explicit ask per `MEMORY.md` `feedback_no_unprompted_commits.md`.

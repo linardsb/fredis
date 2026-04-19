@@ -8,6 +8,24 @@ Fredis is an **advisor**, not an agent with send-authority. Heartbeats and sched
 - **Phase 2** — Heartbeat + draft loop (scheduled gather → reconcile → prompt → Slack).
 - **Phase 3** — Hybrid memory search (SQLite/Postgres + FastEmbed) + Slack chat interface.
 - **Phase 4** — Integrations reconciliation: added Monday.com + GitHub; advisor-mode belt tightened; heartbeat defaults set to Europe/London 05:00–20:00, 120 min interval.
+- **Phase 5.1** — Skill stack Wave 1 (`.agent/plans/phase5-skill-stack.md`): ported 25 MIT-licensed skills from [alirezarezvani/claude-skills](https://github.com/alirezarezvani/claude-skills) covering C-level advisors, engineering roles, stats/experimentation, product, and personas (solo-founder, startup-cto, product-manager); authored 3 de novo — `ip-overhang-guard` (UK employer-IP), `business-cycle-analyst` (Dalio + Lori voice), `robotics-engineer` (ROS2 + ISO safety + motion planning). Archon sub-agent port deferred to post-Fredis-completion.
+
+## Skill Stack
+
+The `.claude/skills/` directory groups Fredis's skills by purpose. Every skill operates under §Advisor Mode — outputs go to `Fredis/Memory/drafts/active/<skill>/` and are never auto-sent.
+
+**Advisor framing (2026-04-19, Linards's directive):** Each skill is **both** an execution point *and* an advisor persona. When Linards invokes a role-based skill, it should respond *from that professional's perspective* on how to approach the business/product question — not just run a playbook. The ported persona skills (`solo-founder`, `startup-cto`, `product-manager`) are explicit wrappers for this voice; the function-based role skills (`ceo-advisor`, `cto-advisor`, `product-strategist`, etc.) carry the same expectation. Treat the skill's encoded framework as the advisor's toolkit, not a rigid script.
+
+| Group | Skills | Role |
+|-------|--------|------|
+| **Content** | `linkedin-post`, `x-post`, `instagram-post`, `pptx-generator`, `excalidraw-diagram`, `sop-creator`, `pdf` | Distribution + operational docs |
+| **Integrations** | `direct-integrations`, `mcp-client` | Gmail / Calendar / Asana / Slack / Monday / GitHub / Drive surface |
+| **Meta / infra** | `skill-creator`, `obsidian-vault-structure`, `phase1-ready` | Fredis self-maintenance |
+| **C-level advisors (Wave 1 port)** | `ceo-advisor`, `cto-advisor`, `ciso-advisor`, `founder-coach`, `scenario-war-room`, `strategic-alignment`, `company-os` | Strategic + organisational perspective |
+| **Engineering advisors (Wave 1 port)** | `senior-architect`, `senior-backend`, `senior-qa`, `tdd-guide`, `senior-security`, `senior-secops`, `security-pen-testing`, `cloud-security`, `ai-security` | Technical review + build-vs-buy + security posture |
+| **Product + data (Wave 1 port)** | `product-strategist`, `product-discovery`, `product-manager-toolkit`, `experiment-designer`, `statistical-analyst`, `senior-data-scientist` | Discovery, OKRs, experimentation, analytics |
+| **Personas (Wave 1 port)** | `solo-founder`, `startup-cto`, `product-manager` | First-person advisor voice for one-person ops |
+| **Fredis-specific (Wave 1 de novo)** | `ip-overhang-guard`, `business-cycle-analyst`, `robotics-engineer` | UK employer-IP; macro-cycle + Lori voice; robotics architecture/safety |
 
 ## Memory Files
 
