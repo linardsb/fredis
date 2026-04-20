@@ -47,6 +47,9 @@ from config import (
     DRAFTS_EXPIRED_DIR,
     DRAFTS_SENT_DIR,
     EXPIRED_DRAFT_RETENTION_DAYS,
+    GATE_BREACH_DRAFTS_DIR,
+    GATE_BREACH_TEMPLATE,
+    GATES_DIR,
     GUARDRAIL_STATE_FILE,
     HABITS_FILE,
     HEARTBEAT_STATE_FILE,
@@ -58,6 +61,7 @@ from config import (
     is_within_active_hours,
     now_local,
 )
+from gate_loader import evaluate_gates, load_gates, render_breach_draft
 from notifications import (
     send_console_notification,
     send_slack_notification,
@@ -636,6 +640,46 @@ def cleanup_expired_drafts() -> int:
     return deleted_count
 
 
+def surface_gate_breaches() -> list[str]:
+    """Load gates from GATES_DIR, evaluate, write breach drafts.
+
+    Returns a list of lane/metric labels for every breach surfaced this tick.
+    Idempotent: if a breach draft for the same lane/metric/date already exists,
+    it is not re-written.
+    """
+    try:
+        gates = load_gates(GATES_DIR)
+    except Exception as exc:  # defensive — never let gate errors break heartbeat
+        print(f"[{now_local()}] Gate load error (non-fatal): {exc}")
+        return []
+
+    if not gates:
+        return []
+
+    breaches = evaluate_gates(gates)
+    if not breaches:
+        return []
+
+    if not GATE_BREACH_TEMPLATE.exists():
+        print(f"[{now_local()}] Gate breach template missing: {GATE_BREACH_TEMPLATE}")
+        return []
+    template = GATE_BREACH_TEMPLATE.read_text(encoding="utf-8")
+
+    GATE_BREACH_DRAFTS_DIR.mkdir(parents=True, exist_ok=True)
+    today = now_local().strftime("%Y-%m-%d")
+    surfaced: list[str] = []
+    for breach in breaches:
+        gate = breach.gate
+        slug = f"{today}-{gate.lane}-{gate.metric}-breach.md"
+        out = GATE_BREACH_DRAFTS_DIR / slug
+        if out.exists():
+            continue  # already surfaced today
+        out.write_text(render_breach_draft(breach, template), encoding="utf-8")
+        surfaced.append(f"{gate.lane}/{gate.metric}")
+        print(f"[{now_local()}] Gate breach draft: {slug}")
+    return surfaced
+
+
 def gather_active_drafts_context() -> str:
     """Read all files in drafts/active/ and return summary for Claude."""
     if not DRAFTS_ACTIVE_DIR.exists():
@@ -977,7 +1021,12 @@ async def run_heartbeat(test_mode: bool = False) -> str | None:
             f"[{now_local()}] Cleaned up {deleted_count} expired drafts older than {EXPIRED_DRAFT_RETENTION_DAYS}d"
         )
 
-    # Re-gather active drafts AFTER reconciliation + expiry so Claude only sees remaining ones
+    # Phase 5.2: Gate-breach check — surfaces pre-committed kill triggers that fired
+    gate_breaches = surface_gate_breaches()
+    if gate_breaches:
+        print(f"[{now_local()}] Gate breaches surfaced: {', '.join(gate_breaches)}")
+
+    # Re-gather active drafts AFTER reconciliation + expiry + gate-breach so Claude sees remaining + new
     active_drafts_ctx = gather_active_drafts_context()
 
     # Get list of active draft filenames for snapshot

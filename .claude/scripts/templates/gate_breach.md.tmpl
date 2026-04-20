@@ -1,0 +1,28 @@
+---
+skill: launch-governance/metrics-gate
+lane: {lane}
+created: auto
+status: draft
+---
+
+# Gate breach: {lane} / {metric}
+
+**Deadline:** {deadline} — {reason}
+**Threshold:** {threshold}
+**Observable source:** {observable_source}
+
+## Rationale (pre-committed)
+{rationale}
+
+## Invalidator (what would retire the gate)
+{invalidator}
+
+## Advisor recommendation
+
+Review this lane in your next `bet-review`. The pre-committed kill criterion has
+fired — either the threshold truly has not been met (lane → paused / killed) or
+the observable-source is giving a false signal (update the gate with stronger
+evidence).
+
+Do not silently extend the deadline. If the gate should move, write a new
+`decision-logger` entry explaining why — that's the audit trail.

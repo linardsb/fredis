@@ -9,6 +9,7 @@ Fredis is an **advisor**, not an agent with send-authority. Heartbeats and sched
 - **Phase 3** — Hybrid memory search (SQLite/Postgres + FastEmbed) + Slack chat interface.
 - **Phase 4** — Integrations reconciliation: added Monday.com + GitHub; advisor-mode belt tightened; heartbeat defaults set to Europe/London 05:00–20:00, 120 min interval.
 - **Phase 5.1** — Skill stack Wave 1 (`.agent/plans/phase5-skill-stack.md`): ported 25 MIT-licensed skills from [alirezarezvani/claude-skills](https://github.com/alirezarezvani/claude-skills) covering C-level advisors, engineering roles, stats/experimentation, product, and personas (solo-founder, startup-cto, product-manager); authored 3 de novo — `ip-overhang-guard` (UK employer-IP), `business-cycle-analyst` (Dalio + Lori voice), `robotics-engineer` (ROS2 + ISO safety + motion planning). Archon sub-agent port deferred to post-Fredis-completion.
+- **Phase 5.2** — Workflow-specialist bundles + 20-skill consolidation (`.agent/plans/phase5-2-skill-consolidation.md`): authored 3 new bundles (`idea-validation`, `product-shape`, `launch-governance`) encoding 10 workflow-specialist frameworks (market-landscape-scan, problem-validation, minimum-lovable-product, pricing-shaper, positioning-sharpener, mvp-architect, launch-wedge, metrics-gate, bet-review, decision-logger) as structural skeletons with source lists; consolidated 33 existing skills into 10 merged bundles (`integrations`, `executive-leadership`, `technical-leadership`, `org-design`, `security-engineering`, `engineering`, `data-and-experimentation`, `product-management`, `content-social`, `content-artifacts`) with 100% content preserved in `references/`; `ciso-advisor` kept standalone; shared assets in `_shared/` (lanes, Atis-£1k test, Chris-Lori voice, draft-path convention); `metrics-gate` wired into heartbeat for proactive kill-trigger breach surfacing via `Fredis/Memory/gates/*.yaml`. Final: 20 Fredis skills + 7 Claude Code built-ins.
 
 ## Skill Stack
 
@@ -16,16 +17,32 @@ The `.claude/skills/` directory groups Fredis's skills by purpose. Every skill o
 
 **Advisor framing (2026-04-19, Linards's directive):** Each skill is **both** an execution point *and* an advisor persona. When Linards invokes a role-based skill, it should respond *from that professional's perspective* on how to approach the business/product question — not just run a playbook. The ported persona skills (`solo-founder`, `startup-cto`, `product-manager`) are explicit wrappers for this voice; the function-based role skills (`ceo-advisor`, `cto-advisor`, `product-strategist`, etc.) carry the same expectation. Treat the skill's encoded framework as the advisor's toolkit, not a rigid script.
 
-| Group | Skills | Role |
-|-------|--------|------|
-| **Content** | `linkedin-post`, `x-post`, `instagram-post`, `pptx-generator`, `excalidraw-diagram`, `sop-creator`, `pdf` | Distribution + operational docs |
-| **Integrations** | `direct-integrations`, `mcp-client` | Gmail / Calendar / Asana / Slack / Monday / GitHub / Drive surface |
-| **Meta / infra** | `skill-creator`, `obsidian-vault-structure`, `phase1-ready` | Fredis self-maintenance |
-| **C-level advisors (Wave 1 port)** | `ceo-advisor`, `cto-advisor`, `ciso-advisor`, `founder-coach`, `scenario-war-room`, `strategic-alignment`, `company-os` | Strategic + organisational perspective |
-| **Engineering advisors (Wave 1 port)** | `senior-architect`, `senior-backend`, `senior-qa`, `tdd-guide`, `senior-security`, `senior-secops`, `security-pen-testing`, `cloud-security`, `ai-security` | Technical review + build-vs-buy + security posture |
-| **Product + data (Wave 1 port)** | `product-strategist`, `product-discovery`, `product-manager-toolkit`, `experiment-designer`, `statistical-analyst`, `senior-data-scientist` | Discovery, OKRs, experimentation, analytics |
-| **Personas (Wave 1 port)** | `solo-founder`, `startup-cto`, `product-manager` | First-person advisor voice for one-person ops |
-| **Fredis-specific (Wave 1 de novo)** | `ip-overhang-guard`, `business-cycle-analyst`, `robotics-engineer` | UK employer-IP; macro-cycle + Lori voice; robotics architecture/safety |
+**20-skill layout after Phase 5.2 consolidation (2026-04-20):** workflow-specialist bundles route via trigger phrases; merged bundles absorb 33 Wave 1 originals into 10 dirs with 100% content preserved under `references/`. Shared primitives live in `.claude/skills/_shared/` (`lanes.md`, `atis-test.md`, `chris-lori-voice.md`, `draft-path-convention.md`) — leading-underscore keeps the dir out of auto-discovery.
+
+| # | Skill | Absorbs / Purpose |
+|---|-------|--------------------|
+| 1 | `ip-overhang-guard` | UK CDPA s.11(2) + Patents Act s.39 + clean-room + Merkle-letter |
+| 2 | `business-cycle-analyst` | Dalio cycles + Kondratieff + Chris-Lori voice |
+| 3 | `robotics-engineer` | ROS2 + ISO safety + motion planning |
+| 4 | `phase1-ready` | Onboarding pipeline |
+| 5 | `skill-creator` | Meta — scaffold + validate skills |
+| 6 | `obsidian-vault-structure` | Vault layout reference |
+| 7 | `ciso-advisor` | Strategic/compliance security (kept separate from hands-on security-engineering) |
+| 8 | `integrations` | `direct-integrations` + `mcp-client` |
+| 9 | `executive-leadership` | `ceo-advisor` + `founder-coach` + `solo-founder` + `scenario-war-room` |
+| 10 | `technical-leadership` | `cto-advisor` + `startup-cto` |
+| 11 | `org-design` | `strategic-alignment` + `company-os` |
+| 12 | `security-engineering` | `senior-security` + `senior-secops` + `security-pen-testing` + `cloud-security` + `ai-security` |
+| 13 | `engineering` | `senior-architect` + `senior-backend` + `senior-qa` + `tdd-guide` |
+| 14 | `data-and-experimentation` | `senior-data-scientist` + `statistical-analyst` + `experiment-designer` |
+| 15 | `product-management` | `product-strategist` + `product-discovery` + `product-manager-toolkit` + `product-manager` |
+| 16 | `content-social` | `linkedin-post` + `x-post` + `instagram-post` |
+| 17 | `content-artifacts` | `pptx-generator` + `excalidraw-diagram` + `pdf` + `sop-creator` |
+| 18 | **`idea-validation`** | market-landscape-scan + problem-validation + minimum-lovable-product (new) |
+| 19 | **`product-shape`** | pricing-shaper + positioning-sharpener + mvp-architect (new) |
+| 20 | **`launch-governance`** | launch-wedge + metrics-gate + bet-review + decision-logger (new, heartbeat-wired) |
+
+**Voice modes** — merged skills with persona references surface them via invocation ("in solo-founder voice", "in startup-cto voice", "in product-manager voice"). Default is neutral SOUL voice.
 
 ## Memory Files
 

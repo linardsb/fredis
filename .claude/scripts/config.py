@@ -125,6 +125,11 @@ DRAFTS_DIR = MEMORY_DIR / "drafts"
 DRAFTS_ACTIVE_DIR = DRAFTS_DIR / "active"
 DRAFTS_SENT_DIR = DRAFTS_DIR / "sent"
 DRAFTS_EXPIRED_DIR = DRAFTS_DIR / "expired"
+
+# === Gates (Phase 5.2 launch-governance/metrics-gate) ===
+GATES_DIR = MEMORY_DIR / "gates"
+GATE_BREACH_TEMPLATE = SCRIPTS_DIR / "templates" / "gate_breach.md.tmpl"
+GATE_BREACH_DRAFTS_DIR = DRAFTS_ACTIVE_DIR / "launch-governance" / "metrics-gate"
 HABITS_FILE = MEMORY_DIR / "HABITS.md"
 DRAFT_EXPIRY_HOURS = int(os.getenv("DRAFT_EXPIRY_HOURS", "24"))
 

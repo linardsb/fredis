@@ -1,7 +1,7 @@
 ---
 title: Product Portfolio & Skill-Stack Plan
 date: 2026-04-19
-status: planning — Wave 1 authored 2026-04-19; Wave 2 product-shape + role-skills deferred; Wave 3 ship/govern + deep-engineering roles deferred; open questions §10 may still gate Archon wiring
+status: Wave 1 landed 2026-04-19; Wave 2 (workflow-specialist bundles) landed 2026-04-20 as skeletons with source lists — deep primary-source bodies deferred to follow-up authoring pass; 20-skill consolidation complete; plugin-split deferred to Phase 5.3
 context: post-Phase-9 product-building thesis + Archon integration + Fredis skill stack
 ---
 
@@ -258,4 +258,61 @@ tables, and gating context. Decision file: `Fredis/Memory/daily/2026-04-19-phase
 **Not done in this pass (requires fresh Claude Code session):**
 
 - Task 13 manual per-skill trigger-phrase dry-runs — trigger-phrase matching cannot be self-tested mid-session.
+- Commit — gated on explicit ask per `MEMORY.md` `feedback_no_unprompted_commits.md`.
+
+---
+
+## 14. Wave 2 Authoring Log (2026-04-20)
+
+Execute-pass of `.agent/plans/phase5-2-skill-consolidation.md`. Workflow-specialist bundles + 20-skill consolidation.
+
+**3 new bundles authored as skeletons** (routing + advisor + cross-links + references with source lists; deep primary-source synthesis deferred to follow-up pass):
+
+- `idea-validation` — market-landscape-scan (Porter / STEEP / Dunford / Blue Ocean / competitive teardown) + problem-validation (Mom Test / Running Lean / JTBD switch) + minimum-lovable-product (Kniberg MLP / Kano / Patton / Klein).
+- `product-shape` — pricing-shaper (Van Westendorp / Gabor-Granger / Ramanujam) + positioning-sharpener (Dunford / Moore / Chris-Lori gate) + mvp-architect (Ries / Kniberg / Wardley / C4 / Sales Safari; three pre-built stack templates for B2G / B2C / SaaS).
+- `launch-governance` — launch-wedge (Bullseye / PG / Four Fits) + metrics-gate (states-and-dates / pre-mortem / AARRR / SaaS status flags; **live-code wired into heartbeat**) + bet-review (Thinking in Bets / Munger / pivot-or-persevere) + decision-logger (two-layer + DO_NOT_RESURFACE).
+
+**10 existing-stack merges (33 originals → 10 bundles, 100% content preserved in references/):**
+
+- `integrations` ← direct-integrations + mcp-client
+- `executive-leadership` ← ceo-advisor + founder-coach + solo-founder + scenario-war-room
+- `technical-leadership` ← cto-advisor + startup-cto
+- `org-design` ← strategic-alignment + company-os
+- `security-engineering` ← senior-security + senior-secops + security-pen-testing + cloud-security + ai-security
+- `engineering` ← senior-architect + senior-backend + senior-qa + tdd-guide
+- `data-and-experimentation` ← senior-data-scientist + statistical-analyst + experiment-designer
+- `product-management` ← product-strategist + product-discovery + product-manager-toolkit + product-manager
+- `content-social` ← linkedin-post + x-post + instagram-post
+- `content-artifacts` ← pptx-generator + excalidraw-diagram + pdf + sop-creator
+
+**Kept standalone:** `ip-overhang-guard`, `business-cycle-analyst`, `robotics-engineer`, `phase1-ready`, `skill-creator`, `obsidian-vault-structure`, `ciso-advisor`.
+
+**Shared primitives (new this phase):** `.claude/skills/_shared/lanes.md`, `_shared/atis-test.md`, `_shared/chris-lori-voice.md`, `_shared/draft-path-convention.md`. Leading underscore keeps the dir out of skill auto-discovery; merged skills reference these via relative paths.
+
+**Heartbeat live-code integration — `metrics-gate`:**
+- `.claude/scripts/gate_schema.py` — stdlib-dataclass `Gate` + `GateBreach` schema with Mapping-typed factory.
+- `.claude/scripts/gate_loader.py` — `load_gates()` (YAML, skip-invalid) + `evaluate_gates()` (deadline check) + `render_breach_draft()`.
+- `.claude/scripts/heartbeat.py` — `surface_gate_breaches()` called each tick; writes breach draft to `Fredis/Memory/drafts/active/launch-governance/metrics-gate/`.
+- `.claude/scripts/templates/gate_breach.md.tmpl` — breach-draft template.
+- `.claude/scripts/tests/test_gate_loader.py` — 10 tests covering parse / evaluate / render.
+- `Fredis/Memory/HEARTBEAT.md` — gate-breach checkpoint added.
+- `pyproject.toml` — `pyyaml>=6.0.0` added for gate parsing.
+
+**Validation results (2026-04-20):**
+- `quick_validate.py`: 0 failures / 20 skill dirs (`_shared/` deliberately skipped — it's not an auto-discoverable skill).
+- `ruff check .claude/scripts/`: all checks passed.
+- `uv run --extra dev mypy . --ignore-missing-imports`: 0 errors in 53 source files.
+- `uv run --extra dev pytest tests/`: 292 passed (282 baseline + 10 new in `test_gate_loader.py`).
+- `ls .claude/skills/ | wc -l`: 21 entries (20 skills + `_shared/`).
+- Smoke test: seeded past-dated `gates/test-lane.yaml`, called `surface_gate_breaches()`, confirmed breach draft written to expected path; cleaned up.
+
+**Follow-up pass (not in this phase):**
+- Fill the 10 workflow-specialist framework bodies with primary-source synthesis. Current state is structurally complete (routing + advisor + section headers + source list) but each reference is a skeleton, ~100-150 lines instead of the target ~300-400.
+- Assets dirs created but templates not yet authored (gate-schema.yaml example, Bullseye 19-channel reference, pricing canvases, positioning template, stack-brief template, MLP brief template, interview guide, scan matrix, synthesis template, decision-entry template, monthly-review template).
+- Monthly `bet-review` launchd plist (`com.linards.bet-review.monthly.plist`).
+- Pre-seeded portfolio kill-trigger gates for Email Hub / VTV / Cab at `Fredis/Memory/gates/`.
+- Manual trigger-phrase dry-runs per skill — cannot self-test mid-session.
+- Phase 5.2.5 (agentic-backend reference additions — VSA / orchestration / agent-guardrails / LLM-evals) — explicitly out of scope for Phase 5.2, separate gate.
+
+**Not done in this pass:**
 - Commit — gated on explicit ask per `MEMORY.md` `feedback_no_unprompted_commits.md`.
