@@ -62,15 +62,6 @@ Linards reviews and sends manually from the draft file.
 | `references/problem-validation.md` | Customer-interview design, Mom Test + JTBD + Running Lean synthesis, painkiller-vs-vitamin classification |
 | `references/minimum-lovable-product.md` | Single-sentence Lovable Promise, Kano prioritisation, weeknight-slice planning, pre-mortem |
 
-## Assets
-
-| File | Purpose |
-|---|---|
-| `assets/scan-matrix-template.md` | 12-dimension competitor scan starter matrix |
-| `assets/interview-guide-template.md` | Mom Test + JTBD interview guide with commitment ladder |
-| `assets/synthesis-template.md` | Interview synthesis template (themes + painkiller classification) |
-| `assets/mlp-brief-template.md` | One-page MLP brief ending with Atis gate |
-
 ## Anti-patterns
 
 - Skipping a phase. "I'll do market scan after MLP" is how zombie lanes start.

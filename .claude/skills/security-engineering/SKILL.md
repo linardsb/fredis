@@ -1,6 +1,6 @@
 ---
 name: security-engineering
-description: Hands-on application + infrastructure security — STRIDE threat modeling, OWASP Top 10, secure architecture patterns, cryptography (senior-security); SAST/DAST scans, CVE remediation, dependency vulnerability checks, compliance verification for SOC2/PCI-DSS/HIPAA/GDPR (senior-secops); penetration testing + API security + secret detection (pen-testing); cloud posture for AWS/Azure/GCP with IAM escalation-path analysis (cloud-security); AI/ML prompt-injection, jailbreak, model-inversion, data-poisoning assessment with MITRE ATLAS mapping (ai-security). Strategic CISO-level compliance roadmap and board reporting live in the separate `ciso-advisor` skill. Use when user says "threat model", "STRIDE", "OWASP", "SAST", "DAST", "CVE", "pen test", "penetration testing", "secret scan", "API security", "cloud posture", "IAM escalation", "S3 exposure", "IaC security", "prompt injection", "jailbreak", "MITRE ATLAS", "agent security".
+description: Hands-on app + infra security — STRIDE / OWASP / cryptography (senior-security); SAST / DAST / CVE / SOC2 / PCI-DSS / HIPAA / GDPR compliance (senior-secops); pen-testing + API security + secret detection (pen-testing); AWS / Azure / GCP cloud posture + IAM escalation (cloud-security); LLM prompt-injection, jailbreak, model-inversion, data-poisoning with MITRE ATLAS (ai-security); and agent guardrails — 3-layer injection defense, destructive-command guard, HITL gates, memory-poisoning defense, per-agent threat model (agent-guardrails). Strategic CISO compliance / board reporting lives in the separate `ciso-advisor` skill. Use when user says "threat model", "STRIDE", "OWASP", "SAST", "DAST", "CVE", "pen test", "secret scan", "API security", "cloud posture", "IAM escalation", "prompt injection", "jailbreak", "MITRE ATLAS", "agent security", "agent guardrail", "prompt injection defense", "HITL gate", "LLM safety layer", "destructive command guard", "memory poisoning", "agent threat model".
 ---
 
 # security-engineering
@@ -16,6 +16,7 @@ TL;DR — all hands-on security engineering lives here. Five layered references:
 | "pen test", "penetration testing", "OWASP Top 10", "API security", "offensive security assessment", "pen-test report" | `references/pen-testing.md` |
 | "cloud posture", "AWS security", "Azure security", "GCP security", "IAM escalation", "S3 exposure", "open security group", "IaC gap" | `references/cloud-posture.md` |
 | "prompt injection", "jailbreak", "model inversion", "data poisoning", "agent tool abuse", "MITRE ATLAS", "LLM security" | `references/ai-ml-security.md` |
+| "agent guardrail", "prompt injection defense", "HITL gate", "LLM safety layer", "destructive command guard", "memory poisoning", "agent threat model", "cross-agent injection", "secret redaction for agents" | `references/agent-guardrails.md` |
 
 ## Hand-off to ciso-advisor
 
@@ -50,6 +51,7 @@ Pen-test outputs in particular stay on-disk until Linards explicitly approves sh
 | `references/pen-testing.md` | Offensive assessment, OWASP Top 10 coverage, pen-test reports |
 | `references/cloud-posture.md` | CSPM, IAM, cloud config assessment |
 | `references/ai-ml-security.md` | LLM / agent security, MITRE ATLAS mapping |
+| `references/agent-guardrails.md` | Defense-in-depth for LLM-backed products — three-layer injection defense, destructive-command guard, HITL gate, memory-poisoning defense, per-agent threat-model checklist |
 | `references/*/scripts/` | Threat modeler, secret scanner, vulnerability assessor, compliance tracker, CSPM scripts |
 
 ## Anti-patterns

@@ -316,3 +316,36 @@ Execute-pass of `.agent/plans/phase5-2-skill-consolidation.md`. Workflow-special
 
 **Not done in this pass:**
 - Commit — gated on explicit ask per `MEMORY.md` `feedback_no_unprompted_commits.md`.
+
+---
+
+## 15. Phase 5.2.5 Authoring Log (2026-04-20)
+
+Execute-pass of `.agent/plans/phase5-2-skill-consolidation.md` §PHASE 5.2.5. Four de-novo agentic-backend references added to already-migrated bundles. Public canon only; naming scrub clean on all new content.
+
+**Files authored (de novo from public canon):**
+
+- `.claude/skills/engineering/references/agentic-application-architecture.md` (179 lines) — Jimmy Bogard VSA + FastAPI / SQLAlchemy / Pydantic V2 layer split + LLM-provider adapter + LangGraph blueprint/node composition + connector pattern + structlog + OpenTelemetry + feature lifecycle + per-module `CLAUDE.md` guidance + anti-patterns.
+- `.claude/skills/engineering/references/agentic-orchestration-patterns.md` (143 lines) — agent harness anatomy (tool mediation, permission modes, hooks, interrupts, session state, 5-min cache TTL, compaction) + Anthropic "Building Effective Agents" four levels (L1 Augmented LLM → L2 Workflow → L3 Orchestrator-worker → L4 Autonomous) + memory patterns (session / long-term / cross-agent / context-window) + sub-agent spawning + MCP / skill registries + anti-patterns.
+- `.claude/skills/security-engineering/references/agent-guardrails.md` (150 lines) — 3-layer prompt-injection defense (deterministic regex + LLM semantic evaluation + XML trust boundaries) + destructive-command guard + HITL approval gates + secret redaction + markdown / structural escaping + memory-poisoning and cross-agent injection defenses + per-agent threat-model checklist + anti-patterns.
+- `.claude/skills/data-and-experimentation/references/llm-evals.md` (123 lines) — eval-as-code + judge-based evaluation with rubric calibration + fixture-driven evals + regression evals per agent/tool + online vs offline regimes + failure-mode taxonomies + anti-patterns. G-Eval judge-model isolation explicitly flagged.
+
+**Routing updates in 3 parent `SKILL.md` bodies** (engineering, security-engineering, data-and-experimentation):
+
+- New routing-table rows for each new reference with curated trigger-phrase lists.
+- Frontmatter `description` fields extended then compressed to stay under the 1024-char validator cap while still enumerating trigger phrases.
+- References table rows appended with "when to load" descriptions.
+- `data-and-experimentation` anti-pattern that deferred LLM evals to "future Phase 5.2.5" rewritten — the anti-pattern now contrasts A/B frameworks vs. LLM-eval regression semantics.
+
+**Sources (public canon):** Anthropic "Building Effective Agents" blog; Anthropic cookbook (tool-use, prompt caching, orchestrator-worker, evaluator-optimizer); Anthropic Agent SDK + Claude Code subagent docs; Anthropic prompt-injection guidance; Anthropic eval guides; LangGraph docs; FastAPI + SQLAlchemy + Pydantic V2 official docs; Jimmy Bogard VSA blog; structlog + OpenTelemetry semantic conventions; NeMo Guardrails; MemGPT paper; AutoGen patterns; MCP specification; G-Eval paper; public HITL and safety-layer literature.
+
+**Validation results (2026-04-20):**
+- Naming scrub (`grep -rli -E '(email[- _]?hub|merkle|dentsu|braze|sfmc|adobe|taxi|campaign)'` across the three bundles): all 4 new files clean. Two pre-existing Phase 5.2 hits remain — `security-engineering/SKILL.md:31` references "Email Hub" as a lane label in the shared lane registry (intentional; mirrors `_shared/lanes.md`) and `data-and-experimentation/references/statistical-analysis.md:226` references the upstream MIT source directory `marketing-skill/campaign-analytics`. Neither is new authored leakage; Phase 5.2.5 sourcing rule applies to authored text.
+- `quick_validate.py` on engineering / security-engineering / data-and-experimentation: all three pass after description compression.
+- `ruff check .claude/scripts/`: all checks passed.
+- `mypy . --ignore-missing-imports`: 0 errors in 53 source files.
+- `pytest tests/`: 292 passed.
+
+**Not done in this pass:**
+- Commit — gated on explicit ask per `MEMORY.md` `feedback_no_unprompted_commits.md`.
+- Manual trigger-phrase dry-run in a fresh session — cannot self-test mid-session.
