@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import sqlite3
+import sys
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -106,27 +107,36 @@ class SQLiteSessionStore:
             return self._row_to_session(row)
 
     def create(self, session: Session) -> None:
-        """Insert a new session."""
-        with sqlite3.connect(self.db_path, check_same_thread=False) as conn:
-            conn.execute(
-                """INSERT INTO chat_sessions
-                   (session_id, agent_session_id, platform, channel_id, thread_id,
-                    user_id, created_at, updated_at, message_count, total_cost_usd, status)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    session.session_id,
-                    session.agent_session_id,
-                    session.platform,
-                    session.channel_id,
-                    session.thread_id,
-                    session.user_id,
-                    session.created_at.isoformat(),
-                    session.updated_at.isoformat(),
-                    session.message_count,
-                    session.total_cost_usd,
-                    session.status,
-                ),
-            )
+        """Insert a new session; fall back to update on unique-collision.
+
+        Two messages hitting the same thread inside a single engine turn can
+        both see `get()` → None and race into `create()`. SQLite raises
+        IntegrityError on the second INSERT; treat that as "another task
+        already created it" and update the existing row instead.
+        """
+        try:
+            with sqlite3.connect(self.db_path, check_same_thread=False) as conn:
+                conn.execute(
+                    """INSERT INTO chat_sessions
+                       (session_id, agent_session_id, platform, channel_id, thread_id,
+                        user_id, created_at, updated_at, message_count, total_cost_usd, status)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        session.session_id,
+                        session.agent_session_id,
+                        session.platform,
+                        session.channel_id,
+                        session.thread_id,
+                        session.user_id,
+                        session.created_at.isoformat(),
+                        session.updated_at.isoformat(),
+                        session.message_count,
+                        session.total_cost_usd,
+                        session.status,
+                    ),
+                )
+        except sqlite3.IntegrityError:
+            self.update(session)
 
     def update(self, session: Session) -> None:
         """Update an existing session's mutable fields."""
@@ -199,10 +209,34 @@ class PostgresSessionStore:
     """Persistent session storage backed by PostgreSQL."""
 
     def __init__(self, database_url: str) -> None:
+        import time
+
         import psycopg
 
         self._url = database_url
-        self._conn = psycopg.connect(database_url, autocommit=True)
+        timeout = int(os.getenv("PG_CONNECT_TIMEOUT", "5"))
+
+        last_err: Exception | None = None
+        for attempt in (1, 2):
+            try:
+                self._conn = psycopg.connect(
+                    database_url, autocommit=True, connect_timeout=timeout
+                )
+                break
+            except psycopg.OperationalError as e:
+                last_err = e
+                if attempt == 1:
+                    time.sleep(1)
+        else:
+            print(
+                f"[PostgresSessionStore] Connect failed after 2 attempts "
+                f"(timeout={timeout}s): {last_err}. "
+                f"Check the SSH tunnel: `nc -z localhost 5432` on macOS, "
+                f"`systemctl status vault-sync.timer` on the VPS.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
         self._init_db()
 
     def _init_db(self) -> None:
@@ -276,27 +310,32 @@ class PostgresSessionStore:
         return self._row_to_session(row)
 
     def create(self, session: Session) -> None:
-        """Insert a new session."""
-        cur = self._conn.cursor()
-        cur.execute(
-            """INSERT INTO chat_sessions
-               (session_id, agent_session_id, platform, channel_id, thread_id,
-                user_id, created_at, updated_at, message_count, total_cost_usd, status)
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
-            (
-                session.session_id,
-                session.agent_session_id,
-                session.platform,
-                session.channel_id,
-                session.thread_id,
-                session.user_id,
-                session.created_at,
-                session.updated_at,
-                session.message_count,
-                session.total_cost_usd,
-                session.status,
-            ),
-        )
+        """Insert a new session; fall back to update on unique-collision."""
+        import psycopg
+
+        try:
+            cur = self._conn.cursor()
+            cur.execute(
+                """INSERT INTO chat_sessions
+                   (session_id, agent_session_id, platform, channel_id, thread_id,
+                    user_id, created_at, updated_at, message_count, total_cost_usd, status)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                (
+                    session.session_id,
+                    session.agent_session_id,
+                    session.platform,
+                    session.channel_id,
+                    session.thread_id,
+                    session.user_id,
+                    session.created_at,
+                    session.updated_at,
+                    session.message_count,
+                    session.total_cost_usd,
+                    session.status,
+                ),
+            )
+        except psycopg.errors.UniqueViolation:
+            self.update(session)
 
     def update(self, session: Session) -> None:
         """Update an existing session's mutable fields."""

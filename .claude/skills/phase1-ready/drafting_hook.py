@@ -2,9 +2,8 @@
 PreToolUse hook for the phase1-ready skill.
 
 Restricts Edit / Write / Bash tool use to the Phase 1 personalisation allowlist.
-Mirrors the shape of `protect_soul_file` in
-`.claude/scripts/memory_reflect.py`. Returns ``{"decision": "block", "reason": ...}``
-for any out-of-scope path or command, ``{}`` otherwise.
+Returns ``{"decision": "block", "reason": ...}`` for any out-of-scope path or
+command, ``{}`` otherwise.
 
 Note: this hook is only auto-active when the skill spawns a sub-agent SDK
 session that wires it up via `HookMatcher`. In the default in-conversation

@@ -22,7 +22,7 @@ _scripts_dir = Path(__file__).resolve().parent.parent / "scripts"
 sys.path.insert(0, str(_scripts_dir))
 
 from config import DAILY_DIR, MEMORY_DIR, now_local  # noqa: E402
-from shared import log_hook_execution  # noqa: E402
+from shared import invocation_source, log_hook_execution  # noqa: E402
 
 # === Constants ===
 MAX_DAILY_LOG_LINES = 30
@@ -122,6 +122,19 @@ def build_context(source: str) -> str:
 def main() -> None:
     """Main hook entry point. Reads stdin, builds context, outputs JSON on stdout."""
     _start = _time.time()
+
+    # Recursion guard: skip when invoked inside an Agent SDK sub-session
+    # (heartbeat, memory_flush, memory_reflect, chat all set CLAUDE_INVOKED_BY).
+    # The chat engine injects its own minimal preamble via system_prompt.append,
+    # so this hook's ~15KB SOUL+USER+MEMORY dump is wasted tokens on every
+    # fresh Slack thread.
+    invoked = invocation_source()
+    if invoked:
+        log_hook_execution(
+            "session-start", "unknown", "SKIP",
+            _time.time() - _start, f"invoked_by={invoked}",
+        )
+        sys.exit(0)
 
     # Read hook input from stdin
     # Claude Code on Windows may pass paths with unescaped backslashes (e.g. C:\Users\...)

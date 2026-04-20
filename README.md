@@ -450,32 +450,14 @@ chmod +x .claude/scripts/run_heartbeat.sh
 
 ### 10. Start the Slack Chat Bot as a Persistent Service
 
-Create the systemd service file:
-
-```
-[Unit]
-Description=Second Brain Slack Chat Bot
-After=network.target docker.service
-Requires=docker.service
-
-[Service]
-Type=simple
-User=root
-WorkingDirectory=/path/to/fredis/.claude/scripts
-ExecStart=/root/.local/bin/uv run python ../chat/main.py
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Save to `/etc/systemd/system/secondbrain-chat.service`, update the `WorkingDirectory` path to match your install location, then enable and start:
+The unit file is tracked at `.claude/scripts/schedule/secondbrain-chat.service`. Copy it into systemd, adjust paths if you installed somewhere other than `/root/claude-code-second-brain`, then enable it:
 
 ```bash
+sudo cp .claude/scripts/schedule/secondbrain-chat.service /etc/systemd/system/
+# Only if your install path differs from /root/claude-code-second-brain:
+sudo sed -i 's|/root/claude-code-second-brain|/actual/path|g' /etc/systemd/system/secondbrain-chat.service
 sudo systemctl daemon-reload
-sudo systemctl enable secondbrain-chat
-sudo systemctl start secondbrain-chat
+sudo systemctl enable --now secondbrain-chat
 sudo systemctl status secondbrain-chat
 ```
 
