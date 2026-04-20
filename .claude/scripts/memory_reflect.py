@@ -17,7 +17,6 @@ import argparse
 import asyncio
 import os
 from datetime import timedelta
-from typing import Any
 
 # Mark this process as an Agent SDK caller so PreCompact/SessionEnd hooks
 # invoked by any sub-session exit skip themselves (prevents flush recursion).
@@ -40,6 +39,10 @@ from config import (
 )
 from sanitize import TRUST_BOUNDARY_INSTRUCTION, wrap_external_data
 from shared import append_to_daily_log, file_lock, load_state, save_state, validate_bash_command
+
+# SOUL.md write-protection is enforced by the standalone PreToolUse hook
+# `.claude/hooks/block-soul-edit.py` (registered in `.claude/settings.json`),
+# which the SDK inherits via `setting_sources=["user","project"]` below.
 
 # =============================================================================
 # LOG HELPERS
@@ -90,31 +93,6 @@ def load_soul_file() -> str:
     if SOUL_FILE.exists():
         return SOUL_FILE.read_text(encoding="utf-8")
     return ""
-
-
-# =============================================================================
-# PRETOOLUSE HOOKS
-# =============================================================================
-
-
-async def protect_soul_file(
-    input_data: Any,
-    tool_use_id: str | None,
-    context: Any,
-) -> dict[str, Any]:
-    """PreToolUse hook: block reflection agent from modifying SOUL.md."""
-    tool_input = input_data.get("tool_input")
-    if not isinstance(tool_input, dict):
-        return {}
-    file_path = tool_input.get("file_path", "")
-    if "SOUL.md" in file_path:
-        return {
-            "decision": "block",
-            "reason": (
-                "Reflection agent cannot modify SOUL.md — suggest changes in daily log instead"
-            ),
-        }
-    return {}
 
 
 # =============================================================================
@@ -264,17 +242,6 @@ If nothing is worth updating in any file, respond with exactly: REFLECTION_OK
                         HookMatcher(
                             matcher="Bash",
                             hooks=[validate_bash_command],
-                        ),
-                        HookMatcher(
-                            matcher="Edit",
-                            # Hooks use Any for input/context; matching the SDK's
-                            # full union type would require importing every hook
-                            # input type just to satisfy the strict signature.
-                            hooks=[protect_soul_file],  # type: ignore[list-item]
-                        ),
-                        HookMatcher(
-                            matcher="Write",
-                            hooks=[protect_soul_file],  # type: ignore[list-item]
                         ),
                     ]
                 },
