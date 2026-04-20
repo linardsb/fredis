@@ -1,0 +1,19 @@
+[Unit]
+Description=Second Brain Slack Chat Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/claude-code-second-brain/.claude/scripts
+Environment="CLAUDE_PROJECT_DIR=/root/claude-code-second-brain"
+Environment="PATH=/root/.local/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/root/.local/bin/uv run python ../chat/main.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
