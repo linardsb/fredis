@@ -60,16 +60,6 @@ Output drafts only. Write to `Fredis/Memory/drafts/active/product-shape/<sub-ski
 | `references/positioning-sharpener.md` | Dunford + Moore positioning; one-sentence + five-bullet output with Chris-Lori gate |
 | `references/mvp-architect.md` | Ries + Kniberg + Wardley; three stack templates; build-vs-buy grid; first-commit checklist |
 
-## Assets
-
-| File | Purpose |
-|---|---|
-| `assets/pricing-canvas-b2g.md` | B2G contract pricing canvas (pilot fee + success uplift, year-2 production contract) |
-| `assets/pricing-canvas-b2c-commission.md` | B2C commission canvas (take-rate + surge) |
-| `assets/pricing-canvas-saas.md` | SaaS tier/seat/usage canvas |
-| `assets/positioning-statement-template.md` | One-sentence + five-bullet template |
-| `assets/stack-brief-template.md` | Build-vs-buy grid + first-commit checklist |
-
 ## Anti-patterns
 
 - Pricing before problem-validation. Willingness-to-pay questions only produce signal once the segment has committed to *a* solution being worth solving.

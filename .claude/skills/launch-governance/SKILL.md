@@ -58,16 +58,6 @@ Output drafts only. Write to `Fredis/Memory/drafts/active/launch-governance/<sub
 | `references/bet-review.md` | Monthly portfolio verdict per lane with Thinking-in-Bets discipline |
 | `references/decision-logger.md` | Two-layer decision journal with DO_NOT_RESURFACE |
 
-## Assets
-
-| File | Purpose |
-|---|---|
-| `assets/bullseye-19-channels.md` | Weinberg-Mares 19-channel Bullseye reference |
-| `assets/gate-schema.yaml` | Canonical gate YAML schema example |
-| `assets/gate-breach-template.md` | Copy of `.claude/scripts/templates/gate_breach.md.tmpl` for easy reference |
-| `assets/decision-entry-template.md` | Decision-logger entry format |
-| `assets/monthly-review-template.md` | `bet-review` monthly run template |
-
 ## Anti-patterns
 
 - Extending a gate deadline silently. Heartbeat surfaces breaches — the gate YAML is a contract. If the gate should move, write a `decision-logger` entry; that's the audit trail.
