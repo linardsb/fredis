@@ -269,26 +269,12 @@ class SlackAdapter:
 
     async def _on_message(self, event: dict[str, Any], say: Any, client: Any) -> None:
         """Handle direct messages and thread replies to heartbeat notifications."""
-        # TEMP debug — remove after thread-auto-engage verified in production.
-        print(
-            f"[{datetime.now()}] _on_message FIRED: "
-            f"channel={event.get('channel')} "
-            f"channel_type={event.get('channel_type')} "
-            f"thread_ts={event.get('thread_ts')} "
-            f"ts={event.get('ts')} "
-            f"subtype={event.get('subtype')} "
-            f"bot_id={event.get('bot_id')} "
-            f"user={event.get('user')} "
-            f"text_preview={(event.get('text') or '')[:40]!r}"
-        )
         # Skip bot messages and most subtypes (joins, leaves, etc.)
         # Allow file_share through so users can send images
         if event.get("bot_id"):
-            print(f"[{datetime.now()}] _on_message DROPPED: bot_id set")
             return
         subtype = event.get("subtype")
         if subtype and subtype != "file_share":
-            print(f"[{datetime.now()}] _on_message DROPPED: subtype={subtype}")
             return
 
         user_id = event.get("user", "")
@@ -306,17 +292,11 @@ class SlackAdapter:
             # session (meaning Fredis previously replied there, so the
             # user expects follow-ups without re-mentioning).
             if not thread_ts_raw:
-                print(f"[{datetime.now()}] _on_message DROPPED: no thread_ts (top-level channel msg)")
-                return
+                return  # Top-level channel chatter — needs @Fredis
             is_heartbeat = self._is_heartbeat_thread(channel_id, thread_ts_raw)
             is_chat = self._is_existing_chat_session(channel_id, thread_ts_raw)
-            print(
-                f"[{datetime.now()}] _on_message thread={thread_ts_raw} "
-                f"is_heartbeat={is_heartbeat} is_chat={is_chat}"
-            )
             if not (is_heartbeat or is_chat):
-                print(f"[{datetime.now()}] _on_message DROPPED: thread not tracked")
-                return
+                return  # Thread Fredis is not engaged in — stay quiet
 
         # Rate-limit check: bypass heartbeat-context threads (Linards
         # following up on our own notifications may legitimately spike).
