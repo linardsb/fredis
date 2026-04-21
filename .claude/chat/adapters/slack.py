@@ -105,8 +105,15 @@ class SlackAdapter:
     """Slack platform adapter using Bolt AsyncApp + Socket Mode.
 
     Connects via outbound WebSocket (no public URL needed). Handles
-    @mentions in channels, direct messages, and thread replies to
-    heartbeat notifications. Each Slack thread maps to a separate conversation.
+    @mentions in channels, direct messages, thread replies to heartbeat
+    notifications, and — once Fredis has replied in a channel thread —
+    subsequent non-mention replies in that same thread (thread auto-engage).
+    Each Slack thread maps to a separate conversation.
+
+    Thread auto-engage rule: a channel ``message`` event is processed if
+    the thread has either (a) a heartbeat alert posted by Fredis or
+    (b) an existing chat session. Top-level channel chatter still
+    requires an explicit ``@Fredis`` mention.
     """
 
     def __init__(
@@ -279,11 +286,17 @@ class SlackAdapter:
         thread_ts_raw = event.get("thread_ts")
 
         if not is_dm:
-            # Channel message — only process if it's a thread reply to a heartbeat notification
+            # Channel message — only process if it's a threaded reply AND
+            # the thread is one Fredis is already engaged in: either a
+            # heartbeat alert thread or a thread with an existing chat
+            # session (meaning Fredis previously replied there, so the
+            # user expects follow-ups without re-mentioning).
             if not thread_ts_raw:
-                return  # Not a thread reply, ignore
-            if not self._is_heartbeat_thread(channel_id, thread_ts_raw):
-                return  # Not a heartbeat thread, ignore
+                return  # Top-level channel chatter — needs @Fredis
+            is_heartbeat = self._is_heartbeat_thread(channel_id, thread_ts_raw)
+            is_chat = self._is_existing_chat_session(channel_id, thread_ts_raw)
+            if not (is_heartbeat or is_chat):
+                return  # Thread Fredis is not engaged in — stay quiet
 
         # Rate-limit check: bypass heartbeat-context threads (Linards
         # following up on our own notifications may legitimately spike).
@@ -326,6 +339,18 @@ class SlackAdapter:
             return False
         try:
             return self.session_store.get_heartbeat_thread(channel_id, thread_ts) is not None
+        except Exception:
+            return False
+
+    def _is_existing_chat_session(self, channel_id: str, thread_ts: str) -> bool:
+        """True if Fredis has already replied in this thread (by session presence).
+
+        Fails closed on any store error — if we can't tell, don't engage.
+        """
+        if not self.session_store:
+            return False
+        try:
+            return self.session_store.get("slack", channel_id, thread_ts) is not None
         except Exception:
             return False
 

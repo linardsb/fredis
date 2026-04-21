@@ -151,6 +151,166 @@ def test_is_heartbeat_thread_without_store_returns_false(adapter: Any) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Thread auto-engage — follow-ups without @mention once Fredis has replied.
+# ---------------------------------------------------------------------------
+
+
+def test_is_existing_chat_session_delegates_to_store() -> None:
+    """Channel+thread key with a session in the store → True; without → False."""
+    from adapters.slack import SlackAdapter
+
+    class _Store:
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, str, str]] = []
+
+        def get(self, platform: str, channel: str, ts: str) -> Any:
+            self.calls.append((platform, channel, ts))
+            return object() if (platform, channel, ts) == ("slack", "C1", "200.002") else None
+
+        def get_heartbeat_thread(self, channel: str, ts: str) -> Any:
+            return None  # unused here
+
+    store = _Store()
+    a = SlackAdapter(
+        bot_token="xoxb-t",
+        app_token="xapp-t",
+        allowed_users=["U1"],
+        session_store=store,
+    )
+    assert a._is_existing_chat_session("C1", "200.002") is True
+    assert a._is_existing_chat_session("C1", "nope") is False
+    assert store.calls == [("slack", "C1", "200.002"), ("slack", "C1", "nope")]
+
+
+def test_is_existing_chat_session_without_store_returns_false(adapter: Any) -> None:
+    """Fail-closed when session_store is None — can't engage if we can't check."""
+    assert adapter._is_existing_chat_session("C1", "200.002") is False
+
+
+def test_is_existing_chat_session_store_error_fails_closed() -> None:
+    """Store raising must not crash the handler — default to not-engaged."""
+    from adapters.slack import SlackAdapter
+
+    class _BrokenStore:
+        def get(self, *_: Any, **__: Any) -> Any:
+            raise RuntimeError("db offline")
+
+    a = SlackAdapter(
+        bot_token="xoxb-t",
+        app_token="xapp-t",
+        allowed_users=["U1"],
+        session_store=_BrokenStore(),
+    )
+    assert a._is_existing_chat_session("C1", "200.002") is False
+
+
+def _run_on_message(adapter_obj: Any, event: dict[str, Any]) -> None:
+    """Sync helper: drive the async _on_message handler via asyncio.run()."""
+    import asyncio
+
+    asyncio.run(adapter_obj._on_message(event, say=None, client=None))
+
+
+def test_on_message_auto_engages_in_existing_chat_thread() -> None:
+    """Channel message in a thread with an existing chat session is queued.
+
+    This is the new behaviour — previously only heartbeat threads triggered
+    channel-message handling; now any thread where Fredis already has a
+    session counts too.
+    """
+    from adapters.slack import SlackAdapter
+
+    class _Store:
+        def get(self, platform: str, channel: str, ts: str) -> Any:
+            # Sentinel session for this (slack, C1, 300.003) thread.
+            return object() if (platform, channel, ts) == ("slack", "C1", "300.003") else None
+
+        def get_heartbeat_thread(self, channel: str, ts: str) -> Any:
+            return None  # NOT a heartbeat thread — this is the key test
+
+    a = SlackAdapter(
+        bot_token="xoxb-t",
+        app_token="xapp-t",
+        allowed_users=["U1"],
+        session_store=_Store(),
+    )
+
+    event = {
+        "user": "U1",
+        "channel": "C1",
+        "channel_type": "channel",
+        "thread_ts": "300.003",
+        "ts": "300.004",
+        "text": "follow-up with no mention",
+    }
+
+    _run_on_message(a, event)
+    assert a._queue.qsize() == 1
+
+
+def test_on_message_ignores_untracked_channel_thread() -> None:
+    """Channel message in a thread Fredis isn't engaged in is dropped."""
+    from adapters.slack import SlackAdapter
+
+    class _Store:
+        def get(self, *_: Any, **__: Any) -> Any:
+            return None
+
+        def get_heartbeat_thread(self, *_: Any, **__: Any) -> Any:
+            return None
+
+    a = SlackAdapter(
+        bot_token="xoxb-t",
+        app_token="xapp-t",
+        allowed_users=["U1"],
+        session_store=_Store(),
+    )
+
+    event = {
+        "user": "U1",
+        "channel": "C1",
+        "channel_type": "channel",
+        "thread_ts": "400.004",
+        "ts": "400.005",
+        "text": "random channel chatter",
+    }
+
+    _run_on_message(a, event)
+    assert a._queue.qsize() == 0
+
+
+def test_on_message_ignores_top_level_channel_message() -> None:
+    """Top-level channel message (no thread_ts) always requires @Fredis."""
+    from adapters.slack import SlackAdapter
+
+    class _Store:
+        def get(self, *_: Any, **__: Any) -> Any:
+            return object()  # even with an existing session — top-level should ignore
+
+        def get_heartbeat_thread(self, *_: Any, **__: Any) -> Any:
+            return None
+
+    a = SlackAdapter(
+        bot_token="xoxb-t",
+        app_token="xapp-t",
+        allowed_users=["U1"],
+        session_store=_Store(),
+    )
+
+    event = {
+        "user": "U1",
+        "channel": "C1",
+        "channel_type": "channel",
+        # no thread_ts
+        "ts": "500.005",
+        "text": "hello channel",
+    }
+
+    _run_on_message(a, event)
+    assert a._queue.qsize() == 0
+
+
+# ---------------------------------------------------------------------------
 # _neutralise_mentions (Phase 4) — @channel / @here / @everyone / <@USER> /
 # <!subteam> triggers are defanged; URL links pass through untouched.
 # ---------------------------------------------------------------------------
