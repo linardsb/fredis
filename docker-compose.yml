@@ -17,21 +17,24 @@ services:
       timeout: 5s
       retries: 5
 
-  obsidian:
-    image: lscr.io/linuxserver/obsidian:version-v1.11.7
-    container_name: secondbrain-obsidian
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:8080:3001"
-    volumes:
-      - ./Fredis:/Fredis
-      - obsidian-config:/config
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=${TZ:-America/Chicago}
-    shm_size: "1gb"
+  # Obsidian service disabled by default. Uncomment below to enable headless
+  # web Obsidian on 127.0.0.1:8080. Costs ~1 GB shm on a 4 GB VPS — not worth
+  # it unless you actually use remote vault access.
+  # obsidian:
+  #   image: lscr.io/linuxserver/obsidian:version-v1.11.7
+  #   container_name: secondbrain-obsidian
+  #   restart: unless-stopped
+  #   ports:
+  #     - "127.0.0.1:8080:3001"
+  #   volumes:
+  #     - ./Fredis:/Fredis
+  #     - obsidian-config:/config
+  #   environment:
+  #     - PUID=1000
+  #     - PGID=1000
+  #     - TZ=${TZ:-Europe/London}
+  #   shm_size: "1gb"
 
 volumes:
   pgdata:
-  obsidian-config:
+  # obsidian-config:

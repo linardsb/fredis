@@ -340,143 +340,28 @@ python .claude/scripts/query.py github ship
 <details>
 <summary>VPS Deployment</summary>
 
-Deploy to a VPS for a persistent Second Brain that runs when your PC is off. Uses Postgres instead of SQLite and runs the Slack chat bot as a systemd service.
+Deploy to a Linux VPS so the Second Brain keeps running when your laptop is offline.
+Target: Hetzner CX23 (2 vCPU / 4 GB / 40 GB, Ubuntu 24.04). Other €5–10/mo Linux
+hosts work with the same runbook.
 
-### Prerequisites
+**Full runbook:** [`.claude/scripts/schedule/vps-bootstrap.md`](.claude/scripts/schedule/vps-bootstrap.md).
 
-A VPS running Ubuntu (or similar) with Docker installed.
+It covers:
 
-```bash
-sudo apt update && sudo apt install -y build-essential
-```
+- Hetzner provision (SSH key at create time, Cloud Firewall, Backups toggle)
+- OS hardening (ufw, fail2ban, unattended-upgrades, timezone)
+- Docker Postgres (pg17 + pgvector) + dependency install
+- Secret transfer (SCP `.env` + `google_token.json`)
+- systemd units for chat, heartbeat, reflection, vault-sync, deps-audit
+- Split-brain cutover (stop local plists → start VPS services)
+- Rollback + validation + troubleshooting
 
-### 1. Install UV
-
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-source $HOME/.local/bin/env
-uv --version
-```
-
-### 2. Install Claude Code CLI
+After cutover, manage services with standard systemd commands:
 
 ```bash
-curl -fsSL https://claude.ai/install.sh | bash
-source $HOME/.local/bin/env
-claude --version
-```
-
-### 3. Log in to Claude Code
-
-```bash
-claude
-# Follow the OAuth prompt in your browser.
-# If headless (no local browser on the VPS), use an API key instead:
-# export ANTHROPIC_API_KEY=sk-ant-...
-```
-
-Once authenticated, credentials are stored in `~/.claude/.credentials.json`. The heartbeat and Slack bot use these automatically — no API key needed in normal operation.
-
-### 4. Set Up Git SSH Access
-
-```bash
-ssh-keygen -t ed25519 -C "vps-secondbrain"
-cat ~/.ssh/id_ed25519.pub    # Add this to GitHub: Settings -> SSH and GPG keys -> New SSH key
-eval "$(ssh-agent -s)" && ssh-add ~/.ssh/id_ed25519
-echo -e '\neval "$(ssh-agent -s)" && ssh-add ~/.ssh/id_ed25519' >> ~/.bashrc
-```
-
-### 5. Clone and Configure
-
-```bash
-git clone https://github.com/linardsb/fredis.git
-cd fredis
-cp master.env.example master.env
-# Fill in your API keys and IDs
-python3 setup_workspace.py
-```
-
-After setup, run `claude` to start the onboarding conversation (same as local — see Quick Start step 3 above).
-
-### 6. Start Postgres and Obsidian
-
-```bash
-# Fix permissions for the vault mount (Docker creates it as root otherwise)
-mkdir -p ./Fredis
-sudo chown -R 1000:1000 ./Fredis
-
-docker compose up -d
-```
-
-This starts two services:
-- **Postgres 17 + pgvector** on `127.0.0.1:5432` (search index and chat sessions)
-- **Headless Obsidian** on port `8080` (for vault sync via the Obsidian UI)
-
-The Obsidian UI is bound to localhost only. Access it via SSH tunnel from your local machine:
-```bash
-ssh -N -L 8080:localhost:8080 user@your-vps
-```
-
-Then open `https://localhost:8080` in your browser (accept the self-signed certificate), open `/Fredis` as a vault, and enable Obsidian Sync to connect your remote vault.
-
-### 7. Configure the Database
-
-```bash
-echo 'DATABASE_URL=postgresql://secondbrain:changeme@localhost:5432/secondbrain' >> .claude/scripts/.env
-```
-
-### 8. Install Dependencies and Build the Search Index
-
-```bash
-cd .claude/scripts
-uv sync
-uv run python setup_auth.py              # Google OAuth + verify integrations
-uv run python memory_index.py --rebuild  # Index vault into Postgres
-```
-
-For Google OAuth on a headless VPS:
-```bash
-uv run python setup_auth.py --headless
-```
-
-### 9. Schedule the Heartbeat
-
-```bash
-chmod +x .claude/scripts/run_heartbeat.sh
-(crontab -l 2>/dev/null; echo "0 */2 * * * $(pwd)/.claude/scripts/run_heartbeat.sh") | crontab -
-```
-
-> **Note:** Cron uses a minimal `PATH`. The `run_heartbeat.sh` script adds `~/.local/bin` to `PATH` for `uv`. If your `uv` is installed elsewhere, update the `export PATH` line in that script accordingly.
-
-### 10. Start the Slack Chat Bot as a Persistent Service
-
-The unit file is tracked at `.claude/scripts/schedule/secondbrain-chat.service`. Copy it into systemd, adjust paths if you installed somewhere other than `/root/claude-code-second-brain`, then enable it:
-
-```bash
-sudo cp .claude/scripts/schedule/secondbrain-chat.service /etc/systemd/system/
-# Only if your install path differs from /root/claude-code-second-brain:
-sudo sed -i 's|/root/claude-code-second-brain|/actual/path|g' /etc/systemd/system/secondbrain-chat.service
-sudo systemctl daemon-reload
-sudo systemctl enable --now secondbrain-chat
-sudo systemctl status secondbrain-chat
-```
-
-View logs:
-```bash
-sudo journalctl -u secondbrain-chat -f
-```
-
-### Managing Schedulers on the VPS
-
-```bash
-# Heartbeat (cron)
-crontab -l | grep heartbeat    # View
-crontab -e                     # Edit or remove
-
-# Chat service (systemd)
-sudo systemctl status secondbrain-chat
-sudo systemctl restart secondbrain-chat
-sudo systemctl stop secondbrain-chat
+systemctl status secondbrain-chat
+systemctl list-timers | grep -E "fredis|vault|deps"
+journalctl -u fredis-heartbeat.service -n 50
 ```
 
 </details>
