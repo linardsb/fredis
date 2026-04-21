@@ -1,0 +1,10 @@
+# Fredis vault — append-only daily logs auto-merge with concat-both driver.
+# Register the driver locally on each machine:
+#   git config merge.concat-both.name "Concatenate both sides for append-only files"
+#   git config merge.concat-both.driver "bash $(pwd)/.claude/scripts/git-merge-concat %O %A %B"
+Fredis/Memory/daily/*.md         merge=concat-both
+Fredis/Memory/drafts/active/**   merge=concat-both
+Fredis/Memory/drafts/sent/**     merge=concat-both
+
+# Normalize line endings for everything in the vault (Mac ↔ VPS cross-platform).
+Fredis/**                        text eol=lf

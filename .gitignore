@@ -1,5 +1,4 @@
 /content-engine
-/Fredis
 /obsidian-ai-agent
 /video-processor
 /remotion-videos
@@ -39,3 +38,10 @@ workspace/
 
 # Windows artifacts
 NUL
+
+# Fredis vault — Obsidian ephemera (keep vault content tracked, exclude local state)
+Fredis/.obsidian/workspace.json
+Fredis/.obsidian/workspace-mobile.json
+Fredis/.trash/
+Fredis/**/.DS_Store
+Fredis/**/*.lock
