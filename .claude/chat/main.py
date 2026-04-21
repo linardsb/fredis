@@ -20,6 +20,7 @@ _SCRIPTS_DIR = _CHAT_DIR.parent / "scripts"
 sys.path.insert(0, str(_CHAT_DIR))
 sys.path.insert(0, str(_SCRIPTS_DIR))
 
+from channel_router import ChannelRouter  # noqa: E402
 from engine import ConversationEngine  # noqa: E402
 from router import ChatRouter  # noqa: E402
 from session import get_session_store  # noqa: E402
@@ -33,6 +34,21 @@ from config import (  # noqa: E402
     SLACK_APP_TOKEN,
     SLACK_BOT_TOKEN,
 )
+
+_CHANNEL_ROUTING_CONFIG = PROJECT_ROOT / ".claude" / "config" / "channel-routing.yaml"
+
+
+def _load_channel_router() -> ChannelRouter | None:
+    """Load the channel routing config if it exists; return None otherwise.
+
+    A missing config is tolerated — chat still works, summaries just don't land
+    in per-channel folders. A malformed config raises at startup so we fail loud.
+    """
+    if not _CHANNEL_ROUTING_CONFIG.exists():
+        print(f"WARN: channel routing config not found at {_CHANNEL_ROUTING_CONFIG}")
+        print("      Per-channel vault summaries disabled.")
+        return None
+    return ChannelRouter(_CHANNEL_ROUTING_CONFIG, PROJECT_ROOT)
 
 
 def main() -> None:
@@ -73,8 +89,19 @@ def main() -> None:
         active = store.list_active()
         print(f"  Session store OK ({len(active)} active sessions)")
 
+        # Validate channel router loads (optional — tolerant on missing config)
+        channel_router = _load_channel_router()
+        if channel_router is not None:
+            print(f"  Channel router OK ({len(channel_router.config.channels)} channels)")
+
         # Validate engine can be instantiated
-        engine = ConversationEngine(store, PROJECT_ROOT, CHAT_MAX_TURNS, CHAT_MAX_BUDGET_USD)
+        engine = ConversationEngine(
+            store,
+            PROJECT_ROOT,
+            CHAT_MAX_TURNS,
+            CHAT_MAX_BUDGET_USD,
+            channel_router=channel_router,
+        )
         print("  Engine OK")
 
         # Validate adapter can be instantiated
@@ -95,7 +122,14 @@ def main() -> None:
 
     # Initialize components
     store = get_session_store(CHAT_DB_PATH)
-    engine = ConversationEngine(store, PROJECT_ROOT, CHAT_MAX_TURNS, CHAT_MAX_BUDGET_USD)
+    channel_router = _load_channel_router()
+    engine = ConversationEngine(
+        store,
+        PROJECT_ROOT,
+        CHAT_MAX_TURNS,
+        CHAT_MAX_BUDGET_USD,
+        channel_router=channel_router,
+    )
 
     from adapters.slack import SlackAdapter
 

@@ -1,0 +1,50 @@
+version: 1
+
+# Slack channel name → vault folder (relative to project root).
+# If a channel is renamed, either update the key here or pin it in `by_id:` below.
+# Channel IDs in `by_id:` always win over name lookups (rename-resilient).
+channels:
+  # Topic lanes
+  ideation:             Fredis/Memory/ideation/
+  market-research:      Fredis/Memory/research/markets/
+  marketing:            Fredis/Memory/marketing/
+  product:              Fredis/Memory/product/
+  legal:                Fredis/Memory/legal/
+  finance:              Fredis/Memory/finance/
+
+  # Research (domain)
+  research-ai:          Fredis/Memory/research/ai/
+  research-agriculture: Fredis/Memory/research/agriculture/
+  research-robotics:    Fredis/Memory/research/robotics/
+  research-policy:      Fredis/Memory/research/policy/
+  research-materials:   Fredis/Memory/research/materials/
+
+  # Builds (per-lane engineering work)
+  build-email-hub:      Fredis/Memory/builds/email-hub/
+  build-vtv:            Fredis/Memory/builds/vtv/
+  build-cab:            Fredis/Memory/builds/cab/
+
+  # People / orgs
+  clients:              Fredis/Memory/retainers/
+  competitors:          Fredis/Memory/competitors/
+  partners:             Fredis/Memory/partners/
+
+  # Integrations (per-platform chatter)
+  gmail:                Fredis/Memory/integrations/gmail/
+  calendar:             Fredis/Memory/integrations/calendar/
+  asana:                Fredis/Memory/integrations/asana/
+  monday:               Fredis/Memory/integrations/monday/
+  drive:                Fredis/Memory/integrations/drive/
+  sheets:               Fredis/Memory/integrations/sheets/
+  docs:                 Fredis/Memory/integrations/docs/
+  github:               Fredis/Memory/integrations/github/
+
+# Optional channel-ID → folder map. Wins over `channels:` when a match exists.
+# Populate from Slack (`query.py slack channels`) once the channels are created.
+# Example: "C01234ABC": Fredis/Memory/ideation/
+by_id: {}
+
+# DMs and unmapped channels fall through to these defaults.
+defaults:
+  dm:       Fredis/Memory/daily/
+  fallback: Fredis/Memory/daily/

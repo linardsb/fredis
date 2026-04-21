@@ -1,21 +1,6 @@
 ## Advisor Mode
 
-Fredis is an **advisor**, not an agent with send-authority. Heartbeats and scheduled runs draft into `Fredis/Memory/drafts/active/` — Linards reviews and sends from Gmail/Slack himself. No `slack.postMessage`, no `drafts.send`, no social-media POSTs in any automated path. See `SOUL.md` for the full never-send boundary.
-
-## Completed Phases
-
-- **Phase 1** — Memory-layer personalisation (SOUL/USER/MEMORY/HABITS/HEARTBEAT drafting via `phase1-ready` skill).
-- **Phase 2** — Heartbeat + draft loop (scheduled gather → reconcile → prompt → Slack).
-- **Phase 3** — Hybrid memory search (SQLite/Postgres + FastEmbed) + Slack chat interface.
-- **Phase 4** — Integrations reconciliation: added Monday.com + GitHub; advisor-mode belt tightened; heartbeat defaults set to Europe/London 05:00–20:00, 120 min interval.
-- **Phase 5.1** — Skill stack Wave 1 (`.agent/plans/phase5-skill-stack.md`): ported 25 MIT-licensed skills from [alirezarezvani/claude-skills](https://github.com/alirezarezvani/claude-skills) covering C-level advisors, engineering roles, stats/experimentation, product, and personas (solo-founder, startup-cto, product-manager); authored 3 de novo — `ip-overhang-guard` (UK employer-IP), `business-cycle-analyst` (Dalio + Lori voice), `robotics-engineer` (ROS2 + ISO safety + motion planning). Archon sub-agent port deferred to post-Fredis-completion.
-- **Phase 5.2** — Workflow-specialist bundles + 20-skill consolidation (`.agent/plans/phase5-2-skill-consolidation.md`): authored 3 new bundles (`idea-validation`, `product-shape`, `launch-governance`) encoding 10 workflow-specialist frameworks (market-landscape-scan, problem-validation, minimum-lovable-product, pricing-shaper, positioning-sharpener, mvp-architect, launch-wedge, metrics-gate, bet-review, decision-logger) as structural skeletons with source lists; consolidated 33 existing skills into 10 merged bundles (`integrations`, `executive-leadership`, `technical-leadership`, `org-design`, `security-engineering`, `engineering`, `data-and-experimentation`, `product-management`, `content-social`, `content-artifacts`) with 100% content preserved in `references/`; `ciso-advisor` kept standalone; shared assets in `_shared/` (lanes, Atis-£1k test, Chris-Lori voice, draft-path convention); `metrics-gate` wired into heartbeat for proactive kill-trigger breach surfacing via `Fredis/Memory/gates/*.yaml`. Final: 20 Fredis skills + 7 Claude Code built-ins.
-- **Phase 6 Gap 3** — Standalone SOUL.md write-protection hook (`.claude/hooks/block-soul-edit.py`) registered in `.claude/settings.json` PreToolUse; covers every Edit/Write-capable surface (normal Claude Code sessions + the three Agent SDK callers that set `setting_sources=["user","project"]`: heartbeat, reflection, chat). The in-process `protect_soul_file` hook was removed from `memory_reflect.py` — single source of truth. 13 subprocess-driven hook tests in `tests/test_block_soul_edit.py`.
-- **Phase 5.2.5** — Agentic-backend reference additions (`.agent/plans/phase5-2-skill-consolidation.md` §PHASE 5.2.5): authored 4 new references from public canon — `engineering/references/agentic-application-architecture.md` (VSA + typed layers + LLM-adapter + blueprint/node + connector pattern + observability), `engineering/references/agentic-orchestration-patterns.md` (agent harness + Anthropic 4-levels of orchestration + memory patterns + sub-agent spawning + MCP / skill registries), `security-engineering/references/agent-guardrails.md` (3-layer injection defense + destructive-command guard + HITL gates + memory-poisoning defense + per-agent threat-model checklist), `data-and-experimentation/references/llm-evals.md` (judge-based + fixture-driven + regression-guarded + failure-mode taxonomies). Routing tables + frontmatter descriptions extended in the three parent bundles; naming scrub clean on all new content; ruff/mypy/pytest green (292 passing).
-- **Phase 7** — Chat interface hardening + deployment (`.agent/plans/phase7-chat-gaps.md`): session-store race fix (SQLite IntegrityError + Postgres UniqueViolation → fall back to `update()`), Postgres startup timeout + retry (`PG_CONNECT_TIMEOUT`, 2-attempt loop, clean stderr + exit 1 on failure), SessionStart skip for Agent SDK sub-sessions (`CLAUDE_INVOKED_BY` guard in `session-start-context.py`; chat engine injects its own minimal advisor-mode preamble via `system_prompt.append`), tracked systemd unit at `.claude/scripts/schedule/secondbrain-chat.service` (drops phantom `Requires=docker.service`, adds `CLAUDE_PROJECT_DIR` + `PATH` env). 35 new tests across `test_chat_session.py` (11), `test_slack_adapter.py` (15), `test_chat_engine.py` (7), `test_chat_hook_propagation.py` (4) — unit-level proof that `block-dangerous-commands` rejects financial / Slack-send / outside-sandbox-write attempts. Ruff/mypy/pytest green (340 passing). Out-of-scope: WhatsApp, Discord, rate limiting, Docker.
-- **Phase 9** — Memory loops (`.agent/plans/phase9-memory-loops.md`): resolution sweep + importance/status tagging in the reflection prompt (`memory_reflect.py`); `chunks.last_touched` column + `touch_chunks()` on both SQLite and Postgres backends (`db.py` — idempotent ALTER, Protocol method); `SearchResult.chunk_id` threaded through all three `memory_search` functions; auto-retrieval in chat engine (`chat/engine.py` — hybrid search on original user text, `<relevant_memories>` prepended before heartbeat-ctx → wrapped-user, `touch_chunks` only on successful `ResultMessage`, fail-open on search exception, short-query + empty-hit skip paths); auto-retrieval in heartbeat gather (`heartbeat.py` — per-signal search over diff-annotated NEW emails/tasks/Slack, `_RECALL_AGGREGATE_CAP=15` chunk dedup, gated on guardrail `pass`/`suspicious`, skipped on `fail`/`error`); weekly synthesis pass (`memory_synthesis.py` — Read + Glob only, caller-written draft under `Fredis/Memory/drafts/active/memory-synthesis/YYYY-Www.md`, SYNTHESIS_OK no-op path, injection abort on poisoned daily-log bundle); schedule units at `.claude/scripts/schedule/com.linards.fredis-synthesis.plist` + `fredis-synthesis.service` + `fredis-synthesis.timer` (Sun 08:00 weekly); new threat-model page `threat-models/memory_synthesis.md` + Phase 9 retrieval-surface sections appended to `chat.md` + `heartbeat.md`. PRD §Phase 9 Deployment renumbered to §Phase 10. Test baseline: 471 → 518+ passing.
-- **Phase 10 + 10.5** — VPS cutover + mirrored vault sync (`docs/phase10-deploy-progress.md`): Hetzner CX23 (Helsinki) provisioned + hardened (UFW, fail2ban, unattended-upgrades), Docker 29 + pgvector/pg17 + `uv` + Claude CLI installed, `.env` + `google_token.json` + vault rsync'd, `claude login` authed, memory index rebuilt (202 chunks). Systemd units live: `secondbrain-chat.service`, `fredis-heartbeat.timer` (2h), `fredis-reflect.timer` (daily 08:00), `fredis-synthesis.timer` (Sun 08:00), `deps-audit.timer` (Mon 09:00), `fredis-vault-sync.timer` (2 min). Mac `fredis-heartbeat` + `fredis-reflect` launchd plists unloaded — VPS is the sole runtime. Auto-deploy: `.github/workflows/deploy-vps.yml` SSH-to-`deploy.sh` on every push to `main` (selective `uv sync` / `daemon-reload` / `systemctl restart secondbrain-chat` based on diff); `paths-ignore: [Fredis/**, docs/**, **/*.md]` so vault-only commits don't trigger redeploys. **Phase 10.5 — single-repo vault sync** (simpler than the deferred two-repo plan): `Fredis/` tracked inside `linardsb/fredis` (113 files); `.claude/scripts/vault-sync-repo.sh` (mkdir-based atomic lock for cross-platform safety, subtree-only `git add -A Fredis/` + `commit --only -- Fredis/` — WIP code outside Fredis stays unstaged), installed both sides — `fredis-vault-sync.{service,timer}` on VPS (2 min), `com.linards.fredis-vault-sync.plist` on Mac (120s `StartInterval`); `concat-both` merge driver registered both sides via root `.gitattributes` mapping `Fredis/Memory/daily/*.md` + `drafts/active/**` + `drafts/sent/**`. Mac ↔ VPS mirror each other within 2 min. Mac memory search tunnels to VPS Postgres via `com.linards.ssh-tunnel.plist` on **local 5433** (Mac's local Postgres owns 5432); `DATABASE_URL=postgresql://secondbrain:changeme@localhost:5433/secondbrain` in local `.env`. Heartbeat smoke test: exit 0, Slack alert fired; guardrail Haiku timeout hit fail-closed path (expected).
-- **Phase 8** — Security hardening defense-in-depth (`.agent/plans/phase8-security-hardening.md`): **Phase 1** — hook matcher coverage expanded to `MultiEdit` + `NotebookEdit` across all four PreToolUse blockers (`block-secrets`, `block-dangerous-commands`, `block-template-residue`, `block-soul-edit`) + `.claude/settings.json` matchers + 22 subprocess tests. **Phase 2** — heartbeat guardrail fail-closed on Haiku timeout/exception: 15s `asyncio.wait_for` timeout, verdict=`error`, external data stripped from main-agent prompt, Slack alert fired, new parametrized test. **Phase 3** — chat inbound sanitize pipe on every Slack DM: `check_injection_patterns` + `escape_markdown_structure` + `wrap_external_data(source="slack_inbound")` + flagged-notice prepend on pattern match; **no short-circuit** (advisor-mode policy for single-user false-positive shapes); attachment context appended OUTSIDE the trust boundary. **Phase 4** — Slack output mention filter: `_neutralise_mentions()` zero-width-joins `<!channel>`, `<!here>`, `<!everyone>`, `<@USER_ID>`, `<!subteam^…>` before every `send()` / `update()`. **Phase 5** — memory-read defense + provenance: `source:` blockquote header on daily-log entries; `memory_reflect.py` aborts on injection pattern in yesterday's log (`state["result"] = "aborted_on_memory_injection"`); `memory_flush.py` scrubs + wraps transcript excerpts. **Phase 6** — shared `secret_patterns.py` module (12 context-anchored patterns: Slack bot/app/user, GitHub PAT/oauth/server/fine-grained, Anthropic, OpenAI, Google OAuth + client-secret, AWS access/secret-with-anchor, JWT, Asana modern/legacy); `memory_flush.py` + `redact-secrets.py` both import from it (redact-secrets layers shape-patterns on top of the existing `.env`-runtime-loaded values path); benign-lookalikes calibrated (git SHA, MD5, SHA-256, UUID, 40-char base64). **Phase 7** — adversarial eval harness at `tests/evals/` — 22 injection fixtures + 15 benign lookalikes + 15 secret shapes + 2 pytest runners + README. **Phase 8** — per-agent threat-model docs at `.claude/scripts/threat-models/` (heartbeat / chat / reflection / memory_flush + README index). Ruff green, mypy baseline-clean (3 pre-existing integrations errors unchanged), pytest green (471 passing, up from 340).
+Fredis is an **advisor**, not an agent with send-authority. Heartbeats and scheduled runs draft into `Fredis/Memory/drafts/active/` — Linards reviews and sends from Gmail/Slack himself. Automated sending is disabled across every external channel (Slack messages, email, social platforms). See `SOUL.md` for the full never-send boundary.
 
 ## Skill Stack
 
@@ -50,18 +35,45 @@ The `.claude/skills/` directory groups Fredis's skills by purpose. Every skill o
 
 **Voice modes** — merged skills with persona references surface them via invocation ("in solo-founder voice", "in startup-cto voice", "in product-manager voice"). Default is neutral SOUL voice.
 
-## Memory Files
+## Memory Layout
 
-This project uses an Obsidian vault (`Fredis/Memory/`) as persistent memory across sessions. These files are auto-loaded into context via the `SessionStart` hook — no manual reading required.
+Fredis's persistent memory is an Obsidian vault at `Fredis/Memory/`. Top-level files are auto-loaded into context by the `SessionStart` hook — no manual reading required.
 
 | File | Contains | Update When |
 |------|----------|-------------|
-| `SOUL.md` | AI personality, behavioral rules, communication style, boundaries | Changing how the assistant should behave |
+| `SOUL.md` | AI personality, behavioural rules, communication style, boundaries | Changing how the assistant should behave |
 | `USER.md` | User profile, account IDs, integration config, preferences, team info | Learning something about the user or adding an integration account |
 | `MEMORY.md` | Key decisions, lessons learned, active projects, important facts | Making a significant decision or learning a reusable lesson |
-| `daily/YYYY-MM-DD.md` | Session logs, heartbeat entries, daily context | End of meaningful sessions (also written automatically by hooks) |
+| `HABITS.md` | Habit pillars checked during heartbeat | Changing the habit pillars |
+| `HEARTBEAT.md` | What the heartbeat scans each tick | Changing heartbeat behaviour |
+| `daily/YYYY-MM-DD.md` | Session logs, heartbeat entries, reflection / synthesis notes | Session end or heartbeat (written automatically by hooks) |
 
-This file (CLAUDE.md) is **project documentation** — how the system works and how its components fit together. It should not contain user-specific preferences, personality rules, or behavioral instructions. Those belong in `SOUL.md`.
+### Vault subdirectories
+
+| Path | Contains |
+|------|----------|
+| `Fredis/Memory/drafts/active/` | Pending drafts awaiting Linards's review — every skill, heartbeat, chat, and synthesis output lands here |
+| `Fredis/Memory/drafts/sent/` | Historical sent drafts — use for voice-matching when drafting new replies |
+| `Fredis/Memory/research/` | Research notes on topics under investigation |
+| `Fredis/Memory/competitors/` | Competitor analysis per market / product lane |
+| `Fredis/Memory/retainers/` | Retainer-specific client context |
+| `Fredis/Memory/case-studies/` | Case studies for positioning |
+| `Fredis/Memory/gates/*.yaml` | Launch-governance kill-trigger gates (read by heartbeat's `metrics-gate` bundle from the `launch-governance` skill) |
+
+### Outside the vault
+
+| Path | Contains |
+|------|----------|
+| `.claude/skills/` | Skill definitions (see §Skill Stack above) |
+| `.claude/skills/_shared/` | Shared primitives — `lanes.md`, `atis-test.md`, `chris-lori-voice.md`, `draft-path-convention.md` |
+| `.claude/scripts/` | Runtime scripts (heartbeat, reflection, synthesis, memory search/index, chat engine, integrations CLI) |
+| `.claude/chat/` | Slack chat interface (engine, session store, Slack adapter) |
+| `.claude/hooks/` | `PreToolUse` / `SessionStart` / `SessionEnd` / `PreCompact` hooks |
+| `.agent/plans/` | Planning docs (onboarding interview, phase plans) |
+| `.agent/audits/` | Audit / review docs |
+| `docs/` | Durable documentation — phase history, deployment records, research decisions |
+
+This file (CLAUDE.md) is **project documentation** — how the system works and how its components fit together. It should not contain user-specific preferences, personality rules, or behavioural instructions. Those belong in `SOUL.md`.
 
 > For setup, scheduling, and configuration instructions, see `README.md`.
 
@@ -74,488 +86,15 @@ This file (CLAUDE.md) is **project documentation** — how the system works and 
 - **`PreToolUse → block-template-residue.py`** — blocks Edit/Write that re-introduce scrubbed template strings outside the allowlisted paths (`.agent/plans/`, `.agent/audits/`, `Fredis/Memory/daily/`, `Fredis/Memory/USER.md`).
 - Agent SDK callers (`heartbeat`, `memory_flush`, `memory_reflect`, `chat`) set `CLAUDE_INVOKED_BY` at module top; `PreCompact`/`SessionEnd` hooks skip when it is set (prevents recursive flushes when SDK sub-sessions exit).
 
-### Threat Models
-
-Per-agent threat models colocated with code at `.claude/scripts/threat-models/` — one page per SDK caller (`heartbeat.md`, `chat.md`, `reflection.md`, `memory_flush.md`) using the §7 checklist from `.claude/skills/security-engineering/references/agent-guardrails.md`. Revisit when `allowed_tools` changes, a new integration is added to the gather path, or a new hook is registered. Start with the README index.
-
-### Secrets Management
-
-Token rotation procedures for every secret in `.env.example` live at `.claude/scripts/schedule/rotation-runbooks.md`. Rotate on a 90-day cadence or immediately on suspected leak. The runbook covers Slack bot / app tokens, Anthropic / GitHub / Asana / Monday PATs, Google OAuth (refresh token + client secret rotation paths), Postgres password, and SSH keys (VPS + vault git remote).
-
-### Dependency Audit (Phase 9.5)
-
-Weekly `pip-audit` + `safety check` run via `.claude/scripts/deps_audit.py` (wrapper: `run_deps_audit.sh` / `.bat`). Results append to today's daily log under `## Memory Maintenance` → `### Dependency Audit`. Scheduler units live under `.claude/scripts/schedule/`:
-
-- **macOS** — `com.linards.fredis-deps-audit.plist` (launchd, every Monday 09:00 local). Install by copying to `~/Library/LaunchAgents/` and `launchctl load`.
-- **Linux VPS** — `deps-audit.service` + `deps-audit.timer` (systemd, `OnCalendar=Mon *-*-* 09:00:00`). Install into `/etc/systemd/system/` and `systemctl enable --now deps-audit.timer`.
-
-Non-zero exit on any HIGH/CRITICAL finding so the scheduler surfaces the alert.
-
 ---
 
-## Onboarding
+## Architecture & Operations
 
-First-run personalisation is a TUI + skill pair that converts the 103-question interview at `.agent/plans/phase1-onboarding-interview.md` into the five personalised memory files.
+Subsystem implementation detail is split out of this file so every SDK caller (heartbeat, chat, reflection, synthesis) loads a smaller `/CLAUDE.md` each run.
 
-- **TUI:** `cd .claude/scripts && uv run python onboard.py [--tier core|rich|all] [--from A1] [--dry-run]`. One question per terminal screen with a multi-line `TextArea`. Answers are written back into the interview file in place — no sidecar state. `Ctrl+N` / `Ctrl+P` navigate, `Ctrl+S` saves and exits, `Ctrl+E` drops into `$EDITOR` for ★★★ long-form questions, `Ctrl+J` jumps to a section by letter, `Ctrl+Q` quits. Resumes automatically at the first unanswered question. Requires the `textual>=0.85.0` dep (already in `pyproject.toml`).
-- **Trigger phrase:** say "phase 1 answers ready" (or "phase 1 complete" / "onboarding interview done") in any session. The `phase1-ready` skill (`.claude/skills/phase1-ready/`) reads the interview, drafts SOUL/USER/MEMORY/HABITS/HEARTBEAT, shows each draft for review, writes only after approval, scaffolds `Fredis/Memory/{research,competitors,retainers,case-studies}/`, appends a `## Addendum — Context Deltas` section to `.agent/plans/second-brain-prd.md`, and deletes `Fredis/Memory/BOOTSTRAP.md`. The skill's per-file mapping lives in `.claude/skills/phase1-ready/runbook.md`; the write-allowlist reference is `drafting_hook.py`.
-
----
-
-## Heartbeat System (Proactive Second Brain)
-
-The heartbeat is a scheduled script that proactively checks the user's draft inbox, overdue tasks across Asana + Monday.com, calendar, email, Slack, market/policy/AI research signals, and habit pillars using the Claude Agent SDK. It runs every 120 minutes during active hours (Europe/London, 05:00–20:00) and sends a Slack DM + native macOS notification when something needs attention.
-
-**Location:** `.claude/scripts/`
-
-### Key Files
-
-| File | Purpose |
-|------|---------|
-| `heartbeat.py` | Main script - gathers API data, runs Claude for reasoning |
-| `config.py` | Path constants, active hours, timezone config |
-| `notifications.py` | Cross-platform notifications (Windows toast / macOS osascript / Linux notify-send) |
-| `shared.py` | State management, daily log helpers, file locking, bash validation |
-
-### How It Works
-
-1. OS scheduler runs the wrapper script every 120 minutes
-2. Wrapper runs `uv run python heartbeat.py` in `.claude/scripts/`
-3. `heartbeat.py` gathers data from Gmail, Calendar, Asana, Slack, Monday.com, and GitHub via direct Python API calls
-4. State diffing compares current data against the previous snapshot — only new/changed items get full context
-5. Guardrail pre-filter (deterministic pattern matching + Haiku LLM) checks for prompt injection in external data
-6. Pre-fetched, diff-annotated data is injected into Claude's prompt; Claude reasons over it and decides what needs attention
-7. If something needs attention → Slack notification + daily log entry
-8. If nothing needs attention → `HEARTBEAT_OK` logged silently
-
-**Authentication:** Uses Claude Code CLI credentials automatically (`~/.claude/.credentials.json`). No API key needed.
-
-### State & Logs
-
-- **State:** `.claude/data/state/heartbeat-state.json` - tracks `last_run`, snapshot, alert history (per-machine, not synced)
-- **Guardrail state:** `.claude/data/state/guardrail-state.json` - tracks last guardrail verdict
-- **Daily log:** `Fredis/Memory/daily/YYYY-MM-DD.md` - heartbeat entries appended here
-- **Checklist:** `Fredis/Memory/HEARTBEAT.md` - defines what to check each heartbeat
-
-### State Diffing
-
-The heartbeat snapshots integration data (email IDs, event IDs, task GIDs, Slack message timestamps) after each run and stores it in the heartbeat state file. On the next run, `diff_snapshot()` compares the current data against the previous snapshot:
-
-- **New items** get full context and are annotated as "NEW" in Claude's prompt
-- **Unchanged items** get a one-line summary marked "unchanged (already reported)"
-- **Removed items** (e.g., completed tasks) are noted so Claude can acknowledge them
-
-This prevents the agent from repeatedly alerting about the same emails/tasks across consecutive heartbeats.
-
-### Security: Guardrail Pre-Filter
-
-Before external data reaches the main Claude agent, it passes through a two-stage guardrail:
-
-1. **Deterministic pre-check** (`sanitize.py → check_injection_patterns`) — 12 regex categories catch known injection patterns (role-play attacks, instruction overrides, XML escape attempts, tool invocations)
-2. **LLM semantic evaluation** (Haiku) — catches obfuscated or novel injection attempts that regex misses
-
-Verdicts:
-- `pass` → data is safe, proceed normally
-- `suspicious` → warning logged, proceed with caution
-- `fail` → heartbeat blocked, Slack alert sent, data never reaches the main agent
-
-The 3-layer sanitization system (`sanitize.py`) also wraps all external data in XML trust boundaries (`<external_data>` tags) and escapes markdown structure (headings, code fences, horizontal rules) to prevent content from breaking Claude's context formatting.
-
----
-
-## Vault Sync (Git-Based)
-
-The Obsidian vault (`Fredis/`) syncs between machines via Git using [simonthum/git-sync](https://github.com/simonthum/git-sync) (CC0 license) on a 2-minute timer. This replaces Obsidian Sync, which can't detect file changes made by external processes (heartbeat, reflection, Claude Code).
-
-**Location:** `.claude/scripts/` (sync scripts), `Fredis/` (vault repo)
-
-### Key Files
-
-| File | Purpose |
-|------|---------|
-| `git-sync` | The simonthum/git-sync script (CC0 license, modified to use merge) |
-| `git-merge-concat` | Custom merge driver - concatenates append-only files instead of conflicting |
-| `run_vault_sync.bat` | Windows Task Scheduler wrapper |
-| `run_vault_sync.sh` | Linux systemd timer wrapper |
-| `setup_vault_sync.ps1` | Windows Task Scheduler setup script |
-| `Fredis/.gitignore` | Excludes workspace.json, .trash/, lock files |
-| `Fredis/.gitattributes` | Forces LF line endings + concat-both merge driver for daily logs |
-
-### How It Works
-
-1. OS scheduler triggers `run_vault_sync` every 2 minutes
-2. Wrapper runs `git-sync` inside `Fredis/` (the vault directory)
-3. `git-sync` auto-commits local changes, fetches from origin, merges if diverged
-4. Daily log conflicts are auto-resolved by the `concat-both` merge driver (concatenates both sides)
-5. If a non-daily-log conflict occurs, merge is aborted to keep the repo clean (fails gracefully, retries next cycle)
-6. Results logged to `vault_sync_runs.log`
-
-### Scheduling
-
-- **Windows:** Task Scheduler task `SecondBrain-VaultSync` (every 2 min)
-- **VPS:** systemd timer `vault-sync.timer` (every 2 min after previous run completes)
-
-### Management Commands
-
-```powershell
-# Windows
-Get-ScheduledTask -TaskName "SecondBrain-VaultSync"         # check status
-Start-ScheduledTask -TaskName "SecondBrain-VaultSync"       # run now
-Disable-ScheduledTask -TaskName "SecondBrain-VaultSync"     # pause
-Enable-ScheduledTask -TaskName "SecondBrain-VaultSync"      # resume
-```
-
-```bash
-# VPS (via SSH)
-systemctl status vault-sync.timer          # check status
-systemctl list-timers | grep vault         # see next run time
-systemctl start vault-sync.service         # run now
-journalctl -u vault-sync.service -n 20    # view recent logs
-```
-
-### Merge Strategy
-
-git-sync uses **merge** (not rebase) when local and remote diverge. This prevents the repo from getting stuck in a broken rebase state if a conflict occurs.
-
-For daily log files (`Memory/daily/*.md`), a custom merge driver (`concat-both`) automatically concatenates additions from both sides instead of conflicting. This handles the most common conflict source: multiple machines appending heartbeat entries and session logs to the same daily file.
-
-**How the merge driver works:**
-1. `.gitattributes` maps `Memory/daily/*.md` to the `concat-both` driver
-2. On conflict, git invokes `.claude/scripts/git-merge-concat` with the ancestor, local, and remote versions
-3. The script takes the remote version as base, then appends any lines the local side added that aren't already present
-4. Result: both sides' entries are preserved, no manual intervention needed
-
-**Exit codes:**
-- **git-sync exit 0:** Success, everything synced
-- **git-sync exit 1:** Merge conflict on a non-daily-log file (merge aborted, repo stays clean, retries next cycle)
-- **git-sync exit 2:** Repo in an unexpected state (check for stuck rebase/merge)
-- **git-sync exit 3:** Network error (transient, retries next cycle)
-
-### Git Config (Required on Every Machine)
-
-```bash
-git config core.autocrlf false
-git config --bool branch.main.sync true
-git config --bool branch.main.syncNewFiles true
-
-# Register the concat-both merge driver (path varies by machine)
-git config merge.concat-both.name "Concatenate both sides for append-only files"
-git config merge.concat-both.driver "bash /path/to/your-repo/.claude/scripts/git-merge-concat %O %A %B"
-```
-
----
-
-## Memory Search
-
-Hybrid search (keyword + semantic) over all Second Brain memory files. Fully local — no API calls.
-
-### How It Works
-
-1. Markdown files in `Fredis/Memory/` are chunked into ~400-token overlapping segments
-2. Each chunk is indexed for keyword search (FTS5 in SQLite, tsvector in Postgres) and vector search (sqlite-vec or pgvector)
-3. Embeddings generated locally via FastEmbed (ONNX, all-MiniLM-L6-v2, 384-dim)
-4. Incremental indexing — only changed files are re-indexed
-5. Hybrid search combines vector similarity (0.7) with keyword score (0.3)
-
-### Key Files
-
-| File | Purpose |
-|------|---------|
-| `db.py` | Database abstraction — SQLiteMemoryDB or PostgresMemoryDB |
-| `memory_index.py` | Chunks markdown, generates embeddings, stores via db.py |
-| `memory_search.py` | Keyword/semantic/hybrid search with CLI |
-| `embeddings.py` | FastEmbed wrapper with lazy model loading |
-
-### Search Commands
-
-```bash
-# Quick keyword search (instant, no embedding)
-cd .claude/scripts && uv run python memory_search.py "query" --mode keyword --limit 5
-
-# Deep hybrid search (embeds query, ~1 sec, finds conceptually related content)
-cd .claude/scripts && uv run python memory_search.py "query" --mode hybrid --limit 10
-
-# Search only sent drafts (for voice-matching when drafting new replies)
-cd .claude/scripts && uv run python memory_search.py "topic" --mode hybrid --path-prefix drafts/sent --limit 3
-```
-
-If the database doesn't exist (first run on a new machine):
-```bash
-cd .claude/scripts && uv run python memory_index.py
-```
-
-### Data Locations
-
-- **SQLite database:** `.claude/data/memory.db` (git-ignored, regenerable via `memory_index.py`)
-- **Postgres:** Set `DATABASE_URL` in `.claude/scripts/.env` (pgvector required)
-- **Model cache:** `.claude/data/models/` (auto-downloaded ~80MB on first run)
-- **Auto-indexing:** Heartbeat re-indexes every 120 minutes (unchanged files skipped)
-
-### SSH Tunnel for Postgres (Required on Local Machine)
-
-Memory search and chat sessions use Postgres on the VPS. The local `.env` has `DATABASE_URL` pointing to `localhost:5432`, which requires a persistent SSH tunnel.
-
-#### macOS (launchd, primary)
-
-The launchd plist lives at `.claude/scripts/schedule/com.linards.ssh-tunnel.plist`.
-It respawns the tunnel on exit (including laptop wake) and throttles restarts on auth failure.
-Full install/check/unload commands are in `.claude/scripts/schedule/README.md`.
-
-```bash
-# Install + load
-cp .claude/scripts/schedule/com.linards.ssh-tunnel.plist ~/Library/LaunchAgents/
-# (substitute __HOME__/__KEY_PATH__/__VPS_USER__/__VPS_HOST__ placeholders first — see schedule/README.md)
-launchctl load ~/Library/LaunchAgents/com.linards.ssh-tunnel.plist
-
-# Check
-launchctl list | grep com.linards.ssh-tunnel
-nc -z localhost 5432 && echo TUNNEL_OK
-
-# Unload
-launchctl unload ~/Library/LaunchAgents/com.linards.ssh-tunnel.plist
-```
-
-Skip this plist entirely if `DATABASE_URL` is unset or points at SQLite — the tunnel is only needed in VPS Postgres mode.
-
-#### Windows (Task Scheduler)
-
-```powershell
-# Creates a persistent tunnel that starts at logon and auto-restarts on failure
-$action = New-ScheduledTaskAction -Execute "ssh.exe" `
-    -Argument "-N -i C:\Users\you\.ssh\your-key -L 5432:localhost:5432 user@your-vps-ip"
-$trigger = New-ScheduledTaskTrigger -AtLogOn
-$settings = New-ScheduledTaskSettingsSet `
-    -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `
-    -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1)
-Register-ScheduledTask `
-    -TaskName "SecondBrain-SSH-Tunnel" `
-    -Action $action -Trigger $trigger -Settings $settings `
-    -Description "SSH tunnel to VPS Postgres"
-```
-
-Manage the tunnel:
-```powershell
-Start-ScheduledTask -TaskName "SecondBrain-SSH-Tunnel"      # start now
-Stop-ScheduledTask -TaskName "SecondBrain-SSH-Tunnel"       # stop
-Get-ScheduledTask -TaskName "SecondBrain-SSH-Tunnel"        # check status
-```
-
-**If `memory_search.py` fails with a connection error**, the tunnel is probably down. The SSH key is passphrase-protected, so automated restarts only work once the key is loaded in `ssh-agent`:
-- macOS: `ssh-add ~/.ssh/your-key` then `launchctl kickstart -k "gui/$(id -u)/com.linards.ssh-tunnel"`
-- Windows: `ssh-add C:\Users\you\.ssh\your-key` then `Start-ScheduledTask -TaskName "SecondBrain-SSH-Tunnel"`
-
-### SSH to VPS from Claude Code
-
-On macOS, just use `ssh` directly — no Git-SSH-vs-Windows-SSH conflict.
-
-On Windows, Claude Code's bash shell uses Git's bundled SSH (`/usr/bin/ssh`), which does **not** connect to the Windows SSH agent. Always use the Windows OpenSSH binary instead:
-
-```bash
-# SSH
-/c/Windows/System32/OpenSSH/ssh.exe -i C:/Users/you/.ssh/your-key user@your-vps-ip "command"
-
-# SCP
-/c/Windows/System32/OpenSSH/scp.exe -i C:/Users/you/.ssh/your-key local_file user@your-vps-ip:/remote/path
-```
-
-The Windows SSH agent service is set to `Automatic` start and persists loaded keys across reboots. If SSH fails with "Permission denied (publickey)", ask the user to run `ssh-add C:\Users\you\.ssh\your-key` in a terminal.
-
-**VPS notes:**
-- `uv` may need to be added to PATH — run `export PATH=$HOME/.local/bin:$PATH` before using it
-- Clone the repo on the VPS and configure the same `.env` values
-
-See `SOUL.md` → Memory Recall for behavioral rules on when to search.
-
----
-
-## Daily Reflection (Automated Memory Curation)
-
-A scheduled script that uses Claude Agent SDK to review yesterday's daily log and promote important items to MEMORY.md. Runs daily at 8 AM via OS scheduler.
-
-**Location:** `.claude/scripts/`
-
-### Key Files
-
-| File | Purpose |
-|------|---------|
-| `memory_reflect.py` | Main script - reviews logs and updates MEMORY.md |
-| `run_reflect.bat` | Wrapper for Windows Task Scheduler |
-| `run_reflect.sh` | Wrapper for cron/launchd (macOS/Linux) |
-
-### How It Works
-
-1. OS scheduler runs the wrapper script daily at 8 AM
-2. Wrapper runs `uv run python memory_reflect.py` in `.claude/scripts/`
-3. Script loads yesterday's daily log and current MEMORY.md
-4. Claude Agent SDK reviews the log and identifies items worth promoting
-5. Claude uses Edit tool to update MEMORY.md directly (decisions, lessons, facts)
-6. If nothing to promote → `REFLECTION_OK` logged to daily log
-
-### State & Logs
-
-- **State:** `.claude/data/state/reflection-state.json` - tracks `last_run`, days reviewed, result (per-machine)
-- **Daily log:** `Fredis/Memory/daily/YYYY-MM-DD.md` - reflection entries appended here
-- **Config:** `REFLECTION_HOUR` in `.env` (default: 8 AM)
-
----
-
-## Direct Platform Integrations
-
-The `direct-integrations` skill provides direct API access to Gmail, Calendar, Asana, Slack, Google Sheets, Google Docs, and Google Drive without going through Zapier MCP. **Always prefer direct integrations over Zapier.** The CLI wrapper lives at `.claude/scripts/query.py` (moved from the skill directory in Phase 4 so it sits sibling to `integrations/`).
-
-### Usage
-
-```bash
-# Gmail
-python .claude/scripts/query.py gmail list --max 5
-python .claude/scripts/query.py gmail urgent --hours 2
-python .claude/scripts/query.py gmail unread
-python .claude/scripts/query.py gmail read <message_id>
-python .claude/scripts/query.py gmail thread <thread_id>
-python .claude/scripts/query.py gmail search "subject or query"
-python .claude/scripts/query.py gmail attachments <message_id>
-python .claude/scripts/query.py gmail download-attachment <message_id> --attachment-id <id> [--output-dir <path>]
-python .claude/scripts/query.py gmail create-draft --from-file "Fredis/Memory/drafts/active/<draft>.md"
-python .claude/scripts/query.py gmail create-draft --to "Name <email>" --subject "Re: Subject" --body "Reply text" --thread-id <thread_id> <message_id>
-
-# Calendar
-python .claude/scripts/query.py calendar today
-python .claude/scripts/query.py calendar upcoming --hours 48
-python .claude/scripts/query.py calendar soon
-
-# Asana
-python .claude/scripts/query.py asana my-tasks --max 10
-python .claude/scripts/query.py asana my-tasks --assignee <name> --max 10
-python .claude/scripts/query.py asana project <project_id>
-python .claude/scripts/query.py asana overdue
-python .claude/scripts/query.py asana due-soon --days 3
-python .claude/scripts/query.py asana create --name "Task name" --due 2026-03-01 --project <project_id> --notes "Details"
-python .claude/scripts/query.py asana comment <task_gid> --comment "Comment text"
-python .claude/scripts/query.py asana complete <task_gid>
-python .claude/scripts/query.py asana move <task_gid> --to-project <project_id> --from-project <project_id>
-
-# Slack (`send` gated behind --i-confirm-send — advisor mode refuses otherwise)
-python .claude/scripts/query.py slack channels
-python .claude/scripts/query.py slack messages <channel> --hours 2
-python .claude/scripts/query.py slack update <channel> "new text" --ts <message_ts>
-python .claude/scripts/query.py slack check
-
-# Google Sheets
-python .claude/scripts/query.py sheets read <spreadsheet_id>
-python .claude/scripts/query.py sheets read <spreadsheet_id> --range "Sheet1!A1:Z100"
-python .claude/scripts/query.py sheets info <spreadsheet_id>
-python .claude/scripts/query.py sheets write <spreadsheet_id> --range "A1" --values '[["a","b"]]'
-python .claude/scripts/query.py sheets append <spreadsheet_id> --range "A:Z" --values '[["new","row"]]'
-
-# Google Docs
-python .claude/scripts/query.py docs read <document_id>
-python .claude/scripts/query.py docs info <document_id>
-
-# Google Drive
-python .claude/scripts/query.py drive find "search term"
-python .claude/scripts/query.py drive find "search term" --type spreadsheet
-python .claude/scripts/query.py drive list --type document --max 10
-python .claude/scripts/query.py drive get <file_id>
-
-# Monday.com (read-only — GraphQL)
-python .claude/scripts/query.py monday boards
-python .claude/scripts/query.py monday board <board_id> --max 25
-python .claude/scripts/query.py monday my-items --max 25
-python .claude/scripts/query.py monday overdue
-python .claude/scripts/query.py monday search --query "invoice"
-
-# GitHub (read-only — REST)
-python .claude/scripts/query.py github recent --hours 24
-python .claude/scripts/query.py github review-requests
-python .claude/scripts/query.py github mentions --hours 168
-python .claude/scripts/query.py github ship
-```
-
-### Authentication
-
-- **Gmail + Calendar + Sheets + Docs + Drive:** Google OAuth2 (shared token, `gmail.readonly` + `gmail.compose` + `calendar.readonly` + `spreadsheets` + `documents.readonly` + `drive.readonly` scopes)
-- **Asana:** Personal Access Token in `.env` (`ASANA_ACCESS_TOKEN`)
-- **Slack:** Bot Token in `.env` (`SLACK_BOT_TOKEN`)
-- **Monday.com:** API v2 token in `.env` (`MONDAY_API_TOKEN`) — note: header is `Authorization: <token>`, NO `Bearer ` prefix. Board IDs in `MONDAY_BOARD_IDS` (Name:ID pairs), user ID in `MONDAY_USER_ID`.
-- **GitHub:** PAT in `.env` (`GITHUB_TOKEN`, reused from the shared top-of-env var), username in `GITHUB_USERNAME`.
-- **Setup:** `cd .claude/scripts && uv run python setup_auth.py`
-- **Re-auth after scope changes:** Delete `google_token.json` and re-run `setup_auth.py`
-
-### Key Details
-
-All account IDs, project GIDs, and service preferences are in `Fredis/Memory/USER.md`. Refer there for specific values when running commands.
-
-### Heartbeat Architecture
-
-The heartbeat gathers data from all integrations in Python BEFORE invoking Claude:
-```
-heartbeat.py → Python calls APIs → snapshot + diff → guardrail check → results fed into Claude prompt → Claude reasons
-```
-Claude no longer needs Skill/MCP tools for heartbeat — data is pre-loaded as context. External data is wrapped in XML trust boundaries and checked for prompt injection before Claude sees it.
-
----
-
-## Slack Chat Interface
-
-Chat with the Second Brain through Slack DMs or @mentions. Each Slack thread is a separate, persistent conversation backed by the Agent SDK — survives restarts.
-
-**Location:** `.claude/chat/`
-
-**Start it:**
-```bash
-cd .claude/scripts && uv run python ../chat/main.py
-```
-
-**Test without connecting to Slack:**
-```bash
-cd .claude/scripts && uv run python ../chat/main.py --test
-```
-
-The process needs to stay running — it connects via Socket Mode (outbound WebSocket, no public URL needed). For local use, run the start command in the background. On the VPS it runs as `secondbrain-chat.service` (systemd, `Restart=always`); unit file tracked at `.claude/scripts/schedule/secondbrain-chat.service`, install instructions in README §10.
-
-**How it works:**
-
-1. **Socket Mode** — uses `SLACK_BOT_TOKEN` + `SLACK_APP_TOKEN` you already have. No public URL or ngrok needed. The bot connects outbound to Slack via WebSocket.
-2. **Message routing** — listens for DMs and @mentions. Sessions are keyed by `platform:channel_id:thread_ts`, so each Slack thread maps to one Agent SDK conversation. A top-level DM (no thread) uses `channel_id` as the thread id, so the whole DM stays one continuous session; replying inside a thread spawns a separate one.
-3. **Persistent sessions** — `chat.db` stores the mapping of `platform:channel:thread` → Agent SDK `session_id`, so conversations survive bot restarts and long gaps. The engine passes `resume=agent_session_id` into `ClaudeAgentOptions` on the next message and the SDK rehydrates full history.
-4. **Bot capabilities** — anything the second brain can do today:
-   - Memory search ("What did we decide about X?")
-   - Integration queries ("Any overdue Asana tasks?", "Check my email")
-   - Draft review ("Show active drafts", "Approve the draft for John")
-   - Habit check-ins ("Mark God as done", "How are my habits?")
-
-**Config:** `SLACK_BOT_TOKEN` and `SLACK_APP_TOKEN` in `.claude/scripts/.env`. Only the authorized Slack user ID (see `USER.md` → Integrations) can trigger responses.
-
----
-
-## Pre-Commit Workflow
-
-Before committing changes under `.claude/scripts/`, run the lint, type, and
-test checks. The baseline is clean (0 ruff errors, 0 mypy errors,
-≥249 tests passing as of 2026-04-18) — keep it that way.
-
-```bash
-cd .claude/scripts
-uv run ruff check .                         # 0 errors expected
-uv run --with mypy mypy . --ignore-missing-imports  # 0 errors expected
-uv run pytest tests/                        # all green expected
-```
-
-Notes:
-- `heartbeat.py` has a per-file E501 ignore (see `pyproject.toml`) because
-  it contains a 200-line Claude prompt template inside a triple-quoted
-  string. Every other rule still applies.
-- mypy is invoked with `--with mypy` because it isn't in the project's
-  default dependency set; the dev extra (`pip install -e .[dev]`) declares
-  it for editor integrations but the CLI invocation is self-contained.
-
----
-
-## Legacy: MCP/Zapier (Fallback)
-
-MCP servers available through the mcp-client skill (use only if direct integrations are unavailable):
-
-- Zapier (Gmail, Asana, Google Calendar, Slack) — higher latency, uses Zapier quota
-- Sequential Thinking (think deeply about something) - **Only use when explicitly requested**
+- **`.claude/scripts/CLAUDE.md`** — heartbeat, chat engine, memory search + index, reflection, synthesis, vault sync, integrations CLI (`query.py`), pre-commit workflow, threat models, secrets rotation, dependency audit, MCP/Zapier fallback. Auto-loads when Claude's cwd is at or below `.claude/scripts/`; invisible to SDK callers that run with `cwd=PROJECT_ROOT`.
+- **`docs/phases.md`** — completed-phase history (Phases 1 through 10.5).
+- **`docs/vps-deployment-and-vault-sync.md`** — VPS deployment + vault-sync operational detail.
+- **`docs/phase10-deploy-progress.md`** — Phase 10 deployment log.
 
 Before looking up anything with a date, check the current date first.

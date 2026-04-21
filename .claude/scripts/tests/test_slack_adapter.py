@@ -449,3 +449,92 @@ def test_rate_limiter_window_ages_out() -> None:
     # Advance past the burst window — first two events age out.
     fake_time[0] = 100.0
     assert rl.check("U1") == (True, "")
+
+
+# ---------------------------------------------------------------------------
+# _resolve_channel_name — Phase 11 channel routing
+# ---------------------------------------------------------------------------
+
+
+class _FakeClient:
+    """Minimal stand-in for ``AsyncApp.client`` used by ``_resolve_channel_name``."""
+
+    def __init__(self, name: str | None = "marketing", raises: bool = False) -> None:
+        self._name = name
+        self._raises = raises
+        self.call_count = 0
+
+    async def conversations_info(self, *, channel: str) -> dict[str, Any]:
+        self.call_count += 1
+        if self._raises:
+            raise RuntimeError("channels:read scope missing")
+        ch: dict[str, Any] = {"id": channel}
+        if self._name is not None:
+            ch["name"] = self._name
+        return {"ok": True, "channel": ch}
+
+
+def _inject_fake_client(adapter: Any, client: _FakeClient) -> None:
+    """Replace ``adapter.app.client`` with ``client`` for name-lookup tests."""
+    class _FakeApp:
+        pass
+
+    app = _FakeApp()
+    app.client = client  # type: ignore[attr-defined]
+    adapter.app = app
+
+
+def test_resolve_channel_name_dm_skips_api_call(adapter: Any) -> None:
+    import asyncio
+
+    client = _FakeClient(name="should-not-be-looked-up")
+    _inject_fake_client(adapter, client)
+
+    result = asyncio.run(adapter._resolve_channel_name("D001", is_dm=True))
+
+    assert result is None
+    assert client.call_count == 0
+
+
+def test_resolve_channel_name_hits_api_and_caches(adapter: Any) -> None:
+    import asyncio
+
+    client = _FakeClient(name="marketing")
+    _inject_fake_client(adapter, client)
+
+    # First call: API hit.
+    r1 = asyncio.run(adapter._resolve_channel_name("C123", is_dm=False))
+    # Second call: served from cache.
+    r2 = asyncio.run(adapter._resolve_channel_name("C123", is_dm=False))
+
+    assert r1 == "marketing"
+    assert r2 == "marketing"
+    assert client.call_count == 1
+
+
+def test_resolve_channel_name_api_error_caches_miss(adapter: Any) -> None:
+    """An API failure should cache ``None`` and not retry on every message."""
+    import asyncio
+
+    client = _FakeClient(raises=True)
+    _inject_fake_client(adapter, client)
+
+    r1 = asyncio.run(adapter._resolve_channel_name("C456", is_dm=False))
+    r2 = asyncio.run(adapter._resolve_channel_name("C456", is_dm=False))
+
+    assert r1 is None
+    assert r2 is None
+    # Exactly one API call — second hit the cached miss.
+    assert client.call_count == 1
+
+
+def test_resolve_channel_name_empty_id_returns_none(adapter: Any) -> None:
+    import asyncio
+
+    client = _FakeClient()
+    _inject_fake_client(adapter, client)
+
+    result = asyncio.run(adapter._resolve_channel_name("", is_dm=False))
+
+    assert result is None
+    assert client.call_count == 0

@@ -17,8 +17,10 @@ from typing import Any
 # imported in one process (keeps hook-execution.log observability accurate).
 os.environ.setdefault("CLAUDE_INVOKED_BY", "chat")
 
+from channel_router import ChannelRouter
 from models import Attachment, IncomingMessage, OutgoingMessage
 from session import HeartbeatThread, PostgresSessionStore, Session, SQLiteSessionStore
+from summary_writer import append_summary
 
 # Add scripts dir for shared utilities
 _SCRIPTS_DIR = Path(__file__).resolve().parent.parent / "scripts"
@@ -50,11 +52,13 @@ class ConversationEngine:
         project_root: Path,
         max_turns: int = 25,
         max_budget_usd: float = 2.0,
+        channel_router: ChannelRouter | None = None,
     ) -> None:
         self.session_store = session_store
         self.project_root = project_root
         self.max_turns = max_turns
         self.max_budget_usd = max_budget_usd
+        self.channel_router = channel_router
 
     # Image extensions to detect in response text
     _IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".tiff"}
@@ -120,25 +124,60 @@ class ConversationEngine:
     # Phase 9: per-turn memory recall budget.
     _RECALL_MAX_CHARS = 2000
     _RECALL_MIN_QUERY_LEN = 8
-    _RECALL_LIMIT = 5
     _RECALL_MIN_SCORE = 0.5
+    # Phase 11: channel-scoped recall — boost channel-local hits, cap the blend.
+    _RECALL_CHANNEL_LIMIT = 3
+    _RECALL_GLOBAL_LIMIT = 5
+    _RECALL_AGGREGATE_CAP = 15
 
     @classmethod
-    def _build_retrieved_memories(cls, message_text: str) -> tuple[str, list[int]]:
+    def _build_retrieved_memories(
+        cls, message_text: str, channel_prefix: str = ""
+    ) -> tuple[str, list[int]]:
         """Hybrid-search long-term memory for context relevant to the inbound
         message. Returns ``(wrapped_block, chunk_ids)``. Fail-safe: on any
         retrieval exception the block is empty and the chat continues.
+
+        Phase 11: if ``channel_prefix`` is supplied (e.g. ``"marketing/"``),
+        run a channel-scoped search first and rank those hits above a
+        subsequent global search. Dedup by ``(path, start_line, end_line)``.
         """
         if not message_text or len(message_text.strip()) < cls._RECALL_MIN_QUERY_LEN:
             return "", []
         try:
             from memory_search import search_hybrid
 
-            hits = search_hybrid(
+            hits: list[Any] = []
+            seen: set[tuple[str, int, int]] = set()
+
+            if channel_prefix:
+                scoped = search_hybrid(
+                    message_text,
+                    limit=cls._RECALL_CHANNEL_LIMIT,
+                    min_score=cls._RECALL_MIN_SCORE,
+                    path_prefix=channel_prefix,
+                )
+                for h in scoped:
+                    key = (h.path, h.start_line, h.end_line)
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    hits.append(h)
+
+            global_hits = search_hybrid(
                 message_text,
-                limit=cls._RECALL_LIMIT,
+                limit=cls._RECALL_GLOBAL_LIMIT,
                 min_score=cls._RECALL_MIN_SCORE,
             )
+            for h in global_hits:
+                key = (h.path, h.start_line, h.end_line)
+                if key in seen:
+                    continue
+                seen.add(key)
+                hits.append(h)
+                if len(hits) >= cls._RECALL_AGGREGATE_CAP:
+                    break
+
         except Exception as e:
             print(f"[{datetime.now()}] chat memory retrieval failed (non-fatal): {e}")
             return "", []
@@ -282,7 +321,29 @@ class ConversationEngine:
         # and sits OUTSIDE the inbound trust boundary. It's PREPENDED to
         # ``message.text`` after the heartbeat-context branch below so the
         # final ordering is [retrieval] → [heartbeat ctx] → [wrapped user].
-        retrieval_block, retrieved_chunk_ids = self._build_retrieved_memories(original_text)
+        # Phase 11: narrow the first search to the channel's vault folder when
+        # the router has an explicit match — channel-local memories rank first.
+        channel_prefix = ""
+        if self.channel_router is not None:
+            try:
+                channel_prefix = self.channel_router.memory_prefix(
+                    channel_id=channel_id,
+                    channel_name=message.channel.name,
+                    is_dm=message.channel.is_dm,
+                    memory_dir=self.project_root / "Fredis" / "Memory",
+                )
+            except Exception as e:
+                print(
+                    f"[{datetime.now()}] channel_prefix computation failed "
+                    f"(non-fatal): {e}"
+                )
+        retrieval_block, retrieved_chunk_ids = self._build_retrieved_memories(
+            original_text, channel_prefix=channel_prefix
+        )
+        if channel_prefix:
+            print(
+                f"[{datetime.now()}] Channel-scoped recall prefix={channel_prefix!r}"
+            )
 
         # Resume existing conversation if we have a session
         if existing:
@@ -431,3 +492,34 @@ class ConversationEngine:
                     total_cost_usd=cost_usd or 0.0,
                 )
                 self.session_store.create(session)
+
+        # Phase 11: per-turn summary to the channel-routed vault folder. Runs
+        # after session persist; failure here must NOT surface to the user
+        # (reply has already been sent).
+        if (
+            self.channel_router is not None
+            and session_id_from_sdk
+            and response_text.strip()
+        ):
+            try:
+                folder = self.channel_router.resolve(
+                    channel_id=channel_id,
+                    channel_name=message.channel.name,
+                    is_dm=message.channel.is_dm,
+                )
+                result = append_summary(
+                    folder=folder,
+                    channel=message.channel.name,
+                    channel_id=channel_id,
+                    thread_ts=thread_id,
+                    user_text=original_text,
+                    bot_text=response_text,
+                    timestamp=datetime.now(),
+                    cost_usd=cost_usd,
+                )
+                print(
+                    f"[{datetime.now()}] Chat summary turn={result.turn_number} "
+                    f"→ {result.path}"
+                )
+            except Exception as e:
+                print(f"[{datetime.now()}] Chat summary write failed (non-fatal): {e}")

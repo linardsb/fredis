@@ -133,6 +133,9 @@ class SlackAdapter:
         self.rate_limiter = rate_limiter or RateLimiter()
         self._queue: asyncio.Queue[IncomingMessage] = asyncio.Queue()
         self._bot_user_id: str | None = None
+        # Lazy cache: channel_id -> channel name (or None if unresolvable).
+        # Populated on first sight of a channel ID; survives until process restart.
+        self._channel_name_cache: dict[str, str | None] = {}
 
         # Create the Bolt async app
         self.app = AsyncApp(token=bot_token)
@@ -154,6 +157,37 @@ class SlackAdapter:
             result = await self.app.client.auth_test()
             self._bot_user_id = result["user_id"]
         return self._bot_user_id
+
+    async def _resolve_channel_name(
+        self, channel_id: str, is_dm: bool
+    ) -> str | None:
+        """Return the human-readable name for a channel ID, or None for DMs.
+
+        DMs are skipped — the "channel" is an IM ID with no meaningful name.
+        Regular channels hit `conversations.info` on first sight and cache the
+        result for the life of the process. Failure (missing `channels:read`
+        scope, network error, private channel the bot isn't in) returns None
+        — routing will fall through to the by_id map or the default folder.
+        """
+        if is_dm or not channel_id:
+            return None
+        if channel_id in self._channel_name_cache:
+            return self._channel_name_cache[channel_id]
+
+        try:
+            info = await self.app.client.conversations_info(channel=channel_id)
+            name = info.get("channel", {}).get("name")
+            resolved: str | None = name if isinstance(name, str) and name else None
+        except Exception as e:
+            # Missing scope or private channel — log once and cache miss.
+            print(
+                f"[{datetime.now()}] conversations_info({channel_id}) failed: {e} "
+                f"(channel routing will fall back to defaults)"
+            )
+            resolved = None
+
+        self._channel_name_cache[channel_id] = resolved
+        return resolved
 
     async def connect(self) -> None:
         """Start the Socket Mode connection."""
@@ -424,7 +458,8 @@ class SlackAdapter:
                 attachments.append(attachment)
 
         user = User(Platform.SLACK, user_id)
-        channel = Channel(Platform.SLACK, channel_id, is_dm=is_dm)
+        channel_name = await self._resolve_channel_name(channel_id, is_dm)
+        channel = Channel(Platform.SLACK, channel_id, name=channel_name, is_dm=is_dm)
         thread = Thread(thread_id=thread_ts)
 
         return IncomingMessage(
