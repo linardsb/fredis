@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import re
+import time
+from collections import defaultdict, deque
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -12,6 +14,91 @@ import aiohttp
 from models import Attachment, Channel, IncomingMessage, OutgoingMessage, Platform, Thread, User
 
 INBOX_DIR = Path(__file__).resolve().parent.parent.parent.parent / "inbox"
+
+# Slack mention parser triggers — see
+# https://api.slack.com/reference/surfaces/formatting#mentioning-users.
+# Matches: <!channel>, <!here>, <!everyone>, <@USER_ID>, <!subteam^ID[|label]>.
+_MENTION_RE = re.compile(
+    r"<!(channel|here|everyone)>|<@[UW][A-Z0-9]+>|<!subteam\^[A-Z0-9]+(?:\|[^>]*)?>"
+)
+# Zero-width joiner — invisible to humans, breaks Slack's exact-match mention parser.
+_ZWJ = "‍"
+
+
+def _neutralise_mentions(text: str) -> str:
+    """Neutralise Slack mention triggers in outgoing text.
+
+    Zero-width-joins the first ``<`` of every broadcast / user / subteam
+    mention so the text still *reads* the same to humans but Slack's
+    mention parser no longer matches. URL links ``<https://…|label>`` pass
+    through untouched.
+    """
+    if not text or "<" not in text:
+        return text
+    return _MENTION_RE.sub(lambda m: "<" + _ZWJ + m.group(0)[1:], text)
+
+
+class RateLimiter:
+    """Per-user sliding-window rate limiter.
+
+    Two independent windows — a short burst limit and a long hourly limit.
+    Defaults (5/60s + 30/3600s) are tuned for a single-user advisor bot:
+    high enough not to trip normal use, low enough to slow a compromised
+    Slack account that tries to burn API budget.
+
+    In-memory only — restarts reset the windows. Acceptable for an abuse
+    prevention layer (not a quota / audit mechanism).
+    """
+
+    def __init__(
+        self,
+        burst_limit: int = 5,
+        burst_window_seconds: float = 60.0,
+        hourly_limit: int = 30,
+        hourly_window_seconds: float = 3600.0,
+    ) -> None:
+        self.burst_limit = burst_limit
+        self.burst_window_seconds = burst_window_seconds
+        self.hourly_limit = hourly_limit
+        self.hourly_window_seconds = hourly_window_seconds
+        self._events: dict[str, deque[float]] = defaultdict(deque)
+
+    def _now(self) -> float:  # indirection so tests can monkeypatch time
+        return time.monotonic()
+
+    def check(self, user_id: str) -> tuple[bool, str]:
+        """Return ``(ok, reason)``. ``ok=True`` means the caller may proceed.
+
+        Records the event in the user's window; on limit trip, the event
+        is NOT recorded (so the user isn't perpetually stuck — the limit
+        auto-heals as old events age out).
+        """
+        now = self._now()
+        history = self._events[user_id]
+
+        # Prune anything outside the hourly window; that covers burst too.
+        cutoff_hourly = now - self.hourly_window_seconds
+        while history and history[0] < cutoff_hourly:
+            history.popleft()
+
+        burst_count = sum(1 for ts in history if ts >= now - self.burst_window_seconds)
+        hourly_count = len(history)
+
+        if burst_count >= self.burst_limit:
+            return False, (
+                f"burst: {burst_count} messages in last "
+                f"{int(self.burst_window_seconds)}s — "
+                f"limit {self.burst_limit}"
+            )
+        if hourly_count >= self.hourly_limit:
+            return False, (
+                f"hourly: {hourly_count} messages in last "
+                f"{int(self.hourly_window_seconds)}s — "
+                f"limit {self.hourly_limit}"
+            )
+
+        history.append(now)
+        return True, ""
 
 
 class SlackAdapter:
@@ -28,6 +115,7 @@ class SlackAdapter:
         app_token: str,
         allowed_users: list[str],
         session_store: Any | None = None,
+        rate_limiter: RateLimiter | None = None,
     ) -> None:
         from slack_bolt.async_app import AsyncApp
 
@@ -35,6 +123,7 @@ class SlackAdapter:
         self.app_token = app_token
         self.allowed_users = [u.strip() for u in allowed_users if u.strip()]
         self.session_store = session_store  # For heartbeat thread lookups
+        self.rate_limiter = rate_limiter or RateLimiter()
         self._queue: asyncio.Queue[IncomingMessage] = asyncio.Queue()
         self._bot_user_id: str | None = None
 
@@ -82,7 +171,10 @@ class SlackAdapter:
 
     async def send(self, message: OutgoingMessage) -> str | None:
         """Send or update a message in Slack. Returns the message ts for updates."""
-        text = self._markdown_to_mrkdwn(message.text)
+        # Neutralise mention-trigger patterns BEFORE markdown conversion so a
+        # `<!channel>` embedded in Claude's response never fires the parser.
+        text = _neutralise_mentions(message.text)
+        text = self._markdown_to_mrkdwn(text)
         channel_id = message.channel.platform_id
         thread_ts = message.thread.thread_id if message.thread else None
 
@@ -155,6 +247,16 @@ class SlackAdapter:
         if not self._is_allowed(user_id):
             return
 
+        # Rate-limit check: bypassed for heartbeat-context threads since
+        # those are Linards following up on our own notifications.
+        channel_id = event.get("channel", "")
+        thread_ts = event.get("thread_ts") or event.get("ts", "")
+        if not self._is_heartbeat_thread(channel_id, thread_ts):
+            ok, reason = self.rate_limiter.check(user_id)
+            if not ok:
+                await self._reply_rate_limited(event, reason)
+                return
+
         incoming = await self._normalize_event(event, is_dm=False)
         await self._queue.put(incoming)
 
@@ -173,18 +275,42 @@ class SlackAdapter:
             return
 
         is_dm = event.get("channel_type") == "im"
+        channel_id = event.get("channel", "")
+        thread_ts_raw = event.get("thread_ts")
 
         if not is_dm:
             # Channel message — only process if it's a thread reply to a heartbeat notification
-            thread_ts = event.get("thread_ts")
-            if not thread_ts:
+            if not thread_ts_raw:
                 return  # Not a thread reply, ignore
-            channel_id = event.get("channel", "")
-            if not self._is_heartbeat_thread(channel_id, thread_ts):
+            if not self._is_heartbeat_thread(channel_id, thread_ts_raw):
                 return  # Not a heartbeat thread, ignore
+
+        # Rate-limit check: bypass heartbeat-context threads (Linards
+        # following up on our own notifications may legitimately spike).
+        thread_for_check = thread_ts_raw or event.get("ts", "")
+        if not self._is_heartbeat_thread(channel_id, thread_for_check):
+            ok, reason = self.rate_limiter.check(user_id)
+            if not ok:
+                await self._reply_rate_limited(event, reason)
+                return
 
         incoming = await self._normalize_event(event, is_dm=is_dm)
         await self._queue.put(incoming)
+
+    async def _reply_rate_limited(self, event: dict[str, Any], reason: str) -> None:
+        """Post a short rate-limit reply in the same thread."""
+        channel_id = event.get("channel", "")
+        thread_ts = event.get("thread_ts") or event.get("ts")
+        try:
+            kwargs: dict[str, Any] = {
+                "channel": channel_id,
+                "text": f":hourglass: rate limit — wait a bit ({reason})",
+            }
+            if thread_ts:
+                kwargs["thread_ts"] = thread_ts
+            await self.app.client.chat_postMessage(**kwargs)
+        except Exception as e:
+            print(f"[{datetime.now()}] Error posting rate-limit reply: {e}")
 
     # ── Private Helpers ─────────────────────────────────────────────
 

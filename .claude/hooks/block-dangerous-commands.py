@@ -183,6 +183,31 @@ def check_write_target(file_path: str) -> str | None:
     return f"Blocked (write outside repo/Fredis): {file_path}"
 
 
+def _extract_target_path(tool_name: str, tool_input: dict) -> str:
+    """Edit/Write/MultiEdit use ``file_path``; NotebookEdit uses ``notebook_path``."""
+    if tool_name == "NotebookEdit":
+        return tool_input.get("notebook_path", "") or ""
+    return tool_input.get("file_path", "") or ""
+
+
+def _collect_write_content(tool_name: str, tool_input: dict) -> list[str]:
+    """Return every string written by the tool that warrants scanning.
+
+    Edit/Write: single ``new_string``/``content`` field.
+    MultiEdit: iterate ``edits[*].new_string``.
+    NotebookEdit: ``new_source`` — absent when ``edit_mode == "delete"``.
+    """
+    if tool_name == "MultiEdit":
+        edits = tool_input.get("edits", []) or []
+        return [e.get("new_string", "") or "" for e in edits if isinstance(e, dict)]
+    if tool_name == "NotebookEdit":
+        if tool_input.get("edit_mode") == "delete":
+            return []
+        return [tool_input.get("new_source", "") or ""]
+    # Edit / Write
+    return [tool_input.get("new_string", "") or tool_input.get("content", "") or ""]
+
+
 def main() -> None:
     try:
         hook_input = json.load(sys.stdin)
@@ -198,20 +223,34 @@ def main() -> None:
     if tool_name == "Bash":
         reason = check_bash_command(tool_input.get("command", ""))
 
-    elif tool_name in ("Write", "Edit"):
-        file_path = tool_input.get("file_path", "")
+    elif tool_name in ("Write", "Edit", "MultiEdit", "NotebookEdit"):
+        file_path = _extract_target_path(tool_name, tool_input)
         reason = check_write_target(file_path)
         # Also scan the written content for outbound/destructive patterns —
         # stops scripts being created that would later ship off the agent loop.
         if not reason:
-            content = tool_input.get("content", "") or tool_input.get("new_string", "")
-            if content:
-                # Exempt paths where deny-pattern strings appear legitimately:
-                #   * tests/ — fixtures enumerate attack strings as parametrised inputs
-                #   * .claude/hooks/ — hook source files ARE the pattern catalog
-                exempt = re.search(r"(?:^|/)(tests?|\.claude/hooks)/", file_path)
-                if not exempt:
-                    reason = check_bash_command(content)
+            # Exempt paths where deny-pattern strings appear legitimately:
+            #   * tests/ — fixtures enumerate attack strings as parametrised inputs
+            #   * .claude/hooks/ — hook source files ARE the pattern catalog
+            #   * .claude/chat/ — legitimate Slack adapter; chat_postMessage
+            #     is the authorised reply channel to a single authorised user
+            #   * threat-models/ — docs describe what each agent is gated
+            #     against; listing the patterns is the point
+            #   * .agent/plans/ + .agent/audits/ — planning/audit docs
+            exempt = bool(
+                re.search(
+                    r"(?:^|/)(tests?|\.claude/hooks|\.claude/chat|threat-models)/"
+                    r"|(?:^|/)\.agent/(plans|audits)/",
+                    file_path,
+                )
+            )
+            if not exempt:
+                for piece in _collect_write_content(tool_name, tool_input):
+                    if not piece:
+                        continue
+                    reason = check_bash_command(piece)
+                    if reason:
+                        break
 
     if reason:
         print(

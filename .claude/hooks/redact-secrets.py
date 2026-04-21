@@ -23,6 +23,13 @@ from typing import Any
 SCRIPTS_DIR = Path(__file__).resolve().parent.parent / "scripts"
 ENV_FILE = SCRIPTS_DIR / ".env"
 
+# Layered shape-pattern scrubber. Complements the .env-loaded value path:
+# catches tokens that aren't in .env (forwarded PATs in emails, GitHub
+# tokens pasted in Slack, etc.). Lazily imported because the hook runs on
+# the PostToolUse hot path and we don't want its startup cost unless we
+# actually have a tool response to scan.
+sys.path.insert(0, str(SCRIPTS_DIR))
+
 # Values shorter than this are too likely to collide with normal text.
 MIN_VALUE_LEN = 8
 
@@ -105,6 +112,37 @@ def _redact(payload: Any, redactor: re.Pattern[str]) -> tuple[Any, int]:
     return payload, 0
 
 
+def _redact_shape_patterns(payload: Any) -> tuple[Any, int]:
+    """Apply shape-based patterns (SECRET_PATTERNS) to every string in payload.
+
+    Second layer: catches token-shaped substrings that don't appear in .env
+    (forwarded PATs in emails, tokens pasted in Slack messages, etc.).
+    """
+    try:
+        from secret_patterns import scrub_secrets
+    except ImportError:
+        return payload, 0
+    if isinstance(payload, str):
+        return scrub_secrets(payload)
+    if isinstance(payload, list):
+        out_list: list[Any] = []
+        total = 0
+        for item in payload:
+            new_item, n = _redact_shape_patterns(item)
+            out_list.append(new_item)
+            total += n
+        return out_list, total
+    if isinstance(payload, dict):
+        out_dict: dict[Any, Any] = {}
+        total = 0
+        for k, v in payload.items():
+            new_v, n = _redact_shape_patterns(v)
+            out_dict[k] = new_v
+            total += n
+        return out_dict, total
+    return payload, 0
+
+
 def _emit_block(redacted: Any, count: int) -> None:
     """Tell Claude Code to suppress the original tool result and inject the
     redacted version as additional context.
@@ -133,17 +171,25 @@ def main() -> None:
     except json.JSONDecodeError:
         sys.exit(0)  # Never break a tool call because of a parse error
 
+    tool_response = hook_input.get("tool_response", {})
+
+    # Layer 1: .env-loaded values (Linards's actual live secrets).
     values = _load_secret_values()
     redactor = _build_redactor(values)
-    if redactor is None:
+    total_count = 0
+    if redactor is not None:
+        tool_response, layer1_count = _redact(tool_response, redactor)
+        total_count += layer1_count
+
+    # Layer 2: shape patterns (secret-looking tokens not in .env — forwarded
+    # PATs, pasted tokens in Slack, etc.).
+    tool_response, layer2_count = _redact_shape_patterns(tool_response)
+    total_count += layer2_count
+
+    if total_count == 0:
         sys.exit(0)
 
-    tool_response = hook_input.get("tool_response", {})
-    new_response, count = _redact(tool_response, redactor)
-    if count == 0:
-        sys.exit(0)
-
-    _emit_block(new_response, count)
+    _emit_block(tool_response, total_count)
     sys.exit(0)
 
 

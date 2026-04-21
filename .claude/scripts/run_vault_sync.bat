@@ -8,6 +8,19 @@ REM Resolve vault path (two levels up from .claude/scripts/, then into the vault
 REM Change "Vault" below to match your actual vault folder name
 set "VAULT_DIR=%~dp0..\..\Vault"
 
+REM Idempotent install of the vault pre-push hook (Phase 9.4).
+REM Copies vault-pre-push.sh into <vault>/.git/hooks/pre-push when missing
+REM or different. Git rejects symlinked hooks, so we copy.
+if exist "%~dp0vault-pre-push.sh" (
+    if exist "%VAULT_DIR%\.git\hooks" (
+        fc /b "%~dp0vault-pre-push.sh" "%VAULT_DIR%\.git\hooks\pre-push" >nul 2>&1
+        if errorlevel 1 (
+            copy /y "%~dp0vault-pre-push.sh" "%VAULT_DIR%\.git\hooks\pre-push" >nul
+            echo %date% %time% - Installed/refreshed vault pre-push hook >> vault_sync_runs.log
+        )
+    )
+)
+
 REM Run git-sync via Git Bash
 "C:\Program Files\Git\bin\bash.exe" -c "cd \"$(cygpath '%VAULT_DIR%')\" && bash \"$(cygpath '%~dp0git-sync')\""
 

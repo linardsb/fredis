@@ -51,6 +51,13 @@ def _is_soul_file(file_path: str) -> bool:
     return rel == SOUL_PATH_SUFFIX or rel.endswith("/" + SOUL_PATH_SUFFIX)
 
 
+def _extract_target_path(tool_name: str, tool_input: dict) -> str:
+    """Edit/Write/MultiEdit use ``file_path``; NotebookEdit uses ``notebook_path``."""
+    if tool_name == "NotebookEdit":
+        return tool_input.get("notebook_path", "") or ""
+    return tool_input.get("file_path", "") or ""
+
+
 def main() -> None:
     try:
         hook_input = json.load(sys.stdin)
@@ -59,11 +66,11 @@ def main() -> None:
         sys.exit(1)
 
     tool_name = hook_input.get("tool_name", "")
-    if tool_name not in ("Edit", "Write"):
+    if tool_name not in ("Edit", "Write", "MultiEdit", "NotebookEdit"):
         sys.exit(0)
 
     tool_input = hook_input.get("tool_input", {}) or {}
-    file_path = tool_input.get("file_path", "")
+    file_path = _extract_target_path(tool_name, tool_input)
 
     if _is_soul_file(file_path):
         print(

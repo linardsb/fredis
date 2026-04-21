@@ -1,0 +1,11 @@
+[Unit]
+Description=Weekly trigger for Fredis dependency audit
+
+[Timer]
+# Every Monday at 09:00 local time.
+OnCalendar=Mon *-*-* 09:00:00
+Persistent=true
+Unit=deps-audit.service
+
+[Install]
+WantedBy=timers.target

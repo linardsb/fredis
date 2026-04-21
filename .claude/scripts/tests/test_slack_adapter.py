@@ -148,3 +148,144 @@ def test_is_heartbeat_thread_delegates_to_store() -> None:
 def test_is_heartbeat_thread_without_store_returns_false(adapter: Any) -> None:
     # adapter fixture has session_store=None
     assert adapter._is_heartbeat_thread("C1", "100.001") is False
+
+
+# ---------------------------------------------------------------------------
+# _neutralise_mentions (Phase 4) — @channel / @here / @everyone / <@USER> /
+# <!subteam> triggers are defanged; URL links pass through untouched.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "raw,trigger",
+    [
+        ("<!channel> hey team", "<!channel>"),
+        ("<!here> quick question", "<!here>"),
+        ("<!everyone> announcement", "<!everyone>"),
+        ("attn <@U123456> please review", "<@U123456>"),
+        ("<!subteam^S12345|devs> sanity check", "<!subteam^S12345|devs>"),
+    ],
+)
+def test_neutralise_mentions_defangs_all_broadcast_shapes(raw: str, trigger: str) -> None:
+    from adapters.slack import _neutralise_mentions
+
+    out = _neutralise_mentions(raw)
+    # The raw trigger (exact match) no longer appears
+    assert trigger not in out
+    # Human-readable text is preserved after the zero-width joiner
+    label = trigger[1:]  # drop leading "<"
+    assert label in out  # "!channel>" still reads fine
+    # Output still contains a "<" (just with ZWJ inside now)
+    assert "<" in out
+
+
+def test_neutralise_mentions_preserves_url_links() -> None:
+    from adapters.slack import _neutralise_mentions
+
+    url_form = "see <https://example.com|the docs> for details"
+    out = _neutralise_mentions(url_form)
+    assert out == url_form
+
+
+def test_neutralise_mentions_preserves_plain_text() -> None:
+    from adapters.slack import _neutralise_mentions
+
+    plain = "no mentions here, just text"
+    assert _neutralise_mentions(plain) == plain
+
+
+def test_neutralise_mentions_handles_multiple_triggers() -> None:
+    from adapters.slack import _neutralise_mentions
+
+    raw = "<!channel> and <@UABCDEF> and <!subteam^SABCDEF|team>"
+    out = _neutralise_mentions(raw)
+    assert "<!channel>" not in out
+    assert "<@UABCDEF>" not in out
+    assert "<!subteam^SABCDEF|team>" not in out
+
+
+# ---------------------------------------------------------------------------
+# RateLimiter (Phase 9.2) — sliding-window burst + hourly limits
+# ---------------------------------------------------------------------------
+
+
+def test_rate_limiter_allows_under_burst_limit() -> None:
+    from adapters.slack import RateLimiter
+
+    rl = RateLimiter(burst_limit=5, burst_window_seconds=60)
+    for _ in range(5):
+        ok, _ = rl.check("U1")
+        assert ok is True
+
+
+def test_rate_limiter_blocks_burst_over_limit() -> None:
+    from adapters.slack import RateLimiter
+
+    rl = RateLimiter(burst_limit=5, burst_window_seconds=60)
+    for _ in range(5):
+        rl.check("U1")
+    ok, reason = rl.check("U1")
+    assert ok is False
+    assert "burst" in reason
+
+
+def test_rate_limiter_blocks_hourly_over_limit() -> None:
+    from adapters.slack import RateLimiter
+
+    # Large burst window so only the hourly cap trips. Note: the limiter
+    # stamps time via `_now()` so monkeypatching it lets us advance freely.
+    rl = RateLimiter(
+        burst_limit=100,
+        burst_window_seconds=60.0,
+        hourly_limit=30,
+        hourly_window_seconds=3600.0,
+    )
+    fake_time = [0.0]
+
+    def _tick() -> float:
+        return fake_time[0]
+
+    rl._now = _tick
+
+    # Feed 30 events spaced 90s apart — well under 3600s but exceeds burst
+    # window so each event sits alone in its burst slot, tripping only the
+    # hourly counter on #31.
+    for i in range(30):
+        fake_time[0] = i * 90.0
+        ok, _ = rl.check("U1")
+        assert ok is True, f"event {i} unexpectedly blocked"
+
+    fake_time[0] = 30 * 90.0
+    ok, reason = rl.check("U1")
+    assert ok is False
+    assert "hourly" in reason
+
+
+def test_rate_limiter_per_user_isolation() -> None:
+    from adapters.slack import RateLimiter
+
+    rl = RateLimiter(burst_limit=2, burst_window_seconds=60)
+    for _ in range(2):
+        assert rl.check("U1") == (True, "")
+    assert rl.check("U1")[0] is False
+    # Different user still allowed.
+    assert rl.check("U2") == (True, "")
+
+
+def test_rate_limiter_window_ages_out() -> None:
+    from adapters.slack import RateLimiter
+
+    rl = RateLimiter(burst_limit=2, burst_window_seconds=60)
+    fake_time = [0.0]
+    rl._now = lambda: fake_time[0]
+
+    fake_time[0] = 0.0
+    rl.check("U1")
+    fake_time[0] = 30.0
+    rl.check("U1")
+    fake_time[0] = 45.0
+    assert rl.check("U1")[0] is False  # burst exceeded
+
+    # Advance past the burst window — first two events age out.
+    fake_time[0] = 100.0
+    assert rl.check("U1") == (True, "")

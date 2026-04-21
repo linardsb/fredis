@@ -43,6 +43,13 @@ HEARTBEAT_STATE_FILE = STATE_DIR / "heartbeat-state.json"
 REFLECTION_STATE_FILE = STATE_DIR / "reflection-state.json"
 REFLECTION_HOUR = int(os.getenv("REFLECTION_HOUR", "8"))
 
+# MEMORY.md size cap — when reflection promotes entries and the file grows
+# past this, the oldest entries are archived wholesale to MEMORY_ARCHIVE_DIR
+# so the in-context file stays compact. Archived files remain searchable via
+# the hybrid memory index.
+MEMORY_LINE_LIMIT = int(os.getenv("MEMORY_LINE_LIMIT", "200"))
+MEMORY_ARCHIVE_DIR = MEMORY_DIR / "archive"
+
 # === Embedding Configuration ===
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 EMBEDDING_DIMENSIONS = 384
@@ -200,6 +207,7 @@ def ensure_directories() -> None:
     for directory in [
         MEMORY_DIR,
         DAILY_DIR,
+        MEMORY_ARCHIVE_DIR,
         STATE_DIR,
         DATA_DIR,
         INTEGRATIONS_DIR,

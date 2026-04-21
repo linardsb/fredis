@@ -18,7 +18,6 @@ from __future__ import annotations
 import argparse
 import asyncio
 import os
-import re
 from datetime import datetime
 from pathlib import Path
 
@@ -36,6 +35,8 @@ from config import (
     ensure_directories,
     now_local,
 )
+from sanitize import TRUST_BOUNDARY_INSTRUCTION, check_injection_patterns, wrap_external_data
+from secret_patterns import scrub_secrets
 from shared import append_to_daily_log, file_lock, load_state, save_state
 
 FLUSH_STATE_FILE = STATE_DIR / "flush-state.json"
@@ -48,30 +49,12 @@ SOURCE_ROUTING: dict[str, tuple[str, str]] = {
 }
 
 
-# Secret-shape patterns. The transcript excerpt is captured by Claude Code during
-# compaction/session-end and may legitimately contain tool_result blocks that echo
-# .env values. Scrub before handing to the flush reasoner so token-shaped strings
-# never reach the SDK call (defense-in-depth layered on redact-secrets hook).
-_SECRET_PATTERNS: tuple[re.Pattern[str], ...] = (
-    re.compile(r"xoxb-[0-9A-Za-z-]{10,}"),                # Slack bot token
-    re.compile(r"xapp-[0-9A-Za-z-]{10,}"),                # Slack app-level token
-    re.compile(r"xoxp-[0-9A-Za-z-]{10,}"),                # Slack user token
-    re.compile(r"ghp_[0-9A-Za-z]{20,}"),                  # GitHub classic PAT
-    re.compile(r"gho_[0-9A-Za-z]{20,}"),                  # GitHub OAuth token
-    re.compile(r"ghs_[0-9A-Za-z]{20,}"),                  # GitHub server-to-server
-    re.compile(r"github_pat_[0-9A-Za-z_]{20,}"),          # GitHub fine-grained PAT
-    re.compile(r"sk-ant-[0-9A-Za-z_-]{20,}"),             # Anthropic API key
-    re.compile(r"\b2/\d+/\d+:[0-9a-f]{20,}"),             # Asana PAT
-    # JWT shape (covers Monday.com tokens as well).
-    re.compile(r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}"),
-)
-
-
 def _scrub_secrets(text: str) -> str:
-    """Replace token-shaped substrings with <REDACTED_SECRET> before LLM exposure."""
-    for pattern in _SECRET_PATTERNS:
-        text = pattern.sub("<REDACTED_SECRET>", text)
-    return text
+    """Thin wrapper for backwards-compatible test imports; delegates to
+    :func:`secret_patterns.scrub_secrets`.
+    """
+    scrubbed, _count = scrub_secrets(text)
+    return scrubbed
 
 
 def _safe_unlink(path: Path) -> None:
@@ -176,9 +159,33 @@ async def _run_flush_inner(
     # Scrub token-shaped strings before they cross the SDK boundary.
     context_content = _scrub_secrets(context_content)
 
+    # Memory-read defense: transcript excerpts can contain tool_result payloads
+    # that echo external data (email bodies, Slack messages, task descriptions).
+    # Route through the injection pipeline AFTER secret-scrub so pattern matches
+    # are seen on the sanitized-but-still-textual content. Abort the flush on
+    # clear pattern matches; wrap otherwise.
+    injection_flags = check_injection_patterns(context_content)
+    if injection_flags:
+        flag_summary = ", ".join(f"{name}" for name, _ in injection_flags)
+        print(
+            f"[{now_local()}] Flush aborted: injection patterns in transcript ({flag_summary})"
+        )
+        append_to_daily_log(
+            f"**ABORTED**: Memory flush skipped — injection pattern detected in transcript "
+            f"({flag_summary}). Raw context preserved in {context_file}.",
+            section_name,
+            parent_section,
+            source="flush-aborted",
+        )
+        # Keep the context file so Linards can review — don't unlink on abort.
+        return None
+
     # Truncate if needed
     if len(context_content) > 15_000:
         context_content = context_content[-15_000:]
+
+    # Wrap sanitized transcript in the trust boundary before it reaches the SDK.
+    wrapped_context = wrap_external_data(context_content, "transcript")
 
     dry_run_note = (
         "\n\nDRY RUN: Do NOT edit any files. Just describe what you would save.\n"
@@ -216,7 +223,9 @@ If nothing is worth saving, respond with exactly: FLUSH_OK
 
 ## Conversation Context
 
-{context_content}
+{wrapped_context}
+
+{TRUST_BOUNDARY_INSTRUCTION}
 """
 
     print(f"[{now_local()}] Running memory flush (test={test_mode})...")

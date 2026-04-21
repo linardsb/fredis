@@ -27,7 +27,9 @@ os.environ.setdefault("CLAUDE_INVOKED_BY", "memory_reflect")
 
 from config import (
     DAILY_DIR,
+    MEMORY_ARCHIVE_DIR,
     MEMORY_FILE,
+    MEMORY_LINE_LIMIT,
     OWNER_NAME,
     PROJECT_ROOT,
     REFLECTION_STATE_FILE,
@@ -37,7 +39,7 @@ from config import (
     get_today_log_path,
     now_local,
 )
-from sanitize import TRUST_BOUNDARY_INSTRUCTION, wrap_external_data
+from sanitize import TRUST_BOUNDARY_INSTRUCTION, check_injection_patterns, wrap_external_data
 from shared import append_to_daily_log, file_lock, load_state, save_state, validate_bash_command
 
 # SOUL.md write-protection is enforced by the standalone PreToolUse hook
@@ -95,6 +97,168 @@ def load_soul_file() -> str:
     return ""
 
 
+def count_file_lines(path) -> int:  # type: ignore[no-untyped-def]
+    """Return the line count of a file, or 0 if it does not exist."""
+    if not path.exists():
+        return 0
+    return len(path.read_text(encoding="utf-8").splitlines())
+
+
+# =============================================================================
+# ARCHIVE OVERFLOW
+# =============================================================================
+
+
+async def _archive_memory_overflow(test_mode: bool = False) -> str | None:
+    """Archive oldest MEMORY.md entries when the file exceeds MEMORY_LINE_LIMIT.
+
+    Runs as a focused second SDK pass after the promotion pass. Wholesale
+    cut/paste from MEMORY.md into ``Fredis/Memory/archive/YYYY-MM.md``.
+    A single footer line in MEMORY.md enumerates the archive files so the
+    main session still sees that older context exists.
+
+    Returns the response summary, or None if no archive action was needed
+    or the pass was skipped (test_mode / under limit).
+    """
+    from claude_agent_sdk import (
+        AssistantMessage,
+        ClaudeAgentOptions,
+        HookMatcher,
+        ResultMessage,
+        TextBlock,
+        query,
+    )
+
+    current_lines = count_file_lines(MEMORY_FILE)
+    if current_lines <= MEMORY_LINE_LIMIT:
+        return None
+
+    if test_mode:
+        print(
+            f"[{now_local()}] DRY RUN - MEMORY.md at {current_lines} lines "
+            f"(limit {MEMORY_LINE_LIMIT}), would archive oldest entries"
+        )
+        return None
+
+    MEMORY_ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
+    archive_filename = f"{now_local().strftime('%Y-%m')}.md"
+    archive_file = MEMORY_ARCHIVE_DIR / archive_filename
+
+    archive_prompt = f"""MEMORY.md archive pass. The file is currently \
+{current_lines} lines; the limit is {MEMORY_LINE_LIMIT} lines.
+
+Move the **oldest** entries from `{MEMORY_FILE}` to `{archive_file}`.
+
+## Rules
+
+- **Wholesale move only.** Cut entries from MEMORY.md, paste into the archive. \
+Do NOT rewrite, compress, summarise, or replace them with pointer lines.
+- Pick "oldest" by the date-stamp in each entry (e.g. `(2026-04-18)`). If an \
+entry has no date, treat entries at the TOP of these sections as oldest, in \
+this order: *Key Decisions*, *Lessons Learned*, *Important Facts*.
+- Stop when MEMORY.md is between {MEMORY_LINE_LIMIT - 50} and {MEMORY_LINE_LIMIT} lines. \
+Do not over-archive.
+- **Do NOT touch** the following sections: *Active Projects*, *Upcoming Events*, \
+*Preferences Confirmed*, *Research Lanes*, *Open Watch Items*, or the top \
+header / intro blurb.
+- Preserve any existing content in the archive file: append new entries under \
+a dated header `## Archived from MEMORY.md ({now_local().strftime('%Y-%m-%d')})`.
+- If the archive file does not yet exist, create it with a top-level header \
+`# MEMORY Archive — {now_local().strftime('%Y-%m')}` followed by the dated \
+archived section.
+
+## Footer
+
+After the move, ensure MEMORY.md ends with exactly one footer line naming \
+every archive file present in `{MEMORY_ARCHIVE_DIR}`, in ascending order. \
+Format:
+
+    _Older entries archived: [YYYY-MM](archive/YYYY-MM.md), ... — searchable via memory_search._
+
+Replace the line whenever you add a new archive file. Leave one blank line \
+above the footer. The original closing blurb \
+(`_This file is curated from daily logs..._`) should stay above the footer.
+
+## Tools
+
+Use `Read`, `Edit`, `Write`, and `Glob`. Do not use `Bash` for file edits.
+
+If MEMORY.md is already at or below {MEMORY_LINE_LIMIT} lines when you start, \
+respond with exactly: `ARCHIVE_SKIP`.
+
+When you complete the archive, respond with one line: `Archived N entries \
+({current_lines} → M lines) to archive/{archive_filename}`.
+"""
+
+    print(
+        f"[{now_local()}] Running MEMORY.md archive pass "
+        f"({current_lines} lines > {MEMORY_LINE_LIMIT} limit)..."
+    )
+
+    response_text = ""
+
+    try:
+        async for message in query(
+            prompt=archive_prompt,
+            options=ClaudeAgentOptions(
+                cwd=str(PROJECT_ROOT),
+                setting_sources=["user", "project"],
+                system_prompt={"type": "preset", "preset": "claude_code"},
+                allowed_tools=[
+                    "Read",
+                    "Edit",
+                    "Write",
+                    "Glob",
+                ],
+                permission_mode="acceptEdits",
+                max_turns=15,
+                hooks={
+                    "PreToolUse": [
+                        HookMatcher(
+                            matcher="Bash",
+                            hooks=[validate_bash_command],
+                        ),
+                    ]
+                },
+            ),
+        ):
+            if isinstance(message, AssistantMessage):
+                for block in message.content:
+                    if isinstance(block, TextBlock):
+                        response_text += block.text
+            elif isinstance(message, ResultMessage):
+                print(f"[{now_local()}] Archive pass completed: {message.subtype}")
+                if message.total_cost_usd:
+                    print(f"[{now_local()}] Cost: ${message.total_cost_usd:.4f}")
+
+    except Exception as e:
+        print(f"[{now_local()}] Archive pass error: {e}")
+        append_to_daily_log(
+            f"**ERROR**: MEMORY.md archive pass failed - {e}",
+            "Reflection",
+            "Memory Maintenance",
+        )
+        return None
+
+    final_lines = count_file_lines(MEMORY_FILE)
+    if final_lines > MEMORY_LINE_LIMIT:
+        append_to_daily_log(
+            f"**WARNING**: MEMORY.md still at {final_lines} lines after archive "
+            f"pass (limit {MEMORY_LINE_LIMIT}). Manual review needed.",
+            "Reflection",
+            "Memory Maintenance",
+        )
+    elif final_lines < current_lines:
+        append_to_daily_log(
+            f"Archived oldest MEMORY.md entries: {current_lines} → {final_lines} "
+            f"lines (archive: `archive/{archive_filename}`)",
+            "Reflection",
+            "Memory Maintenance",
+        )
+
+    return response_text.strip() or None
+
+
 # =============================================================================
 # MAIN REFLECTION FUNCTION
 # =============================================================================
@@ -149,6 +313,34 @@ async def _run_reflection_inner(test_mode: bool = False, days: int = 1) -> str |
     for date_str, content in logs:
         log_sections.append(f"### Daily Log: {date_str}\n\n{content}")
     log_context = "\n\n---\n\n".join(log_sections)
+
+    # Memory-read defense: route daily-log content through the injection
+    # pipeline BEFORE it reaches the reflection prompt. If a known pattern
+    # leaked past the heartbeat guardrail into yesterday's log, we abort
+    # rather than feed it to the SDK. Suspicious-only (partial flags) still
+    # proceeds via the trust-boundary wrap below — the abort is reserved
+    # for confirmed pattern matches.
+    injection_flags = check_injection_patterns(log_context)
+    if injection_flags:
+        flag_summary = ", ".join(f"{name}={matched[:30]}" for name, matched in injection_flags)
+        print(
+            f"[{now_local()}] Reflection aborted: "
+            f"injection patterns in daily log ({flag_summary})"
+        )
+        state = load_state(REFLECTION_STATE_FILE)
+        state["last_run"] = now_local().isoformat()
+        state["days_reviewed"] = days
+        state["logs_found"] = len(logs)
+        state["result"] = "aborted_on_memory_injection"
+        save_state(state, REFLECTION_STATE_FILE)
+        append_to_daily_log(
+            f"**ABORTED**: Reflection skipped — injection pattern detected in daily log "
+            f"({flag_summary}). Review yesterday's log before the next reflection pass.",
+            "Reflection",
+            "Memory Maintenance",
+            source="reflection-aborted",
+        )
+        return None
 
     # Load current files
     current_memory = load_current_memory()
@@ -270,6 +462,12 @@ If nothing is worth updating in any file, respond with exactly: REFLECTION_OK
     state["logs_found"] = len(logs)
     state["result"] = "REFLECTION_OK" if "REFLECTION_OK" in response_text else "promoted"
     save_state(state, REFLECTION_STATE_FILE)
+
+    # Second pass: if MEMORY.md has grown past the line limit, archive the
+    # oldest entries so the in-context file stays compact. Runs regardless of
+    # whether this reflection promoted anything — past runs may already have
+    # pushed the file over.
+    await _archive_memory_overflow(test_mode=test_mode)
 
     response_text = response_text.strip()
 

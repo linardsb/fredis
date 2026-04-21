@@ -48,6 +48,12 @@ SECRET_FALSE_POSITIVES: list[re.Pattern[str]] = [
 
 def is_sensitive_file(path: str) -> str | None:
     """Check if a file path matches a sensitive pattern. Returns the reason or None."""
+    # Eval-harness fixture files (tests/evals/**) contain attack/token-shape
+    # fixtures by design. Reading them must not block — the test runner
+    # parses them via Python I/O, and individual reads during debugging are
+    # legitimate.
+    if re.search(r"(?:^|/)tests?/evals/", path):
+        return None
     for pattern in SENSITIVE_FILE_PATTERNS:
         if pattern.search(path):
             # Special handling for "secret" - allow code/docs that discuss secrets
@@ -286,16 +292,23 @@ EXFILTRATION_CONTENT_PATTERNS: list[tuple[re.Pattern[str], str]] = [
 ]
 
 
-_TEST_FILE_PATH = re.compile(r"(?:^|/)tests?/test_[^/]+\.py$|/tests?/[^/]+_test\.py$")
+_TEST_FILE_PATH = re.compile(
+    r"(?:^|/)tests?/test_[^/]+\.py$"
+    r"|/tests?/[^/]+_test\.py$"
+    # Eval fixtures: JSONL/JSON/MD under tests/evals/ legitimately carry
+    # attack payloads and token-shape examples. Example payloads are
+    # fixture data, not executable strings.
+    r"|/tests?/evals/"
+)
 
 
 def check_written_content(content: str, file_path: str = "") -> str | None:
     """Check if file content being written would exfiltrate secrets.
 
-    Test files (``tests/test_*.py``, ``tests/*_test.py``) are exempt: they
-    legitimately contain attack strings as parametrised inputs. The Bash hook
-    still gates actual execution of those strings, and the output redactor
-    scrubs anything that does leak.
+    Test files (``tests/test_*.py``, ``tests/*_test.py``, ``tests/evals/**``)
+    are exempt: they legitimately contain attack strings as parametrised
+    inputs. The Bash hook still gates actual execution of those strings, and
+    the output redactor scrubs anything that does leak.
     """
     if not content:
         return None
@@ -344,6 +357,25 @@ def main() -> None:
         if not reason:
             content = tool_input.get("content", "") or tool_input.get("new_string", "")
             reason = check_written_content(content, file_path)
+
+    elif tool_name == "MultiEdit":
+        file_path = tool_input.get("file_path", "")
+        reason = is_sensitive_file(file_path)
+        if not reason:
+            for edit in tool_input.get("edits", []) or []:
+                if not isinstance(edit, dict):
+                    continue
+                new_string = edit.get("new_string", "") or ""
+                reason = check_written_content(new_string, file_path)
+                if reason:
+                    break
+
+    elif tool_name == "NotebookEdit":
+        file_path = tool_input.get("notebook_path", "")
+        reason = is_sensitive_file(file_path)
+        if not reason and tool_input.get("edit_mode") != "delete":
+            new_source = tool_input.get("new_source", "") or ""
+            reason = check_written_content(new_source, file_path)
 
     elif tool_name == "Glob":
         pattern_str = tool_input.get("pattern", "")

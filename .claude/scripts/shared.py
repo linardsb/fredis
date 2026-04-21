@@ -199,12 +199,20 @@ def append_to_daily_log(
     content: str,
     section_name: str = "Entry",
     parent_section: str | None = None,
+    source: str | None = None,
 ) -> None:
     """Append content to today's daily log under a named section.
 
     If ``parent_section`` is given (e.g. ``"Sessions"``), the new ``### {section_name}``
     block is inserted at the end of that ``## {parent_section}`` block instead of
     appended to the file. Falls back to plain append if the parent is missing.
+
+    ``source`` (Phase 5 provenance) — when set, a markdown blockquote line is
+    emitted above the content identifying where the entry originated. Use
+    ``"gmail" | "slack" | "asana" | "monday" | "calendar" | "github" |
+    "guardrail" | "claude-reasoning"`` for machine-readable consumers
+    (``memory_reflect.py``, ``memory_flush.py``) to treat external-data-sourced
+    entries with the injection pipeline.
     """
     log_path = get_today_log_path()
     log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -214,7 +222,12 @@ def append_to_daily_log(
 
     with file_lock(log_path, timeout=5.0):
         timestamp = now_local().strftime("%H:%M")
-        block = f"### {section_name} ({timestamp})\n\n{safe_content}\n\n"
+        provenance = ""
+        if source:
+            provenance = (
+                f"> source: {source}; written_at: {now_local().isoformat(timespec='seconds')}\n\n"
+            )
+        block = f"### {section_name} ({timestamp})\n\n{provenance}{safe_content}\n\n"
 
         if not log_path.exists():
             _create_daily_log(log_path)

@@ -13,6 +13,7 @@ Fredis is an **advisor**, not an agent with send-authority. Heartbeats and sched
 - **Phase 6 Gap 3** — Standalone SOUL.md write-protection hook (`.claude/hooks/block-soul-edit.py`) registered in `.claude/settings.json` PreToolUse; covers every Edit/Write-capable surface (normal Claude Code sessions + the three Agent SDK callers that set `setting_sources=["user","project"]`: heartbeat, reflection, chat). The in-process `protect_soul_file` hook was removed from `memory_reflect.py` — single source of truth. 13 subprocess-driven hook tests in `tests/test_block_soul_edit.py`.
 - **Phase 5.2.5** — Agentic-backend reference additions (`.agent/plans/phase5-2-skill-consolidation.md` §PHASE 5.2.5): authored 4 new references from public canon — `engineering/references/agentic-application-architecture.md` (VSA + typed layers + LLM-adapter + blueprint/node + connector pattern + observability), `engineering/references/agentic-orchestration-patterns.md` (agent harness + Anthropic 4-levels of orchestration + memory patterns + sub-agent spawning + MCP / skill registries), `security-engineering/references/agent-guardrails.md` (3-layer injection defense + destructive-command guard + HITL gates + memory-poisoning defense + per-agent threat-model checklist), `data-and-experimentation/references/llm-evals.md` (judge-based + fixture-driven + regression-guarded + failure-mode taxonomies). Routing tables + frontmatter descriptions extended in the three parent bundles; naming scrub clean on all new content; ruff/mypy/pytest green (292 passing).
 - **Phase 7** — Chat interface hardening + deployment (`.agent/plans/phase7-chat-gaps.md`): session-store race fix (SQLite IntegrityError + Postgres UniqueViolation → fall back to `update()`), Postgres startup timeout + retry (`PG_CONNECT_TIMEOUT`, 2-attempt loop, clean stderr + exit 1 on failure), SessionStart skip for Agent SDK sub-sessions (`CLAUDE_INVOKED_BY` guard in `session-start-context.py`; chat engine injects its own minimal advisor-mode preamble via `system_prompt.append`), tracked systemd unit at `.claude/scripts/schedule/secondbrain-chat.service` (drops phantom `Requires=docker.service`, adds `CLAUDE_PROJECT_DIR` + `PATH` env). 35 new tests across `test_chat_session.py` (11), `test_slack_adapter.py` (15), `test_chat_engine.py` (7), `test_chat_hook_propagation.py` (4) — unit-level proof that `block-dangerous-commands` rejects financial / Slack-send / outside-sandbox-write attempts. Ruff/mypy/pytest green (340 passing). Out-of-scope: WhatsApp, Discord, rate limiting, Docker.
+- **Phase 8** — Security hardening defense-in-depth (`.agent/plans/phase8-security-hardening.md`): **Phase 1** — hook matcher coverage expanded to `MultiEdit` + `NotebookEdit` across all four PreToolUse blockers (`block-secrets`, `block-dangerous-commands`, `block-template-residue`, `block-soul-edit`) + `.claude/settings.json` matchers + 22 subprocess tests. **Phase 2** — heartbeat guardrail fail-closed on Haiku timeout/exception: 15s `asyncio.wait_for` timeout, verdict=`error`, external data stripped from main-agent prompt, Slack alert fired, new parametrized test. **Phase 3** — chat inbound sanitize pipe on every Slack DM: `check_injection_patterns` + `escape_markdown_structure` + `wrap_external_data(source="slack_inbound")` + flagged-notice prepend on pattern match; **no short-circuit** (advisor-mode policy for single-user false-positive shapes); attachment context appended OUTSIDE the trust boundary. **Phase 4** — Slack output mention filter: `_neutralise_mentions()` zero-width-joins `<!channel>`, `<!here>`, `<!everyone>`, `<@USER_ID>`, `<!subteam^…>` before every `send()` / `update()`. **Phase 5** — memory-read defense + provenance: `source:` blockquote header on daily-log entries; `memory_reflect.py` aborts on injection pattern in yesterday's log (`state["result"] = "aborted_on_memory_injection"`); `memory_flush.py` scrubs + wraps transcript excerpts. **Phase 6** — shared `secret_patterns.py` module (12 context-anchored patterns: Slack bot/app/user, GitHub PAT/oauth/server/fine-grained, Anthropic, OpenAI, Google OAuth + client-secret, AWS access/secret-with-anchor, JWT, Asana modern/legacy); `memory_flush.py` + `redact-secrets.py` both import from it (redact-secrets layers shape-patterns on top of the existing `.env`-runtime-loaded values path); benign-lookalikes calibrated (git SHA, MD5, SHA-256, UUID, 40-char base64). **Phase 7** — adversarial eval harness at `tests/evals/` — 22 injection fixtures + 15 benign lookalikes + 15 secret shapes + 2 pytest runners + README. **Phase 8** — per-agent threat-model docs at `.claude/scripts/threat-models/` (heartbeat / chat / reflection / memory_flush + README index). Ruff green, mypy baseline-clean (3 pre-existing integrations errors unchanged), pytest green (471 passing, up from 340).
 
 ## Skill Stack
 
@@ -70,6 +71,23 @@ This file (CLAUDE.md) is **project documentation** — how the system works and 
 - **`PreToolUse → block-soul-edit.py`** — blocks Edit/Write to `Fredis/Memory/SOUL.md` across every surface (normal Claude Code sessions + heartbeat / reflection / chat SDK sessions via `setting_sources=["user","project"]`). SOUL edits go through Linards by hand — append suggestions to today's daily log instead.
 - **`PreToolUse → block-template-residue.py`** — blocks Edit/Write that re-introduce scrubbed template strings outside the allowlisted paths (`.agent/plans/`, `.agent/audits/`, `Fredis/Memory/daily/`, `Fredis/Memory/USER.md`).
 - Agent SDK callers (`heartbeat`, `memory_flush`, `memory_reflect`, `chat`) set `CLAUDE_INVOKED_BY` at module top; `PreCompact`/`SessionEnd` hooks skip when it is set (prevents recursive flushes when SDK sub-sessions exit).
+
+### Threat Models
+
+Per-agent threat models colocated with code at `.claude/scripts/threat-models/` — one page per SDK caller (`heartbeat.md`, `chat.md`, `reflection.md`, `memory_flush.md`) using the §7 checklist from `.claude/skills/security-engineering/references/agent-guardrails.md`. Revisit when `allowed_tools` changes, a new integration is added to the gather path, or a new hook is registered. Start with the README index.
+
+### Secrets Management
+
+Token rotation procedures for every secret in `.env.example` live at `.claude/scripts/schedule/rotation-runbooks.md`. Rotate on a 90-day cadence or immediately on suspected leak. The runbook covers Slack bot / app tokens, Anthropic / GitHub / Asana / Monday PATs, Google OAuth (refresh token + client secret rotation paths), Postgres password, and SSH keys (VPS + vault git remote).
+
+### Dependency Audit (Phase 9.5)
+
+Weekly `pip-audit` + `safety check` run via `.claude/scripts/deps_audit.py` (wrapper: `run_deps_audit.sh` / `.bat`). Results append to today's daily log under `## Memory Maintenance` → `### Dependency Audit`. Scheduler units live under `.claude/scripts/schedule/`:
+
+- **macOS** — `com.linards.fredis-deps-audit.plist` (launchd, every Monday 09:00 local). Install by copying to `~/Library/LaunchAgents/` and `launchctl load`.
+- **Linux VPS** — `deps-audit.service` + `deps-audit.timer` (systemd, `OnCalendar=Mon *-*-* 09:00:00`). Install into `/etc/systemd/system/` and `systemctl enable --now deps-audit.timer`.
+
+Non-zero exit on any HIGH/CRITICAL finding so the scheduler surfaces the alert.
 
 ---
 
@@ -493,7 +511,16 @@ cd .claude/scripts && uv run python ../chat/main.py --test
 
 The process needs to stay running — it connects via Socket Mode (outbound WebSocket, no public URL needed). For local use, run the start command in the background. On the VPS it runs as `secondbrain-chat.service` (systemd, `Restart=always`); unit file tracked at `.claude/scripts/schedule/secondbrain-chat.service`, install instructions in README §10.
 
-**How it works:** Slack event → platform-agnostic message → Agent SDK conversation (with full skills, memory, tools) → response posted back to the thread. Sessions stored in `.claude/data/chat.db`.
+**How it works:**
+
+1. **Socket Mode** — uses `SLACK_BOT_TOKEN` + `SLACK_APP_TOKEN` you already have. No public URL or ngrok needed. The bot connects outbound to Slack via WebSocket.
+2. **Message routing** — listens for DMs and @mentions. Sessions are keyed by `platform:channel_id:thread_ts`, so each Slack thread maps to one Agent SDK conversation. A top-level DM (no thread) uses `channel_id` as the thread id, so the whole DM stays one continuous session; replying inside a thread spawns a separate one.
+3. **Persistent sessions** — `chat.db` stores the mapping of `platform:channel:thread` → Agent SDK `session_id`, so conversations survive bot restarts and long gaps. The engine passes `resume=agent_session_id` into `ClaudeAgentOptions` on the next message and the SDK rehydrates full history.
+4. **Bot capabilities** — anything the second brain can do today:
+   - Memory search ("What did we decide about X?")
+   - Integration queries ("Any overdue Asana tasks?", "Check my email")
+   - Draft review ("Show active drafts", "Approve the draft for John")
+   - Habit check-ins ("Mark God as done", "How are my habits?")
 
 **Config:** `SLACK_BOT_TOKEN` and `SLACK_APP_TOKEN` in `.claude/scripts/.env`. Only the authorized Slack user ID (see `USER.md` → Integrations) can trigger responses.
 

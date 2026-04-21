@@ -78,6 +78,31 @@ def check_content(content: str) -> str | None:
     return None
 
 
+def _extract_target_path(tool_name: str, tool_input: dict) -> str:
+    """Edit/Write/MultiEdit use ``file_path``; NotebookEdit uses ``notebook_path``."""
+    if tool_name == "NotebookEdit":
+        return tool_input.get("notebook_path", "") or ""
+    return tool_input.get("file_path", "") or ""
+
+
+def _collect_content_strings(tool_name: str, tool_input: dict) -> list[str]:
+    """Return every string worth scanning for residue patterns.
+
+    Edit/Write: single ``new_string``/``content`` field.
+    MultiEdit: iterate ``edits[*].new_string``.
+    NotebookEdit: ``new_source`` — absent when ``edit_mode == "delete"``.
+    """
+    if tool_name == "MultiEdit":
+        edits = tool_input.get("edits", []) or []
+        return [e.get("new_string", "") or "" for e in edits if isinstance(e, dict)]
+    if tool_name == "NotebookEdit":
+        if tool_input.get("edit_mode") == "delete":
+            return []
+        return [tool_input.get("new_source", "") or ""]
+    # Edit / Write
+    return [tool_input.get("new_string", "") or tool_input.get("content", "") or ""]
+
+
 def main() -> None:
     try:
         hook_input = json.load(sys.stdin)
@@ -86,17 +111,20 @@ def main() -> None:
         sys.exit(1)
 
     tool_name = hook_input.get("tool_name", "")
-    if tool_name not in ("Edit", "Write"):
+    if tool_name not in ("Edit", "Write", "MultiEdit", "NotebookEdit"):
         sys.exit(0)
 
     tool_input = hook_input.get("tool_input", {}) or {}
-    file_path = tool_input.get("file_path", "")
-    content = tool_input.get("new_string", "") or tool_input.get("content", "")
+    file_path = _extract_target_path(tool_name, tool_input)
 
     if _path_is_allowlisted(file_path):
         sys.exit(0)
 
-    reason = check_content(content)
+    reason: str | None = None
+    for piece in _collect_content_strings(tool_name, tool_input):
+        reason = check_content(piece)
+        if reason:
+            break
     if reason:
         print(
             f"TEMPLATE-RESIDUE: Blocked: content {reason}. "

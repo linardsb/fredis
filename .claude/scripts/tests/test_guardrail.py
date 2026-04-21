@@ -2,7 +2,13 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
+from collections.abc import AsyncGenerator
+from pathlib import Path
+from typing import Any
+
+import pytest
 
 from sanitize import check_injection_patterns
 
@@ -154,3 +160,84 @@ class TestGuardrailResponseParsing:
         if verdict not in ("pass", "suspicious", "fail"):
             verdict = "suspicious"
         assert verdict == "suspicious"
+
+
+# =============================================================================
+# Fail-closed behaviour on Haiku timeout / error
+# =============================================================================
+
+
+class TestGuardrailFailClosed:
+    """Guardrail must fail closed when Haiku is unavailable."""
+
+    @pytest.mark.parametrize("raised", [TimeoutError(), RuntimeError("boom")])
+    def test_guardrail_haiku_timeout_fails_closed(
+        self,
+        raised: BaseException,
+        monkeypatch: pytest.MonkeyPatch,
+        tmp_path: Path,
+    ) -> None:
+        """Haiku timeout or raise → verdict=error + state recorded + no success path."""
+        import heartbeat
+
+        # Redirect state/log side-effects into tmp_path so the test doesn't
+        # mutate the real repo's state files.
+        monkeypatch.setattr(heartbeat, "GUARDRAIL_STATE_FILE", tmp_path / "guardrail.json")
+
+        daily_log = tmp_path / "daily.md"
+        appended: list[tuple[str, str, str, str | None]] = []
+
+        def _fake_append(
+            content: str,
+            section: str = "Entry",
+            parent: str | None = None,
+            source: str | None = None,
+        ) -> None:
+            appended.append((content, section, parent or "", source))
+            prior = daily_log.read_text() if daily_log.exists() else ""
+            daily_log.write_text(f"{prior}{content}\n")
+
+        monkeypatch.setattr(heartbeat, "append_to_daily_log", _fake_append)
+
+        logged: list[tuple[str, ...]] = []
+
+        def _fake_log_hook(*args: Any, **kwargs: Any) -> None:
+            logged.append(args)
+
+        monkeypatch.setattr(heartbeat, "log_hook_execution", _fake_log_hook)
+
+        slack_calls: list[tuple[str, str]] = []
+
+        def _fake_slack(title: str, body: str) -> None:
+            slack_calls.append((title, body))
+
+        monkeypatch.setattr(heartbeat, "send_slack_notification", _fake_slack)
+
+        # Force the inner Haiku query to raise when awaited.
+        async def _fake_query(*args: Any, **kwargs: Any) -> AsyncGenerator[Any, None]:
+            # Matches `async for msg in query(...)` pattern. Raising on the
+            # first iteration is equivalent to raising from the coroutine.
+            if False:
+                yield None  # keep this function as an async generator  # pragma: no cover
+            raise raised
+
+        # The Haiku call happens inside an inner `_call_haiku` coroutine that
+        # iterates `query(...)`. Patch the module-level import.
+        import claude_agent_sdk
+
+        monkeypatch.setattr(claude_agent_sdk, "query", _fake_query, raising=False)
+
+        result = asyncio.run(heartbeat.run_guardrail_check("some harmless context", test_mode=True))
+
+        assert result["verdict"] == "error", result
+        # State file written
+        assert (tmp_path / "guardrail.json").exists()
+        state = json.loads((tmp_path / "guardrail.json").read_text())
+        assert state["verdict"] == "error"
+        # Daily log warning appended with guardrail provenance
+        assert any("failed closed" in c for c, _, _, _ in appended)
+        assert any(src == "guardrail" for _, _, _, src in appended)
+        # Hook log entry recorded
+        assert any("guardrail" in a for args in logged for a in args)
+        # Slack suppressed by test_mode=True
+        assert slack_calls == []
