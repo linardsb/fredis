@@ -15,6 +15,8 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 SCRIPTS_DIR="$REPO_ROOT/.claude/scripts"
 SCHEDULE_DIR="$SCRIPTS_DIR/schedule"
+STATE_DIR="/var/lib/fredis-deploy"
+LAST_HEAD_FILE="$STATE_DIR/last-deployed-head"
 
 log() { printf '[%s] deploy: %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*"; }
 
@@ -23,8 +25,21 @@ flock -n "$LOCK_FD" || { log "another deploy is already running — aborting"; e
 
 cd "$REPO_ROOT"
 
-OLD_HEAD="$(git rev-parse HEAD)"
-log "pre-pull HEAD: ${OLD_HEAD:0:10}"
+mkdir -p "$STATE_DIR"
+
+# Anchor OLD_HEAD on the LAST-DEPLOYED commit, not the pre-pull HEAD.
+# Why: vault-sync.timer pulls origin/main every 2 min. If it lands a
+# code commit before this deploy fires, pre-pull HEAD == post-pull HEAD
+# and the selective-restart diff sees nothing — stale service keeps
+# running. Persisting the last-deployed commit separates "what's on disk"
+# from "what's been reacted to", so the diff reflects the actual deploy.
+if [ -f "$LAST_HEAD_FILE" ]; then
+    OLD_HEAD="$(cat "$LAST_HEAD_FILE")"
+    log "last-deployed HEAD: ${OLD_HEAD:0:10} (from $LAST_HEAD_FILE)"
+else
+    OLD_HEAD="$(git rev-parse HEAD)"
+    log "no state file — treating current HEAD ${OLD_HEAD:0:10} as last-deployed"
+fi
 
 git fetch --quiet origin main
 git pull --ff-only --quiet origin main
@@ -32,6 +47,9 @@ git pull --ff-only --quiet origin main
 NEW_HEAD="$(git rev-parse HEAD)"
 if [ "$OLD_HEAD" = "$NEW_HEAD" ]; then
     log "already up-to-date"
+    # Refresh the state file defensively; NEW_HEAD == OLD_HEAD here so
+    # nothing actually changes, but this self-heals a corrupt file.
+    printf '%s\n' "$NEW_HEAD" > "$LAST_HEAD_FILE"
     exit 0
 fi
 log "advanced ${OLD_HEAD:0:10} -> ${NEW_HEAD:0:10}"
@@ -66,4 +84,5 @@ if matches '^(\.claude/chat/.*\.py|\.claude/scripts/chat.*)$'; then
     systemctl restart secondbrain-chat.service
 fi
 
-log "deploy complete at ${NEW_HEAD:0:10}"
+printf '%s\n' "$NEW_HEAD" > "$LAST_HEAD_FILE"
+log "deploy complete at ${NEW_HEAD:0:10} (state: $LAST_HEAD_FILE)"
