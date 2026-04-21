@@ -65,8 +65,12 @@ if ! git diff --cached --quiet -- Fredis/; then
     fi
 fi
 
-# 3. Pull (merge, concat-both handles daily logs). No rebase to keep history linear-ish.
-if ! git pull --no-rebase --no-edit --quiet origin main >>"$LOG" 2>&1; then
+# 3. Pull (merge, concat-both handles daily logs). Identity passed explicitly
+#    so merge commits can be authored even when the host has no global git
+#    user.name / user.email set.
+if ! git -c user.name="fredis-vault-sync" \
+        -c user.email="vault-sync@fredis.local" \
+        pull --no-rebase --no-edit --quiet origin main >>"$LOG" 2>&1; then
     log "pull failed — manual resolution likely needed in Fredis/Memory/daily/"
     exit 1
 fi

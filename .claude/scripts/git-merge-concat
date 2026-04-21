@@ -44,8 +44,9 @@ cp "$REMOTE" "${LOCAL}.merged"
 # Append local additions that aren't already in the remote version
 if [ -s "${LOCAL}.local_additions" ]; then
     while IFS= read -r line; do
-        if ! grep -qFx "$line" "${LOCAL}.merged"; then
-            echo "$line" >> "${LOCAL}.merged"
+        # Use -- to prevent lines starting with '-' from being parsed as opts.
+        if ! grep -qFx -- "$line" "${LOCAL}.merged"; then
+            printf '%s\n' "$line" >> "${LOCAL}.merged"
         fi
     done < "${LOCAL}.local_additions"
 fi
