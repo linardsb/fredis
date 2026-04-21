@@ -156,6 +156,10 @@ Do NOT rewrite, compress, summarise, or replace them with pointer lines.
 - Pick "oldest" by the date-stamp in each entry (e.g. `(2026-04-18)`). If an \
 entry has no date, treat entries at the TOP of these sections as oldest, in \
 this order: *Key Decisions*, *Lessons Learned*, *Important Facts*.
+- **Impact-first tiebreak.** When two entries tie on date, prefer archiving the \
+one tagged `[impact: low]`. A legacy entry without tags counts as `impact: med` \
+for this comparison. Never archive entries tagged `[status: pending]` — those \
+are active watch items.
 - Stop when MEMORY.md is between {MEMORY_LINE_LIMIT - 50} and {MEMORY_LINE_LIMIT} lines. \
 Do not over-archive.
 - **Do NOT touch** the following sections: *Active Projects*, *Upcoming Events*, \
@@ -385,6 +389,39 @@ Promote important items:
 - Important facts or configurations
 - Project status updates
 - Upcoming events needing preparation
+
+Format each promoted item as:
+- **Short title (YYYY-MM-DD).** Body. \
+`[impact: high|med|low, status: pending|decided|resolved|killed]`
+
+Impact levels:
+- `high` — financial decision >£100, client-facing commitment, regulatory/legal,
+  kill-trigger event, security incident.
+- `med` — process choice, tool adoption, scheduling change, medium-confidence lesson.
+- `low` — one-off observation, minor preference, routine housekeeping.
+
+Status levels:
+- `pending` — an Open Watch Item awaiting resolution.
+- `decided` — decision made, now in effect.
+- `resolved` — previously pending, now closed by evidence.
+- `killed` — kill-trigger fired; the thing was dropped / invalidated.
+
+Backward compat: legacy entries without tags still live in the file. Do NOT
+retroactively tag them unless you are already editing the entry for another
+reason.
+
+### 1a. Resolution sweep (Open Watch Items → Key Decisions / Killed)
+For each entry in MEMORY.md's **Open Watch Items** section, check today's log for
+explicit resolution evidence. Only act when the log shows concrete language, not
+conversational mention:
+- If resolved (decision reached, question answered) → move to **Key Decisions**
+  with a `(resolved YYYY-MM-DD)` stamp in the title.
+- If kill-trigger fired (deadline passed, condition breached) → move to a new
+  **Killed** subsection with `(killed YYYY-MM-DD, reason: ...)`.
+- Otherwise → leave unchanged.
+
+Evidence threshold: explicit confirmation statement. "We discussed X" is NOT
+resolution; "Decided X — going with option Y" IS. When in doubt, leave it.
 
 ### 2. USER.md ({USER_FILE})
 Update when you notice patterns about {OWNER_NAME or "the user"}:

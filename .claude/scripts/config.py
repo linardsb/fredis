@@ -43,6 +43,11 @@ HEARTBEAT_STATE_FILE = STATE_DIR / "heartbeat-state.json"
 REFLECTION_STATE_FILE = STATE_DIR / "reflection-state.json"
 REFLECTION_HOUR = int(os.getenv("REFLECTION_HOUR", "8"))
 
+# === Weekly Synthesis Configuration (Phase 9) ===
+SYNTHESIS_STATE_FILE = STATE_DIR / "synthesis-state.json"
+MEMORY_SYNTHESIS_DIR = MEMORY_DIR / "drafts" / "active" / "memory-synthesis"
+SYNTHESIS_DAYS = int(os.getenv("SYNTHESIS_DAYS", "7"))
+
 # MEMORY.md size cap — when reflection promotes entries and the file grows
 # past this, the oldest entries are archived wholesale to MEMORY_ARCHIVE_DIR
 # so the in-context file stays compact. Archived files remain searchable via

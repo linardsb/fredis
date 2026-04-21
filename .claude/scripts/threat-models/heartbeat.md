@@ -103,3 +103,29 @@ Invariants preserved under all failure modes:
 - No writes outside repo / Fredis/.
 - No secret redaction bypass (layered `redact-secrets` hook on
   PostToolUse; shape-based scrub in Phase 6).
+
+## Retrieval surface (Phase 9)
+
+After guardrail verdict is known, `_extract_signals` pulls a short query
+string per NEW item (email subject, task name, Slack first line) and
+`_gather_relevant_memories` runs `search_hybrid(limit=3, min_score=0.5)`
+per signal, dedupes by `chunk_id`, and caps the aggregate at 15 hits.
+Results wrap as `<external_data source="memory_recall">` and inject as a
+`## Relevant Memories` section alongside the other external-data
+wraps — inside the same `TRUST_BOUNDARY_INSTRUCTION` fence.
+
+**Verdict gate:** retrieval runs only on `pass` / `suspicious`. It is
+skipped on `fail` (heartbeat aborts entirely) and `error` (external
+data is stripped from the prompt — feeding retrieval without the
+signals it was meant to contextualise would be misleading).
+
+`db.touch_chunks(ids)` runs only after the main-agent run completes.
+Aborted turns do not reinforce retrieval signal.
+
+**Latency:** local FastEmbed + SQLite ≈ 200 ms p95 per query,
+≤ 15 queries per heartbeat on the steady state — negligible next to
+heartbeat run time (~5 s).
+
+Fail-safe: per-signal search exception skips just that signal; import
+failure of `memory_search` returns `("", [])` and the heartbeat runs
+without the recall section.

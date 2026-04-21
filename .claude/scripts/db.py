@@ -53,6 +53,7 @@ class MemoryDB(Protocol):
     def vector_search(
         self, embedding: NDArray[np.float32], limit: int, path_prefix: str = ""
     ) -> list[dict[str, Any]]: ...
+    def touch_chunks(self, chunk_ids: list[int]) -> None: ...
     def get_stats(self) -> dict[str, Any]: ...
     def commit(self) -> None: ...
 
@@ -152,6 +153,14 @@ class SQLiteMemoryDB:
                 embedding float[{EMBEDDING_DIMENSIONS}]
             )
         """)
+        # Phase 9: track when a chunk was last retrieved so future archive
+        # passes can favour cold chunks. Idempotent — swallow only the
+        # duplicate-column-name error so genuine schema problems still surface.
+        try:
+            conn.execute("ALTER TABLE chunks ADD COLUMN last_touched INTEGER")
+        except sqlite3.OperationalError as e:
+            if "duplicate column name" not in str(e).lower():
+                raise
         self.upsert_meta("schema_version", "1")
         self.upsert_meta("embedding_model", EMBEDDING_MODEL)
         self.upsert_meta("embedding_dimensions", str(EMBEDDING_DIMENSIONS))
@@ -259,8 +268,8 @@ class SQLiteMemoryDB:
         fts_query = _quote_fts_query(query)
         if path_prefix:
             sql = """
-                SELECT c.file_path, c.start_line, c.end_line, c.content,
-                       c.section_title, rank
+                SELECT c.id AS chunk_id, c.file_path, c.start_line, c.end_line,
+                       c.content, c.section_title, rank
                 FROM chunks_fts
                 JOIN chunks c ON c.id = chunks_fts.rowid
                 WHERE chunks_fts MATCH ? AND c.file_path LIKE ?
@@ -270,8 +279,8 @@ class SQLiteMemoryDB:
             params: tuple[Any, ...] = (fts_query, path_prefix + "%", limit)
         else:
             sql = """
-                SELECT c.file_path, c.start_line, c.end_line, c.content,
-                       c.section_title, rank
+                SELECT c.id AS chunk_id, c.file_path, c.start_line, c.end_line,
+                       c.content, c.section_title, rank
                 FROM chunks_fts
                 JOIN chunks c ON c.id = chunks_fts.rowid
                 WHERE chunks_fts MATCH ?
@@ -294,6 +303,7 @@ class SQLiteMemoryDB:
             score = 1.0 / (1.0 + abs(bm25_rank))
             results.append(
                 {
+                    "chunk_id": int(row["chunk_id"]),
                     "file_path": row["file_path"],
                     "start_line": row["start_line"],
                     "end_line": row["end_line"],
@@ -314,7 +324,7 @@ class SQLiteMemoryDB:
         fetch_limit = limit * 5 if path_prefix else limit
         rows = conn.execute(
             """
-            SELECT v.rowid, v.distance,
+            SELECT v.rowid AS chunk_id, v.distance,
                    c.file_path, c.start_line, c.end_line, c.content, c.section_title
             FROM vec_chunks v
             JOIN chunks c ON c.id = v.rowid
@@ -333,6 +343,7 @@ class SQLiteMemoryDB:
             score = 1.0 / (1.0 + distance)
             results.append(
                 {
+                    "chunk_id": int(row["chunk_id"]),
                     "file_path": row["file_path"],
                     "start_line": row["start_line"],
                     "end_line": row["end_line"],
@@ -344,6 +355,21 @@ class SQLiteMemoryDB:
             if len(results) >= limit:
                 break
         return results
+
+    def touch_chunks(self, chunk_ids: list[int]) -> None:
+        """Record retrieval — update ``last_touched`` for the given chunk ids."""
+        if not chunk_ids:
+            return
+        from config import now_local
+
+        now_epoch = int(now_local().timestamp())
+        placeholders = ",".join("?" * len(chunk_ids))
+        conn = self._get_conn()
+        conn.execute(
+            f"UPDATE chunks SET last_touched = ? WHERE id IN ({placeholders})",
+            [now_epoch, *chunk_ids],
+        )
+        conn.commit()
 
     def get_stats(self) -> dict[str, Any]:
         conn = self._get_conn()
@@ -448,6 +474,9 @@ class PostgresMemoryDB:
             USING hnsw(embedding vector_l2_ops)
             WHERE embedding IS NOT NULL
         """)
+        # Phase 9: track when a chunk was last retrieved. ADD COLUMN IF NOT
+        # EXISTS is idempotent in Postgres — no try/except needed.
+        cur.execute("ALTER TABLE chunks ADD COLUMN IF NOT EXISTS last_touched BIGINT")
 
         conn.commit()
 
@@ -562,7 +591,7 @@ class PostgresMemoryDB:
         if path_prefix:
             cur.execute(
                 """
-                SELECT file_path, start_line, end_line, content, section_title,
+                SELECT id, file_path, start_line, end_line, content, section_title,
                        ts_rank(search_vector, plainto_tsquery('english', %s)) AS score
                 FROM chunks
                 WHERE search_vector @@ plainto_tsquery('english', %s)
@@ -575,7 +604,7 @@ class PostgresMemoryDB:
         else:
             cur.execute(
                 """
-                SELECT file_path, start_line, end_line, content, section_title,
+                SELECT id, file_path, start_line, end_line, content, section_title,
                        ts_rank(search_vector, plainto_tsquery('english', %s)) AS score
                 FROM chunks
                 WHERE search_vector @@ plainto_tsquery('english', %s)
@@ -588,12 +617,13 @@ class PostgresMemoryDB:
         for row in cur.fetchall():
             results.append(
                 {
-                    "file_path": row[0],
-                    "start_line": row[1],
-                    "end_line": row[2],
-                    "content": row[3],
-                    "section_title": row[4] or "",
-                    "score": float(row[5]),
+                    "chunk_id": int(row[0]),
+                    "file_path": row[1],
+                    "start_line": row[2],
+                    "end_line": row[3],
+                    "content": row[4],
+                    "section_title": row[5] or "",
+                    "score": float(row[6]),
                 }
             )
         return results
@@ -605,7 +635,7 @@ class PostgresMemoryDB:
         if path_prefix:
             cur.execute(
                 """
-                SELECT file_path, start_line, end_line, content, section_title,
+                SELECT id, file_path, start_line, end_line, content, section_title,
                        embedding <-> %s::vector AS distance
                 FROM chunks
                 WHERE embedding IS NOT NULL AND file_path LIKE %s
@@ -617,7 +647,7 @@ class PostgresMemoryDB:
         else:
             cur.execute(
                 """
-                SELECT file_path, start_line, end_line, content, section_title,
+                SELECT id, file_path, start_line, end_line, content, section_title,
                        embedding <-> %s::vector AS distance
                 FROM chunks
                 WHERE embedding IS NOT NULL
@@ -628,19 +658,34 @@ class PostgresMemoryDB:
             )
         results: list[dict[str, Any]] = []
         for row in cur.fetchall():
-            distance = float(row[5])
+            distance = float(row[6])
             score = 1.0 / (1.0 + distance)
             results.append(
                 {
-                    "file_path": row[0],
-                    "start_line": row[1],
-                    "end_line": row[2],
-                    "content": row[3],
-                    "section_title": row[4] or "",
+                    "chunk_id": int(row[0]),
+                    "file_path": row[1],
+                    "start_line": row[2],
+                    "end_line": row[3],
+                    "content": row[4],
+                    "section_title": row[5] or "",
                     "score": score,
                 }
             )
         return results
+
+    def touch_chunks(self, chunk_ids: list[int]) -> None:
+        """Record retrieval — update ``last_touched`` for the given chunk ids."""
+        if not chunk_ids:
+            return
+        from config import now_local
+
+        now_epoch = int(now_local().timestamp())
+        conn = self._get_conn()
+        conn.cursor().execute(
+            "UPDATE chunks SET last_touched = %s WHERE id = ANY(%s)",
+            (now_epoch, chunk_ids),
+        )
+        conn.commit()
 
     def get_stats(self) -> dict[str, Any]:
         cur = self._get_conn().cursor()

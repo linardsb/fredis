@@ -112,3 +112,16 @@ def test_prior_longest_prefix_wins(monkeypatch: pytest.MonkeyPatch) -> None:
     assert memory_search._prior("drafts/sent/a.md") == 1.5
     assert memory_search._prior("drafts/active/b.md") == 1.2
     assert memory_search._prior("research/c.md") == 1.0
+
+
+def test_results_carry_chunk_id(seeded_db: Path, stub_embed: None) -> None:
+    """Phase 9: every SearchResult carries the DB row id so callers can
+    feed retrieval hits back to ``touch_chunks()``."""
+    for mode_results in (
+        search_keyword("client reply"),
+        search_semantic("client reply"),
+        search_hybrid("client reply", limit=10, min_score=0.0),
+    ):
+        assert mode_results, "fixture expected to produce hits"
+        for r in mode_results:
+            assert r.chunk_id > 0, f"missing chunk_id on {r.match_type} result"

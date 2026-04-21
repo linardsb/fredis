@@ -1,0 +1,17 @@
+[Unit]
+Description=Fredis daily memory reflection (review yesterday's log, promote to MEMORY.md)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=__REPO_ROOT__/.claude/scripts
+ExecStart=/bin/bash __REPO_ROOT__/.claude/scripts/run_reflect.sh
+Environment="PATH=/root/.local/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="CLAUDE_PROJECT_DIR=__REPO_ROOT__"
+Environment="TZ=Europe/London"
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

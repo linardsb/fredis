@@ -1,0 +1,16 @@
+[Unit]
+Description=Fredis vault git-sync (bidirectional append-friendly sync of Fredis/ vault)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=__REPO_ROOT__/.claude/scripts
+ExecStart=/bin/bash __REPO_ROOT__/.claude/scripts/run_vault_sync.sh
+Environment="PATH=/root/.local/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="CLAUDE_PROJECT_DIR=__REPO_ROOT__"
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

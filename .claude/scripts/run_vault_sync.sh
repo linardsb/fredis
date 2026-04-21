@@ -4,9 +4,9 @@
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# Resolve vault path (two levels up from .claude/scripts/, then into the vault folder)
-# Change "Vault" below to match your actual vault folder name
-VAULT_DIR="$(cd "$SCRIPT_DIR/../../Vault" && pwd)"
+# Resolve vault path. Default is <repo>/Fredis; override via VAULT_DIR env var
+# if the vault lives somewhere else on this machine.
+VAULT_DIR="${VAULT_DIR:-$(cd "$SCRIPT_DIR/../../Fredis" && pwd)}"
 
 # Idempotent install of the vault pre-push hook (Phase 9.4). Only writes
 # when absent or out-of-date; silent no-op otherwise. git requires hook

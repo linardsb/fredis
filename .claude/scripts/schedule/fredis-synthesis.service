@@ -1,0 +1,18 @@
+[Unit]
+Description=Fredis weekly memory synthesis (Phase 9)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Replace __REPO_ROOT__ with the absolute path to the repo checkout on
+# this host (e.g. /home/user/claude-code-second-brain).
+WorkingDirectory=__REPO_ROOT__/.claude/scripts
+ExecStart=/bin/bash __REPO_ROOT__/.claude/scripts/run_synthesis.sh
+# Ensure uv is reachable; systemd strips PATH to /usr/bin:/bin by default.
+Environment="PATH=/root/.local/bin:/usr/local/bin:/usr/bin:/bin"
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

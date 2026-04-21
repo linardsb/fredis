@@ -86,3 +86,23 @@ Invariants preserved under all failure modes:
 - No SOUL edit (standalone hook).
 - No outbound mutation APIs (`block-dangerous-commands`).
 - `@channel`-class broadcasts neutralised.
+
+## Retrieval surface (Phase 9)
+
+Inbound Slack text seeds `memory_search.search_hybrid` on every turn. Hits
+are content Fredis already captured; transitively they may include
+untrusted data that reached daily logs via `memory_flush` or
+`heartbeat` (those paths run the sanitize pipeline on ingestion). The
+retrieval block is wrapped as `<external_data source="memory_recall">`
+and prepended to `message.text` AFTER the `slack_inbound` wrap, so it
+sits outside the untrusted-user boundary and is treated as assistant-side
+context. No additional sanitize pass is applied — ingestion-time
+sanitisation is the defence.
+
+`db.touch_chunks(ids)` runs only on the successful SDK ResultMessage
+path. Aborted turns do not reinforce retrieval signal — this keeps the
+eventual cold-chunk archive policy honest.
+
+Fail-safe: on any `search_hybrid` or `touch_chunks` exception the chat
+turn continues without the retrieval block; a warning is printed.
+Retrieval never blocks a response.

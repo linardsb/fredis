@@ -1,0 +1,12 @@
+[Unit]
+Description=Weekly trigger for Fredis memory synthesis
+
+[Timer]
+# Sundays at 08:00 local time. Catches up on missed runs (e.g. VPS rebooted
+# over the weekend) via Persistent=true.
+OnCalendar=Sun 08:00
+Persistent=true
+Unit=fredis-synthesis.service
+
+[Install]
+WantedBy=timers.target

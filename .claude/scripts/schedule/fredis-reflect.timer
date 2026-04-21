@@ -1,0 +1,10 @@
+[Unit]
+Description=Trigger Fredis daily memory reflection at 08:00 Europe/London
+
+[Timer]
+OnCalendar=*-*-* 08:00:00 Europe/London
+Persistent=true
+Unit=fredis-reflect.service
+
+[Install]
+WantedBy=timers.target

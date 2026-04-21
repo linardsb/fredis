@@ -56,6 +56,7 @@ class SearchResult:
     score: float
     match_type: str  # "keyword" | "semantic" | "hybrid"
     section_title: str = ""
+    chunk_id: int = 0  # Phase 9: DB row id so callers can call touch_chunks()
 
 
 def search_keyword(
@@ -81,6 +82,7 @@ def search_keyword(
             score=r["score"] * _prior(r["file_path"]),
             match_type="keyword",
             section_title=r.get("section_title", ""),
+            chunk_id=int(r.get("chunk_id", 0) or 0),
         )
         for r in rows
     ]
@@ -121,6 +123,7 @@ def search_semantic(
                 score=boosted,
                 match_type="semantic",
                 section_title=r.get("section_title", ""),
+                chunk_id=int(r.get("chunk_id", 0) or 0),
             )
         )
     results.sort(key=lambda x: x.score, reverse=True)
@@ -184,6 +187,7 @@ def search_hybrid(
                 score=combined_score,
                 match_type="hybrid",
                 section_title=data.get("section_title", ""),
+                chunk_id=int(data.get("chunk_id", 0) or 0),
             )
         )
 

@@ -949,6 +949,123 @@ def reconcile_active_drafts() -> str:
 # =============================================================================
 
 
+# =============================================================================
+# MEMORY RECALL — per-signal hybrid retrieval into the heartbeat prompt
+# =============================================================================
+
+_RECALL_PER_SIGNAL_LIMIT = 3
+_RECALL_MIN_SCORE = 0.5
+_RECALL_MIN_QUERY_LEN = 8
+_RECALL_AGGREGATE_CAP = 15
+
+
+def _extract_signals(raw_data: dict[str, Any], diff: dict[str, Any] | None) -> list[str]:
+    """Extract short query strings from NEW items surfaced by the gather diff.
+
+    Falls back to all items on first run (no previous snapshot). Each string is
+    short and already textual — email subjects, task names, first lines of
+    Slack messages. Skips empties and anything shorter than the min-query
+    length to avoid high-recall, low-precision searches.
+    """
+    queries: list[str] = []
+
+    emails_by_id = {
+        e.id: e for e in (raw_data.get("urgent_emails", []) + raw_data.get("recent_emails", []))
+    }
+    tasks_by_gid = {
+        t.gid: t for t in (raw_data.get("overdue_tasks", []) + raw_data.get("due_soon_tasks", []))
+    }
+    slack_by_key = {f"{m.channel}:{m.ts}": m for m in raw_data.get("slack_important", [])}
+
+    new_email_ids = diff["new_emails"] if diff else set(emails_by_id.keys())
+    new_task_ids = diff["new_tasks"] if diff else set(tasks_by_gid.keys())
+    new_slack_keys = diff["new_slack"] if diff else set(slack_by_key.keys())
+
+    for eid in new_email_ids:
+        email = emails_by_id.get(eid)
+        if email and email.subject:
+            queries.append(email.subject.strip())
+
+    for tid in new_task_ids:
+        task = tasks_by_gid.get(tid)
+        if task and task.name:
+            queries.append(task.name.strip())
+
+    for key in new_slack_keys:
+        msg = slack_by_key.get(key)
+        if msg and msg.text:
+            # Use the first line / 100 chars as a topical seed
+            first_line = msg.text.strip().splitlines()[0] if msg.text.strip() else ""
+            if first_line:
+                queries.append(first_line[:100])
+
+    return [q for q in queries if len(q) >= _RECALL_MIN_QUERY_LEN]
+
+
+def _gather_relevant_memories(
+    raw_data: dict[str, Any], diff: dict[str, Any] | None
+) -> tuple[str, list[int]]:
+    """Run per-signal hybrid search; return a single wrapped block + chunk_ids.
+
+    Non-fatal on any per-signal search exception — that signal is skipped,
+    others continue. Dedupes chunk ids across signals and caps aggregate
+    hits to keep the prompt bounded.
+    """
+    signals = _extract_signals(raw_data, diff)
+    if not signals:
+        return "", []
+
+    try:
+        from memory_search import search_hybrid
+    except Exception as e:
+        print(f"[{now_local()}] memory_search unavailable (non-fatal): {e}")
+        return "", []
+
+    seen_chunks: set[int] = set()
+    aggregated: list[dict[str, Any]] = []
+    for q in signals:
+        try:
+            hits = search_hybrid(q, limit=_RECALL_PER_SIGNAL_LIMIT, min_score=_RECALL_MIN_SCORE)
+        except Exception as e:
+            print(f"[{now_local()}] retrieval failed for signal '{q[:40]}' (non-fatal): {e}")
+            continue
+        for h in hits:
+            if not h.chunk_id or h.chunk_id in seen_chunks:
+                continue
+            seen_chunks.add(h.chunk_id)
+            aggregated.append(
+                {
+                    "path": h.path,
+                    "start_line": h.start_line,
+                    "end_line": h.end_line,
+                    "section_title": h.section_title,
+                    "match_type": h.match_type,
+                    "score": h.score,
+                    "text": h.text,
+                    "chunk_id": h.chunk_id,
+                    "signal": q[:60],
+                }
+            )
+            if len(aggregated) >= _RECALL_AGGREGATE_CAP:
+                break
+        if len(aggregated) >= _RECALL_AGGREGATE_CAP:
+            break
+
+    if not aggregated:
+        return "", []
+
+    lines: list[str] = []
+    for item in aggregated:
+        header = f"[{item['path']}:{item['start_line']}-{item['end_line']}"
+        if item.get("section_title"):
+            header += f" — {item['section_title']}"
+        header += f" | {item['match_type']} score={item['score']:.2f} | signal='{item['signal']}']"
+        lines.append(f"{header}\n{item['text'].strip()}")
+    body = "\n\n---\n\n".join(lines)
+    wrapped = wrap_external_data(body, source="memory_recall")
+    return wrapped, [item["chunk_id"] for item in aggregated]
+
+
 def _save_heartbeat_thread(channel_id: str, thread_ts: str, alert_text: str) -> None:
     """Store a heartbeat notification in the chat DB so thread replies trigger conversations."""
     try:
@@ -1165,6 +1282,20 @@ async def run_heartbeat(test_mode: bool = False) -> str | None:
     if guardrail_result["verdict"] == "suspicious":
         print(f"[{now_local()}] GUARDRAIL WARNING: {guardrail_result['summary']}")
 
+    # Phase 9: auto-retrieval in heartbeat gather. Only runs when external
+    # data is still being fed into the main agent (pass/suspicious); skipped
+    # on fail (blocked above) and error (stripped external data — retrieval
+    # would be misleading without the signals it was meant to contextualise).
+    memories_block = ""
+    memory_chunk_ids: list[int] = []
+    if guardrail_result["verdict"] in ("pass", "suspicious"):
+        memories_block, memory_chunk_ids = _gather_relevant_memories(raw_data, diff)
+        if memory_chunk_ids:
+            print(
+                f"[{now_local()}] Memory recall: injecting "
+                f"{len(memory_chunk_ids)} chunk(s) into heartbeat prompt"
+            )
+
     # Pre-load HEARTBEAT.md checklist so Claude doesn't have to read it
     from config import HEARTBEAT_FILE
 
@@ -1264,6 +1395,9 @@ Ship-pillar signal auto-tick: **{"YES" if ship_tick else "no"}** (commits pushed
 
 ## Habits Tracker
 {habits_ctx}
+
+## Relevant Memories
+{memories_block or "No relevant memories surfaced for this heartbeat's signals."}
 
 {TRUST_BOUNDARY_INSTRUCTION}
 
@@ -1376,6 +1510,19 @@ Your final text response goes directly to {owner}'s phone. Keep it to just bulle
         )
         log_hook_execution("heartbeat", "scheduled", "ERROR", time.time() - _start, str(e))
         return None
+
+    # Phase 9: touch retrieved chunks only after the main agent run completes.
+    # Aborted turns do not reinforce.
+    if memory_chunk_ids:
+        try:
+            from db import get_memory_db
+
+            memory_db = get_memory_db()
+            memory_db.init_schema()
+            memory_db.touch_chunks(memory_chunk_ids)
+            memory_db.close()
+        except Exception as e:
+            print(f"[{now_local()}] heartbeat touch_chunks failed (non-fatal): {e}")
 
     # Update state (save current snapshot for next diff)
     state["last_run"] = now_local().isoformat()

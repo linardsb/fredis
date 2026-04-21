@@ -117,6 +117,64 @@ class ConversationEngine:
         pieces.append(TRUST_BOUNDARY_INSTRUCTION)
         return "\n\n".join(pieces), verdict
 
+    # Phase 9: per-turn memory recall budget.
+    _RECALL_MAX_CHARS = 2000
+    _RECALL_MIN_QUERY_LEN = 8
+    _RECALL_LIMIT = 5
+    _RECALL_MIN_SCORE = 0.5
+
+    @classmethod
+    def _build_retrieved_memories(cls, message_text: str) -> tuple[str, list[int]]:
+        """Hybrid-search long-term memory for context relevant to the inbound
+        message. Returns ``(wrapped_block, chunk_ids)``. Fail-safe: on any
+        retrieval exception the block is empty and the chat continues.
+        """
+        if not message_text or len(message_text.strip()) < cls._RECALL_MIN_QUERY_LEN:
+            return "", []
+        try:
+            from memory_search import search_hybrid
+
+            hits = search_hybrid(
+                message_text,
+                limit=cls._RECALL_LIMIT,
+                min_score=cls._RECALL_MIN_SCORE,
+            )
+        except Exception as e:
+            print(f"[{datetime.now()}] chat memory retrieval failed (non-fatal): {e}")
+            return "", []
+
+        if not hits:
+            return "", []
+
+        lines: list[str] = []
+        chunk_ids: list[int] = []
+        budget = cls._RECALL_MAX_CHARS
+        truncated_marker = "\n... (truncated)"
+        for h in hits:
+            header = f"[{h.path}:{h.start_line}-{h.end_line}"
+            if h.section_title:
+                header += f" — {h.section_title}"
+            header += f" | {h.match_type} score={h.score:.2f}]"
+            body = h.text.strip()
+            segment = f"{header}\n{body}"
+            if len(segment) > budget:
+                keep = max(budget - len(header) - len(truncated_marker) - 1, 0)
+                segment = f"{header}\n{body[:keep]}{truncated_marker}"
+                lines.append(segment)
+                if h.chunk_id:
+                    chunk_ids.append(h.chunk_id)
+                break
+            lines.append(segment)
+            if h.chunk_id:
+                chunk_ids.append(h.chunk_id)
+            budget -= len(segment) + len("\n\n---\n\n")
+            if budget <= 0:
+                break
+
+        body = "\n\n---\n\n".join(lines)
+        wrapped = wrap_external_data(body, source="memory_recall")
+        return f"{wrapped}\n{TRUST_BOUNDARY_INSTRUCTION}", chunk_ids
+
     async def handle_message(self, message: IncomingMessage) -> AsyncIterator[OutgoingMessage]:
         """Process an incoming message and yield response chunks.
 
@@ -218,6 +276,14 @@ class ConversationEngine:
             f"(len={len(original_text)})"
         )
 
+        # Phase 9: hybrid-search long-term memory using the ORIGINAL text
+        # (the wrapped fragment carries injection-defense framing that would
+        # poison the query). The retrieval block is assistant-side context
+        # and sits OUTSIDE the inbound trust boundary. It's PREPENDED to
+        # ``message.text`` after the heartbeat-context branch below so the
+        # final ordering is [retrieval] → [heartbeat ctx] → [wrapped user].
+        retrieval_block, retrieved_chunk_ids = self._build_retrieved_memories(original_text)
+
         # Resume existing conversation if we have a session
         if existing:
             options_kwargs["resume"] = existing.agent_session_id
@@ -237,6 +303,16 @@ class ConversationEngine:
                     f"{message.text}"
                 )
                 print(f"[{datetime.now()}] Injected heartbeat context into session")
+
+        # Prepend retrieval AFTER the heartbeat branch so the final order is
+        # [retrieval] → [heartbeat ctx, if new] → [wrapped user]. Runs on
+        # every turn (new AND resumed) because relevance is per-message.
+        if retrieval_block:
+            message.text = f"{retrieval_block}\n\n{message.text}"
+            print(
+                f"[{datetime.now()}] Memory recall: "
+                f"{len(retrieved_chunk_ids)} chunk(s) injected"
+            )
 
         # Append attachment context (images sent via Slack) — OUTSIDE the
         # inbound trust boundary because paths are harness-supplied.
@@ -316,6 +392,21 @@ class ConversationEngine:
                 is_update=not first_yield,
             )
             return
+
+        # Phase 9: touch retrieved chunks only on successful completion — an
+        # aborted turn should not reinforce chunks that never influenced a
+        # reply. Runs before session persistence so a touch failure cannot
+        # stall the session-write.
+        if retrieved_chunk_ids:
+            try:
+                from db import get_memory_db
+
+                memory_db = get_memory_db()
+                memory_db.init_schema()
+                memory_db.touch_chunks(retrieved_chunk_ids)
+                memory_db.close()
+            except Exception as e:
+                print(f"[{datetime.now()}] touch_chunks failed (non-fatal): {e}")
 
         # Persist session
         if session_id_from_sdk:

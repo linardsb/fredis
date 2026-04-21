@@ -1,0 +1,11 @@
+[Unit]
+Description=Trigger Fredis heartbeat every 120 minutes (script self-gates on active hours)
+
+[Timer]
+OnBootSec=5min
+OnUnitInactiveSec=120min
+Persistent=true
+Unit=fredis-heartbeat.service
+
+[Install]
+WantedBy=timers.target

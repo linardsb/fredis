@@ -1,0 +1,10 @@
+[Unit]
+Description=Trigger vault git-sync 2 min after the previous run finishes (no overlap)
+
+[Timer]
+OnBootSec=2min
+OnUnitInactiveSec=2min
+Unit=vault-sync.service
+
+[Install]
+WantedBy=timers.target

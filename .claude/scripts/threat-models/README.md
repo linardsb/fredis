@@ -35,4 +35,5 @@ noticing.
 - [chat.md](chat.md) — `chat/engine.py` (Slack interactive session)
 - [reflection.md](reflection.md) — `memory_reflect.py` (daily MEMORY.md promotion)
 - [memory_flush.md](memory_flush.md) — `memory_flush.py` (PreCompact / SessionEnd flush)
+- [memory_synthesis.md](memory_synthesis.md) — `memory_synthesis.py` (weekly MEMORY.md synthesis, advisor-mode drafts)
 - [mcp.md](mcp.md) — MCP server audit + keep/remove decision (Phase 9.1)
