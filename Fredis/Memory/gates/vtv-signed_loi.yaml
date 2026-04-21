@@ -1,0 +1,9 @@
+lane: vtv
+metric: signed_loi
+threshold: "One signed LOI from any LV operator OR a documented paid-pilot discussion (dates + scope + counterparty named)"
+deadline: 2026-10-19
+observable_source: 'gmail_search:"subject:(LOI OR \"letter of intent\" OR pilot OR paid pilot)" + Fredis/Memory/drafts/sent/ (outbound LOI requests) + Fredis/Memory/contracts/ (incoming signed docs) + MEMORY.md §Active Projects VTV entry'
+pre_committed_at: 2026-04-19
+status: open
+rationale: "VTV month-6 kill trigger agreed 2026-04-19 (lanes.md:36, portfolio plan §5+§9). B2G sales cycle is 6–18 months — month 6 is the earliest believable signal-or-dead checkpoint. Zombie-lane guard: no traction signal by month 6 means the LPV-accelerator warm-network advantage isn't closing deals, and the lane pivots or pauses instead of continuing on optimism."
+invalidator: "One signed LOI from Rīgas Satiksme / any LV operator, OR a paid-pilot discussion with named counterparty + scope + dates, closes the gate."

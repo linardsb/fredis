@@ -1,0 +1,118 @@
+# MEMORY.md - Long-Term Memory
+
+_Curated, important memories that persist across sessions. Daily logs capture everything; this file captures what matters._
+
+## Key Decisions
+
+_(Pre-revenue stage — formal locked-in decisions still to be made. Likely first entries will land as Email Hub commercial model, UK Ltd registration, and pricing per service line. See active TBDs in `USER.md → Service Lines`.)_
+
+- **Credential rotation deliberately skipped (2026-04-18).** Six live tokens (Slack bot/app, Asana PAT, GitHub PAT, Monday.com, unknown hex credential) were exposed in chat during Phase 4 scoping. Linards explicitly accepted the risk. If any are later compromised, the forensic timeline is in the 2026-04-18 daily log.
+
+- **.env access stays gated behind security hooks (2026-04-19).** Recommended `audit_env.py` companion for metadata-only reads as a future improvement (Cleanup D candidate). Direct `.env` reads remain blocked by `block-secrets.py` + `redact-secrets.py`.
+
+- **PIV execution uses Option C — reconciliation doc + PRD as dual authority (2026-04-18).** Each `plan-feature` call must reference `.agent/plans/second-brain-prd.md` (including the Addendum — Context Deltas) and `.agent/plans/reconciliation.md`. The reconciliation doc lists known template residue per phase; plans should propose deletions where current code contradicts the PRD.
+
+- **Strategic pivot: product-builder, not consultant-closer (2026-04-19).** Linards chose to build a portfolio of products using Fredis + Archon as tooling spine, rather than positioning as a consultant selling time. Three products selected: Email Hub (SaaS/MarTech), VTV (B2G public-transport optimisation for Riga), Cab App (B2C ride-hailing, shares VTV codebase). Sequencing: VTV ships first → Cab rides on VTV's distribution → Email Hub blocked until IP question resolved. Kill triggers agreed: Email Hub paused if no IP answer by month 2; Cab paused if VTV has no real conversations by month 4; VTV paused if no LOI/pilot by month 6. Full plan at `docs/product-portfolio-plan.md`. Execution gated on two open questions (see Open Watch Items).
+
+- **Research/scraping stack: free trio, no paid subscriptions (2026-04-19).** Crawl4AI (self-hosted on Colima), Jina Reader (1M tokens/mo free), Exa (1k/mo free, semantic search). Built-in WebSearch/WebFetch covers ~85% of needs. Paid Firecrawl ($16-19/mo) only as fallback for Cloudflare-walled sites. Decision doc at `docs/research-stack-decision.md`.
+
+- **No vault restructuring (2026-04-19).** Linards explicitly rejected workshop-template paths or entity/topic folders into `Fredis/`. Current flat MEMORY.md structure stays as-is.
+
+- **Port-first, not build-first (2026-04-19).** Linards directive for skills: stop authoring de novo where an existing open-source skill fits. Port, add Fredis advisor-mode wrapper + attribution, only build de novo when no upstream match exists.
+
+## Lessons Learned
+
+These are the day-one rules — synthesised from J5. The brain should respect these without re-questioning unless explicitly revisited.
+
+- **Email Hub has a UK IP overhang — "free time" isn't a complete defence.** It was built outside Merkle hours (factual point in his favour), but UK law (CDPA 1988 s.11(2), Patents Act 1977 s.39) tests scope + specific instruction, not clock-hours. The department head tasked the team with workplace innovation, and the work is squarely in his field of employment. Before pitching further: (a) read the Merkle contract IP clause verbatim, (b) drop "Merkle" from the project name, (c) recraft origin as "12 years of MarTech veteran seeing the fragmentation problem" (not "my dept head tasked our team"), (d) £150–£300 solicitor opinion letter is the cheapest insurance before any VC commitment. Going forward: keep all personal IP unambiguously independent — personal device, personal accounts, no Merkle-named folders, no internal presentations first.
+
+- **Ship one MVP to a paying client in 90 days; pause the other four.** Five active projects, zero paying clients, six months in. Shortest revenue path is Email Hub → mid-market UK agencies where 12y MarTech credibility opens doors instantly. VTV, UGOKI, GERBONI, Cab app wait. Revenue unlocks focus.
+
+- **Register a UK Ltd before the first invoice.** Cross-border personal-Gmail invoicing without an entity = tax + liability mess. UK Ltd: ~1 week, ~£50. **Don't** create an LV SIA until LV-originating revenue exists — dormant entities cost admin for nothing.
+
+- **LPV channel is an accelerator, not a foundation.** Šlesers and Krištopans replied because Linards is an LPV member writing sharp Latvian. If LPV isn't in government after the next election, those doors close. VTV's sales path must work without LPV influence: direct Rīgas Satiksme ops contact, EU transport-innovation funding, other municipalities. LPV opens door 1; never rely on it for door 2.
+
+- **VTV €2.4–4.4M ROI claim needs one transit-CFO in the room before it goes public again.** Math is plausible but founder-built. One paid 60-min conversation with a transit ops/finance pro stamps the number as credible. Without it the page reads as optimistic founder math and erodes trust in everything else.
+
+- **Don't single-thread Tim Jackson — build a VC pipeline.** Strong email, strong voice, but one VC = usually silence. Rule: no reply in 10 business days → one light follow-up with one concrete update. Stop after two. Pitch 5 more VCs with adjacent thesis fit. Walking Ventures is 2018 context — build a fresh AI/MarTech VC list for 2026.
+
+- **UK ↔ LV dual-identity positioning is the moat — lean into it publicly.** Generic: "ex-agency senior shipping working agents." Specific: "MarTech veteran at Merkle/Dentsu + VW/SEAT/Audi, 20 years in UK, Latvian-native, building AI-agentic ops bridging UK and Latvia." No other operator can credibly write that sentence. Put it in LinkedIn headline, portfolio, cold outreach.
+
+- **GitHub is invisible — for an AI consultant in 2026, that's a real missed asset.** 4 followers, pinned repos from old Ruby days, zero public AI work. Buyers increasingly check GitHub before replying. Pick one piece of tooling — Second Brain, an agentic workflow template, a Latvian-prompt library — and publish with a grep-friendly README. Never publish client work. Publish tooling.
+
+- **E4 ("avoid politics") is about the agent's public voice, not Linards's private activity.** No political opinions in drafts or public outputs. Political context (LPV, election calendars, Šlesers/Krištopans threads) IS in scope for private reasoning, scheduling, and risk analysis. SOUL.md captures this distinction.
+
+- **Protect 05:00–08:30 weekdays like the product.** Sharpest hours; Dentsu eats 09:00–17:30. That leaves 17.5 weekly best-cognition hours plus 05:00–10:00 weekends. Spend them on Ship and Frontier — never on email or admin. Admin at night when depleted anyway. The agent must enforce: no non-urgent nudges before 08:30 weekdays.
+
+- **Gavin Hughes (Ometria) is a conflict node — handle consciously.** Ex-Merkle colleague, now at an email-tech peer/competitor. Email Hub concept shared informally with him March 2026 (he liked it). Two rules: never source recent Ometria internal details for pitches; if Ometria ever positions a competing AI-email product, opposing sides. Keep Gavin warm; keep the boundary clean.
+
+- **Compound advantage to bias toward: 12y digital depth + current AI-agentic build.** Cold-outreach track record (Šlesers, Krištopans, Tim Jackson) shows tone-calibration beats credentials at first contact. Bias recommendations toward leveraging this compound (digital ops + AI workflows for real businesses), not toward generic AI-consulting moves any 6-month newcomer could copy. When drafting first-touch messages, prioritise register and peer-level respect over listing credentials.
+
+- **Re-evaluate dismissed fixes when new defenses change the risk calculus.** Dismissed tightening coarse input regexes as "weakening security" — but after building the output redactor (`redact-secrets.py`), the residual risk of a looser input gate was much lower. Should have circled back immediately. General rule: when a new defensive layer lands, re-scan earlier trade-offs it might have made cheaper.
+
+## Important Facts
+
+- **The "why" behind everything:** building enough durable, diversified income streams to let his family (wife, son, dog) live freely across UK, Latvia, and Argentina. A permanent home in Latvia and Argentina (wife's home country) is the long-game. Every research lane is a sub-investigation of this one question.
+- **Active fear:** being too late on AI-agentic adoption for local SMBs, or those SMBs deciding they don't need an AI workflow + second brain. Counter-positioning: present the AI-agentic second brain as an extension of business capability, not a replacement.
+- **Investment in build infrastructure:** Claude Code Max 20 subscription — meaningful monthly cost, treated as a productivity multiplier worth the spend.
+- **Latvian voice samples seeded (2026-04-19):** 11 Latvian sent-draft files now in `drafts/sent/lv-seed/` for voice-matching. Baseline corpus exists; still flag if drafts sound off — may need real sent emails to refine further.
+- **Source for voice-matching (English):** the Tim Jackson Email Hub note (D8 in the interview) is the canonical English voice sample.
+- **Reference personality:** Chris Lori (seasoned trader) — calm, evidence-first, doesn't soften the call.
+- **Phase 5.1 skill-stack complete (2026-04-19):** 28 skills live under `.claude/skills/` — 25 ported from alirezarezvani/claude-skills (MIT), 3 de novo (`ip-overhang-guard`, `business-cycle-analyst`, `robotics-engineer`). All use Anthropic 3-level progressive disclosure. Test baseline: 282/282 pass, ruff clean, mypy clean.
+- **Heartbeat + reflection running on schedule (2026-04-19):** launchd plists installed on Mac — heartbeat every 120 min (self-gates active hours), reflection daily at 08:00. macOS TCC resolved by granting `/bin/bash` Full Disk Access (repo is in `~/Desktop/`, a TCC-protected path).
+
+## Active Projects
+
+| # | Project | Path / Repo | Stage | Sequence | Sensitivity |
+|---|---------|-------------|-------|----------|-------------|
+| 1 | **VTV Riga Transport** | `/Users/Berzins/Desktop/VTV` | MVP / inbound LPV interest | **Ships first** | Politically connected — don't lean on LPV alone |
+| 2 | **Cab Application (LV)** | (planned, partners Atis + Juris) | concept / shares VTV codebase | After VTV traction | Bolt-replacement angle in LV |
+| 3 | **Email Hub** | `/Users/Berzins/Desktop/merkle-email-hub` (pitch.html) | MVP / pitching | **Blocked** — IP question | UK IP overhang — handle carefully |
+| 4 | **UGOKI** | github.com/linardsb/ugoki-iOS-Android-app | MVP done | Paused | Tim Jackson 2018 thread — restart cold-warm |
+| 5 | **GERBONI** | github.com/linardsb/GERBONI | online shop | Paused | Physical-product crossover, lower priority |
+
+**Sequencing decided (2026-04-19):** product-builder path. VTV first → Cab rides VTV distribution → Email Hub after IP clearance. UGOKI + GERBONI paused. See Key Decisions above for kill triggers.
+
+## Upcoming Events
+
+_(No fixed recurring commitments yet — Y2 not provided. The brain should populate this as deadlines, calls, and family dates surface.)_
+
+## Preferences Confirmed
+
+- **Active hours:** 05:00–20:00 UK; sharpest 05:00–18:00; never nudge after 22:00 UK
+- **Weekends are working hours too** (6–8 h typical) — same active window
+- **No emoji.** Ever
+- **Casual register**, balanced length, neutral voice, evidence-first when correcting
+- **Direct disagreement** preferred over hedged framing
+- **No politics, current affairs, or celebrities** in agent's public output (private context tracking is fine)
+- **Notification channels:** Slack DM + macOS native + WhatsApp
+- **Morning brief on**, end-of-day one-line wrap on, late-day pillar nudge **off**
+- **Drafts policy:** never draft for noreply / notification / receipt / cold-outreach senders. Draft freely on threads where Linards has already engaged ≥1 reply
+- **Slack drafts:** DMs + @mentions only; client workspaces draft aggressively; community workspaces @mentions only
+- **Discord drafts:** when addressed or in engaged threads only; flag (don't draft) unanswered expertise-channel questions ≥2h old
+- **Approval flow:** Slack preview with approve/edit for routine; inline draft + explicit approval for high-stakes; auto-send only on plain acks at ≥95% confidence; never auto-send apologies, pushback, or first-contact
+
+## Research Lanes (active intent — see folders under `Fredis/Memory/research/`)
+
+- **AI / agentic engineering** — frontier-tracking for consultancy positioning
+- **Markets & finance** — UK + LV + AR; commodity cycles feed VTV and personal portfolio
+- **Public-sector policy & legislation** — UK + LV + EU + AR; gap-spotting for business opportunities
+- **AI in agriculture** (★ year-end deep-understanding goal) — UK SFI / EU CAP via LV / AR export regime; mid-market 200–2000 ha sweet spot
+- **AI robotics** (passive, prospective service line)
+- **Materials / industrial innovation** (passive) — sub-lanes: `mycelium/` (bio-materials, packaging, building, agri crossover), `3d_printing/` (additive manufacturing, consumer + industrial hardware, materials-science plays)
+
+## Open Watch Items
+
+- **Email Hub IP question — execution blocker.** Has Linards raised the IP question with Merkle legal yet? Email Hub is paused until answered. Kill trigger: no answer by month 2 → pause indefinitely (2026-04-19)
+- **VTV-first sequencing — needs explicit confirmation.** Linards hasn't confirmed whether VTV ships first with Cab after, or whether Cab runs in parallel. Product plan assumes sequential (2026-04-19)
+- 10-skill product-lifecycle stack (Wave 2 skills) — planned but explicitly gated: "don't draft anything yet" until open questions answered (2026-04-19)
+- How to reach UK + LV SMBs that haven't adopted AI workflows yet (C10)
+- UK Ltd registration before first invoice
+- VC pipeline build-out (post Tim Jackson one-shot)
+- Chat listener persistence — Slack chat bot works but dies on terminal close. Launchd plist (`com.linards.fredis-chat.plist`) agreed in principle, not built yet (2026-04-19)
+- Research/analyst skill — identified as a real gap. Three modes proposed: brief (heartbeat morning sweep), deep (on-demand report to `research/`), synthesise (cross-lane strategic read). Not yet built (2026-04-18)
+- `setup_workspace.py` bugs #2-#4 — stale defaults (30 min, 08-22, etc.) are a booby trap if the script is ever re-run. Documented in `.agent/audits/2026-04-18_phases-0-4-audit.md` (2026-04-19)
+
+---
+
+_This file is curated from daily logs. During heartbeats, recent daily logs are reviewed and important items are promoted here._
