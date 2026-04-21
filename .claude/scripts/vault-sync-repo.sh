@@ -15,14 +15,32 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 LOG="$SCRIPT_DIR/vault_sync_runs.log"
-LOCK="/tmp/fredis-vault-sync.lock"
+LOCK_DIR="/tmp/fredis-vault-sync.lock.d"
 
 cd "$REPO_ROOT"
 
 log() { printf '[%s] vault-sync: %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" >> "$LOG"; }
 
-exec 9>"$LOCK"
-flock -n 9 || { log "another vault-sync running — skip"; exit 0; }
+# Atomic mkdir-based lock (cross-platform; macOS has no flock).
+# Stale-lock reclaim: if the owning PID is gone, retake.
+if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+    if [ -f "$LOCK_DIR/pid" ]; then
+        owner="$(cat "$LOCK_DIR/pid" 2>/dev/null || echo '')"
+        if [ -n "$owner" ] && ! kill -0 "$owner" 2>/dev/null; then
+            log "reclaiming stale lock from pid $owner"
+            rm -rf "$LOCK_DIR"
+            mkdir "$LOCK_DIR" 2>/dev/null || { log "lock reclaim race — skip"; exit 0; }
+        else
+            log "another vault-sync running (pid $owner) — skip"
+            exit 0
+        fi
+    else
+        log "another vault-sync running — skip"
+        exit 0
+    fi
+fi
+echo "$$" > "$LOCK_DIR/pid"
+trap 'rm -rf "$LOCK_DIR"' EXIT
 
 # 0. Bail fast if no Fredis/ directory (shouldn't happen post-Phase-10.5).
 if [ ! -d "$REPO_ROOT/Fredis" ]; then
@@ -39,8 +57,8 @@ if ! git diff --cached --quiet -- Fredis/; then
     STAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
     if git -c user.name="fredis-vault-sync" \
            -c user.email="vault-sync@fredis.local" \
-           commit --only -- Fredis/ \
-           -m "vault: sync from $HOST_SHORT @ $STAMP" >>"$LOG" 2>&1; then
+           commit --only -m "vault: sync from $HOST_SHORT @ $STAMP" \
+           -- Fredis/ >>"$LOG" 2>&1; then
         log "committed vault changes"
     else
         log "commit failed — leaving staged for next run"
