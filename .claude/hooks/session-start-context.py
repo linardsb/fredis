@@ -40,7 +40,7 @@ def read_file_safe(path: Path) -> str:
     return ""
 
 
-def get_recent_daily_log(max_lines_per_day: int = MAX_DAILY_LOG_LINES, days: int = 3) -> str:
+def get_recent_daily_log(max_lines_per_day: int = MAX_DAILY_LOG_LINES, days: int = 1) -> str:
     """Read the last N days of daily logs, tail-capped per day, with date headers."""
     today = now_local()
     blocks: list[str] = []

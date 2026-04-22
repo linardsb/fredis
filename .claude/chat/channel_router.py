@@ -22,6 +22,14 @@ import yaml
 
 MatchSource = Literal["by_id", "by_name", "dm_default", "fallback"]
 
+# Alias → concrete Claude model ID. Kept here (not in YAML) so version pins
+# live in code and can be code-reviewed.
+MODEL_IDS: dict[str, str] = {
+    "opus":   "claude-opus-4-7",
+    "sonnet": "claude-sonnet-4-6",
+    "haiku":  "claude-haiku-4-5-20251001",
+}
+
 
 @dataclass(frozen=True)
 class RoutingConfig:
@@ -32,6 +40,8 @@ class RoutingConfig:
     by_id: dict[str, str]
     default_dm: str
     default_fallback: str
+    model_by_channel: dict[str, str]
+    default_model: str
 
 
 class ChannelRouter:
@@ -68,11 +78,53 @@ class ChannelRouter:
         clean_channels = {str(k): str(v) for k, v in channels.items()}
         clean_by_id = {str(k): str(v) for k, v in by_id.items()}
 
+        # Parse optional `models:` block. Expected shape:
+        #   models:
+        #     opus: [chan_a, chan_b]
+        #     haiku: [chan_c]
+        #     default: sonnet
+        # Missing block → everything maps to the "sonnet" default.
+        models_raw: Any = raw.get("models") or {}
+        if not isinstance(models_raw, dict):
+            raise ValueError("channel-routing.yaml: models must be a mapping")
+
+        default_model = str(models_raw.get("default") or "sonnet")
+        if default_model not in MODEL_IDS:
+            raise ValueError(
+                f"channel-routing.yaml: models.default={default_model!r} "
+                f"is not one of {sorted(MODEL_IDS)}"
+            )
+
+        model_by_channel: dict[str, str] = {}
+        for alias, chans in models_raw.items():
+            if alias == "default":
+                continue
+            if alias not in MODEL_IDS:
+                raise ValueError(
+                    f"channel-routing.yaml: unknown model alias {alias!r}; "
+                    f"expected one of {sorted(MODEL_IDS)}"
+                )
+            if not isinstance(chans, list):
+                raise ValueError(
+                    f"channel-routing.yaml: models.{alias} must be a list of "
+                    f"channel names, got {type(chans).__name__}"
+                )
+            for chan in chans:
+                name = str(chan)
+                if name in model_by_channel:
+                    raise ValueError(
+                        f"channel-routing.yaml: channel {name!r} appears in "
+                        f"multiple model tiers"
+                    )
+                model_by_channel[name] = alias
+
         return RoutingConfig(
             channels=clean_channels,
             by_id=clean_by_id,
             default_dm=str(default_dm),
             default_fallback=str(default_fallback),
+            model_by_channel=model_by_channel,
+            default_model=default_model,
         )
 
     def resolve(
@@ -123,6 +175,26 @@ class ChannelRouter:
                     source = "fallback"
 
         return self._resolve_under_root(rel), source
+
+    def resolve_model(
+        self,
+        channel_id: str,
+        channel_name: str | None,
+        is_dm: bool,
+    ) -> str:
+        """Return the concrete Claude model ID to run for this channel.
+
+        Lookup: DM or unknown channel → `models.default`. Otherwise match by
+        channel name against `models.<alias>` lists. Alias → concrete ID via
+        `MODEL_IDS` (version pins live there).
+        """
+        if is_dm or not channel_name:
+            alias = self._config.default_model
+        else:
+            alias = self._config.model_by_channel.get(
+                channel_name, self._config.default_model
+            )
+        return MODEL_IDS[alias]
 
     def resolve_override(self, target: str) -> Path:
         """Resolve a user-supplied save-to target to an absolute vault folder.

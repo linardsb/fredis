@@ -1,4 +1,5 @@
 {
+  "disabledMcpjsonServers": ["pencil", "jdocmunch"],
   "hooks": {
     "PreToolUse": [
       {

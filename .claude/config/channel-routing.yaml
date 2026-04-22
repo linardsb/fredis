@@ -83,3 +83,32 @@ by_id:
 defaults:
   dm:       Fredis/Memory/daily/
   fallback: Fredis/Memory/daily/
+
+# Model tier per channel. Opus for deep strategy + research; Haiku for quick
+# transactional channels (integrations); Sonnet as the balanced default for
+# everything else (including DMs and unmapped channels).
+# Channel alias → concrete model ID is resolved in channel_router.MODEL_IDS.
+models:
+  opus:
+    - product
+    - vtv
+    - email-hub
+    - cab-app
+    - ideation
+    - market-research
+    - research-ai
+    - research-agriculture
+    - research-robotics
+    - research-policy
+    - research-materials
+    - clients
+  haiku:
+    - gmail
+    - calendar
+    - asana-board
+    - monday
+    - g-drive
+    - g-sheets
+    - g-docs
+    - github
+  default: sonnet

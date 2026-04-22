@@ -242,41 +242,40 @@ class ConversationEngine:
         # Look up existing session
         existing = self.session_store.get(platform_str, channel_id, thread_id)
 
+        # Pick the model tier for this channel. Router maps channel → Opus
+        # (deep strategy/research), Haiku (quick transactional), or Sonnet
+        # (default). Falls back to Sonnet when no router is wired.
+        if self.channel_router is not None:
+            selected_model = self.channel_router.resolve_model(
+                channel_id=channel_id,
+                channel_name=message.channel.name,
+                is_dm=message.channel.is_dm,
+            )
+        else:
+            selected_model = "claude-sonnet-4-6"
+
         # Build Agent SDK options
         options_kwargs: dict[str, Any] = {
             "cwd": str(self.project_root),
+            "model": selected_model,
             "setting_sources": ["user", "project"],
             "system_prompt": {
                 "type": "preset",
                 "preset": "claude_code",
                 "append": (
-                    "\n\n# Chat Interface Rules\n"
-                    "You are responding through a chat interface (Slack). "
-                    "Only your FINAL assistant turn is shown to the user — all intermediate turns "
-                    "(tool calls, research, reasoning) are invisible. Therefore:\n"
-                    "- Your last message MUST contain the complete, self-contained answer.\n"
-                    "- Do NOT split your answer across multiple turns. "
-                    "Do all research/tool calls first, "
-                    "then write one comprehensive final response.\n"
-                    "- Never end with just sources, references, or a summary — "
-                    "the full report belongs in the final turn.\n"
-                    "\n## Advisor Mode\n"
-                    "Advisor mode: draft replies into Fredis/Memory/drafts/active/; never send. "
-                    "Full personality + boundaries live in Fredis/Memory/SOUL.md (read on demand). "
-                    "User profile in Fredis/Memory/USER.md, decisions in Fredis/Memory/MEMORY.md, "
-                    "today's context in Fredis/Memory/daily/"
-                    f"{datetime.now().strftime('%Y-%m-%d')}.md.\n"
-                    "\n## Sending Images in Slack\n"
-                    "When you generate images and need to share them with the user:\n"
-                    "- Include the ABSOLUTE file path(s) in your final response text "
-                    "(e.g. /home/user/project/.../image.png)\n"
-                    "- The chat engine automatically detects image paths in your response, "
-                    "verifies the files exist, and uploads them directly into the current "
-                    "Slack thread.\n"
-                    "- NEVER call the Slack API directly to upload files (e.g. via slack_sdk). "
-                    "This bypasses thread context and sends images to the wrong place.\n"
-                    "- Just mention the paths naturally in your response and the system "
-                    "handles delivery.\n"
+                    "\n\n# Chat (Slack) rules\n"
+                    "Only your FINAL turn is shown — all tool calls and intermediate "
+                    "turns are invisible. Do all research first, then write one "
+                    "complete, self-contained answer. Never end with just sources or "
+                    "a summary.\n"
+                    "\n# Advisor mode\n"
+                    "Draft replies into Fredis/Memory/drafts/active/; never send. "
+                    "Context (read on demand): SOUL.md, USER.md, MEMORY.md, "
+                    f"daily/{datetime.now().strftime('%Y-%m-%d')}.md.\n"
+                    "\n# Images\n"
+                    "Include absolute file paths in your response — the engine "
+                    "auto-uploads them to the current Slack thread. Never call the "
+                    "Slack API directly (wrong thread).\n"
                 ),
             },
             "allowed_tools": [
