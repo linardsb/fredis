@@ -267,13 +267,13 @@ Run on VPS:
 REPO=/root/claude-code-second-brain
 
 cp $REPO/.claude/scripts/schedule/secondbrain-chat.service /etc/systemd/system/
-cp $REPO/.claude/scripts/schedule/{deps-audit,fredis-heartbeat,fredis-reflect,vault-sync}.service /etc/systemd/system/
-cp $REPO/.claude/scripts/schedule/{deps-audit,fredis-heartbeat,fredis-reflect,vault-sync}.timer /etc/systemd/system/
+cp $REPO/.claude/scripts/schedule/{deps-audit,fredis-heartbeat,fredis-reflect,fredis-summary,vault-sync}.service /etc/systemd/system/
+cp $REPO/.claude/scripts/schedule/{deps-audit,fredis-heartbeat,fredis-reflect,fredis-summary,vault-sync}.timer /etc/systemd/system/
 
 # Substitute __REPO_ROOT__ in every unit file in one pass
 sed -i "s|__REPO_ROOT__|$REPO|g" \
-  /etc/systemd/system/{deps-audit,fredis-heartbeat,fredis-reflect,vault-sync}.service \
-  /etc/systemd/system/{deps-audit,fredis-heartbeat,fredis-reflect,vault-sync}.timer
+  /etc/systemd/system/{deps-audit,fredis-heartbeat,fredis-reflect,fredis-summary,vault-sync}.service \
+  /etc/systemd/system/{deps-audit,fredis-heartbeat,fredis-reflect,fredis-summary,vault-sync}.timer
 
 systemctl daemon-reload
 
@@ -281,15 +281,15 @@ systemctl daemon-reload
 # vault-sync.timer stays disabled until Phase 10.5 closes the git-remote gap —
 # otherwise it fails every 2 min with "fatal: not a git repository".
 systemctl enable --now secondbrain-chat.service
-systemctl enable --now deps-audit.timer fredis-heartbeat.timer fredis-reflect.timer
+systemctl enable --now deps-audit.timer fredis-heartbeat.timer fredis-reflect.timer fredis-summary.timer
 ```
 
 **Verify:**
 
 ```bash
-systemctl list-timers | grep -E "fredis|deps"          # 3 timers
+systemctl list-timers | grep -E "fredis|deps"          # 4 timers (heartbeat, reflect, summary, deps-audit)
 systemctl is-active secondbrain-chat                   # active
-systemd-analyze verify /etc/systemd/system/{secondbrain-chat,deps-audit,fredis-heartbeat,fredis-reflect,vault-sync}.{service,timer} 2>&1 | head
+systemd-analyze verify /etc/systemd/system/{secondbrain-chat,deps-audit,fredis-heartbeat,fredis-reflect,fredis-summary,vault-sync}.{service,timer} 2>&1 | head
 ```
 
 `systemd-analyze verify` should return no output (silent pass).

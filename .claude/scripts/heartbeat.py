@@ -268,6 +268,38 @@ def _fetch_raw_data() -> dict[str, Any]:
         data["errors"]["monday"] = str(e)
         print(f"[{now_local()}] Monday error (non-fatal): {e}")
 
+    # Monday targeted scans — flag-gated. Off by default; flip
+    # MONDAY_SCANS_ENABLED=true after seeding real rows on the boards.
+    from config import MONDAY_SCANS_ENABLED
+
+    data["monday_overdue_invoices"] = []
+    data["monday_silent_contacts"] = []
+    data["monday_stale_deals"] = []
+    data["monday_breached_gates"] = []
+    if MONDAY_SCANS_ENABLED:
+        try:
+            from integrations.monday_scans import (
+                breached_lane_gates,
+                overdue_invoices,
+                silent_contacts,
+                stale_deals,
+            )
+
+            data["monday_overdue_invoices"] = overdue_invoices(limit=50)
+            data["monday_silent_contacts"] = silent_contacts(limit=50)
+            data["monday_stale_deals"] = stale_deals(limit=50)
+            data["monday_breached_gates"] = breached_lane_gates(limit=25)
+            print(
+                f"[{now_local()}] Monday scans: "
+                f"{len(data['monday_overdue_invoices'])} overdue invoices, "
+                f"{len(data['monday_silent_contacts'])} silent contacts, "
+                f"{len(data['monday_stale_deals'])} stale deals, "
+                f"{len(data['monday_breached_gates'])} breached gates"
+            )
+        except Exception as e:
+            data["errors"]["monday_scans"] = str(e)
+            print(f"[{now_local()}] Monday scans error (non-fatal): {e}")
+
     # GitHub
     try:
         from integrations.github_api import recent_commits, review_requests
@@ -1096,7 +1128,10 @@ def _save_heartbeat_thread(channel_id: str, thread_ts: str, alert_text: str) -> 
 # =============================================================================
 
 
-async def run_heartbeat(test_mode: bool = False) -> str | None:
+async def run_heartbeat(
+    test_mode: bool = False,
+    summary_mode: bool = False,
+) -> str | None:
     """
     Run a single heartbeat check with state diffing.
 
@@ -1110,6 +1145,9 @@ async def run_heartbeat(test_mode: bool = False) -> str | None:
 
     Args:
         test_mode: If True, skip notifications and active hours check
+        summary_mode: If True, produce an afternoon recap regardless of threshold
+            (always sends, never returns HEARTBEAT_OK). Used by the 17:00 UK
+            daily summary timer.
 
     Returns:
         Response summary from the agent, or None if HEARTBEAT_OK
@@ -1126,8 +1164,10 @@ async def run_heartbeat(test_mode: bool = False) -> str | None:
         query,
     )
 
-    # Check if within active hours (unless test mode)
-    if not test_mode and not is_within_active_hours():
+    # Check if within active hours (unless test mode or summary mode).
+    # Summary mode is scheduled at a fixed time (17:00 UK) and should fire even
+    # if manually invoked outside active hours.
+    if not test_mode and not summary_mode and not is_within_active_hours():
         print(f"[{now_local()}] Outside active hours, skipping heartbeat")
         log_hook_execution(
             "heartbeat", "scheduled", "SKIP", time.time() - _start, "outside active hours"
@@ -1233,12 +1273,25 @@ async def run_heartbeat(test_mode: bool = False) -> str | None:
     # Monday + GitHub sit outside the diff pipeline; format standalone. Formatters
     # already wrap themselves in <external_data> and sanitize.
     monday_ctx = ""
-    if raw_data.get("monday_overdue") or raw_data.get("monday_my_items"):
+    scan_buckets = [
+        raw_data.get("monday_overdue"),
+        raw_data.get("monday_my_items"),
+        raw_data.get("monday_overdue_invoices"),
+        raw_data.get("monday_silent_contacts"),
+        raw_data.get("monday_stale_deals"),
+        raw_data.get("monday_breached_gates"),
+    ]
+    if any(scan_buckets):
         from integrations.monday_api import format_items_for_context as format_monday
 
-        combined = list(raw_data["monday_overdue"]) + [
-            i for i in raw_data["monday_my_items"] if i not in raw_data["monday_overdue"]
-        ]
+        seen_ids: set[str] = set()
+        combined = []
+        for bucket in scan_buckets:
+            for item in bucket or []:
+                if item.id in seen_ids:
+                    continue
+                seen_ids.add(item.id)
+                combined.append(item)
         monday_ctx = format_monday(combined)
 
     github_ctx = ""
@@ -1404,10 +1457,22 @@ Ship-pillar signal auto-tick: **{"YES" if ship_tick else "no"}** (commits pushed
 ## Instructions
 
 ### Priority 1: Alerts
-Review the platform data and determine:
-1. Is there anything NEW that needs {owner}'s immediate attention?
-2. Any urgent items? (meetings starting soon, overdue tasks, urgent emails)
-3. Skip anything marked "unchanged" — it was already reported.
+
+Report anything NEW in these "always surface" categories, even without explicit urgency markers:
+- Emails from a real person (replies from contacts, client questions, teammates, personal correspondence) — NOT marketing/automated
+- GitHub direct @mentions on PRs/issues; review requests addressed to {owner}
+- Slack DMs or direct @mentions in monitored channels
+- Calendar: meetings starting within the next 60min, same-day scheduling conflicts, newly-added events
+- Overdue or due-today Monday.com tasks
+
+Stay silent on (do NOT surface):
+- Marketing emails, newsletters, sales/promotional content
+- Automated notifications (dependabot, CI failures on others' PRs, generic system alerts)
+- Tech news / industry updates / AI newsletters
+- Email digests and catch-all mailing lists
+- Items marked "unchanged" — already reported
+
+If nothing in the "always surface" list is NEW since the last heartbeat, respond with HEARTBEAT_OK.
 
 ### Priority 2: Draft Management
 **Do NOT reconcile drafts yourself.** Draft reconciliation (detecting replies and moving drafts to `sent/`) is handled automatically by Python before you run. See "Pre-Reconciled Drafts" above for what was already handled. Your job is ONLY to create new drafts.
@@ -1450,6 +1515,27 @@ cd .claude/scripts && uv run python query.py gmail create-draft --from-file "Fre
 ## Reminder
 
 Your final text response goes directly to {owner}'s phone. Keep it to just bullets + priority (see Response Format at top).
+"""
+
+    # Daily summary override — the 17:00 UK recap always produces a digest,
+    # bypassing the threshold. Use terse bullet format, no HEARTBEAT_OK.
+    if summary_mode:
+        heartbeat_prompt += f"""
+
+## DAILY SUMMARY OVERRIDE (this run)
+
+This is the afternoon recap for {owner}, not an alert check. Override the response format above:
+
+- ALWAYS produce a response. NEVER return HEARTBEAT_OK.
+- Write a scannable transparency checkpoint — {owner} wants to see what you saw today, including borderline items you silenced so they can catch misses.
+
+Format (~200 words max):
+- **Scanned today:** counts per source (e.g. "12 emails, 3 meetings, 5 GitHub notifications, 8 Monday tasks")
+- **Alerted:** 1-line recap per alert already sent today, or "none" if silent all day
+- **Silenced (borderline):** short list of items you filtered out that were more than pure marketing — anything work-related, GitHub activity worth a glance, newsletters with substance. Be honest. If everything was clearly noise, write "pure noise".
+- **Remaining today:** calendar events still ahead, overdue Monday tasks, habits not yet done.
+
+End with: Priority: NORMAL
 """
 
     # Run the agent - Claude reasons over pre-fetched data
@@ -1589,7 +1675,8 @@ Your final text response goes directly to {owner}'s phone. Keep it to just bulle
 
     save_state(state, HEARTBEAT_STATE_FILE)
 
-    if "HEARTBEAT_OK" in response_text:
+    # Summary mode always sends — bypass the silent HEARTBEAT_OK path.
+    if "HEARTBEAT_OK" in response_text and not summary_mode:
         # Nothing to report
         append_to_daily_log(
             "HEARTBEAT_OK - Nothing needs attention",
@@ -1640,13 +1727,17 @@ def main() -> None:
     ensure_directories()
 
     test_mode = "--test" in sys.argv
+    summary_mode = "--summary" in sys.argv
 
     if test_mode:
         print("Running in TEST MODE (no notifications, ignoring active hours)")
         print(f"Project root: {PROJECT_ROOT}")
         print("Using direct integrations (Phase 5)")
 
-    result = asyncio.run(run_heartbeat(test_mode=test_mode))
+    if summary_mode:
+        print("Running in SUMMARY MODE (always sends afternoon recap)")
+
+    result = asyncio.run(run_heartbeat(test_mode=test_mode, summary_mode=summary_mode))
 
     if result:
         print(f"\nHeartbeat result:\n{result}")

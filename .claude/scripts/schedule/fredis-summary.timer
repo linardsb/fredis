@@ -1,0 +1,10 @@
+[Unit]
+Description=Trigger Fredis daily summary at 17:00 Europe/London
+
+[Timer]
+OnCalendar=*-*-* 17:00:00 Europe/London
+Persistent=true
+Unit=fredis-summary.service
+
+[Install]
+WantedBy=timers.target
