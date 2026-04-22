@@ -26,6 +26,10 @@ class Session:
     message_count: int = 0
     total_cost_usd: float = 0.0
     status: str = "active"
+    # Phase 11.1: when set, chat summaries for this thread write here instead
+    # of the channel-routed default. Absolute path string (resolved at
+    # override-set time) so process restarts re-hydrate the target unchanged.
+    summary_folder_override: str | None = None
 
 
 @dataclass
@@ -76,9 +80,26 @@ class SQLiteSessionStore:
                 CREATE UNIQUE INDEX IF NOT EXISTS idx_hb_channel_thread
                     ON heartbeat_threads(channel_id, thread_ts);
             """)
+            # Phase 11.1 migration: add summary_folder_override if missing.
+            # SQLite has no `ADD COLUMN IF NOT EXISTS`, so inspect schema first.
+            cols = {
+                row[1]
+                for row in conn.execute("PRAGMA table_info(chat_sessions)").fetchall()
+            }
+            if "summary_folder_override" not in cols:
+                conn.execute(
+                    "ALTER TABLE chat_sessions ADD COLUMN summary_folder_override TEXT"
+                )
 
     def _row_to_session(self, row: sqlite3.Row) -> Session:
         """Convert a database row to a Session object."""
+        # ``summary_folder_override`` may be absent on DBs predating the
+        # Phase 11.1 migration that just added the column — tolerate its
+        # absence on the row view.
+        keys = set(row.keys()) if hasattr(row, "keys") else set()
+        override = (
+            row["summary_folder_override"] if "summary_folder_override" in keys else None
+        )
         return Session(
             session_id=row["session_id"],
             agent_session_id=row["agent_session_id"],
@@ -91,6 +112,7 @@ class SQLiteSessionStore:
             message_count=row["message_count"],
             total_cost_usd=row["total_cost_usd"],
             status=row["status"],
+            summary_folder_override=override,
         )
 
     def get(self, platform: str, channel_id: str, thread_id: str) -> Session | None:
@@ -119,8 +141,9 @@ class SQLiteSessionStore:
                 conn.execute(
                     """INSERT INTO chat_sessions
                        (session_id, agent_session_id, platform, channel_id, thread_id,
-                        user_id, created_at, updated_at, message_count, total_cost_usd, status)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        user_id, created_at, updated_at, message_count, total_cost_usd,
+                        status, summary_folder_override)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (
                         session.session_id,
                         session.agent_session_id,
@@ -133,6 +156,7 @@ class SQLiteSessionStore:
                         session.message_count,
                         session.total_cost_usd,
                         session.status,
+                        session.summary_folder_override,
                     ),
                 )
         except sqlite3.IntegrityError:
@@ -144,7 +168,7 @@ class SQLiteSessionStore:
             conn.execute(
                 """UPDATE chat_sessions
                    SET agent_session_id = ?, updated_at = ?, message_count = ?,
-                       total_cost_usd = ?, status = ?
+                       total_cost_usd = ?, status = ?, summary_folder_override = ?
                    WHERE session_id = ?""",
                 (
                     session.agent_session_id,
@@ -152,6 +176,7 @@ class SQLiteSessionStore:
                     session.message_count,
                     session.total_cost_usd,
                     session.status,
+                    session.summary_folder_override,
                     session.session_id,
                 ),
             )
@@ -258,6 +283,11 @@ class PostgresSessionStore:
                 status TEXT DEFAULT 'active'
             )
         """)
+        # Phase 11.1 migration — add column on existing deployments too.
+        cur.execute("""
+            ALTER TABLE chat_sessions
+                ADD COLUMN IF NOT EXISTS summary_folder_override TEXT
+        """)
         cur.execute("""
             CREATE INDEX IF NOT EXISTS idx_platform_thread
                 ON chat_sessions(platform, channel_id, thread_id)
@@ -277,7 +307,14 @@ class PostgresSessionStore:
         """)
 
     def _row_to_session(self, row: tuple[Any, ...]) -> Session:
-        """Convert a database row to a Session object."""
+        """Convert a database row to a Session object.
+
+        Column layout after Phase 11.1 migration:
+        ``(id, session_id, agent_session_id, platform, channel_id, thread_id,
+        user_id, created_at, updated_at, message_count, total_cost_usd,
+        status, summary_folder_override)``.
+        """
+        override = row[12] if len(row) > 12 else None
         return Session(
             session_id=row[1],
             agent_session_id=row[2],
@@ -294,6 +331,7 @@ class PostgresSessionStore:
             message_count=row[9],
             total_cost_usd=float(row[10]),
             status=row[11],
+            summary_folder_override=override,
         )
 
     def get(self, platform: str, channel_id: str, thread_id: str) -> Session | None:
@@ -318,8 +356,9 @@ class PostgresSessionStore:
             cur.execute(
                 """INSERT INTO chat_sessions
                    (session_id, agent_session_id, platform, channel_id, thread_id,
-                    user_id, created_at, updated_at, message_count, total_cost_usd, status)
-                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                    user_id, created_at, updated_at, message_count, total_cost_usd,
+                    status, summary_folder_override)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
                 (
                     session.session_id,
                     session.agent_session_id,
@@ -332,6 +371,7 @@ class PostgresSessionStore:
                     session.message_count,
                     session.total_cost_usd,
                     session.status,
+                    session.summary_folder_override,
                 ),
             )
         except psycopg.errors.UniqueViolation:
@@ -343,7 +383,7 @@ class PostgresSessionStore:
         cur.execute(
             """UPDATE chat_sessions
                SET agent_session_id = %s, updated_at = %s, message_count = %s,
-                   total_cost_usd = %s, status = %s
+                   total_cost_usd = %s, status = %s, summary_folder_override = %s
                WHERE session_id = %s""",
             (
                 session.agent_session_id,
@@ -351,6 +391,7 @@ class PostgresSessionStore:
                 session.message_count,
                 session.total_cost_usd,
                 session.status,
+                session.summary_folder_override,
                 session.session_id,
             ),
         )

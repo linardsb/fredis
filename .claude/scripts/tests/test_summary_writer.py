@@ -271,6 +271,196 @@ def test_dm_channel_name_empty_is_tolerated(tmp_path: Path) -> None:
     assert fm["channel_id"] == "D001"
 
 
+def test_relocate_existing_moves_file(tmp_path: Path) -> None:
+    """Phase 11.1: on override, the in-progress summary file must move."""
+    from summary_writer import append_summary, relocate_existing
+
+    old_folder = tmp_path / "ideation"
+    new_folder = tmp_path / "builds" / "email-hub"
+    ts = datetime(2026, 4, 22, 14, 0, 0)
+
+    # Start a thread in ideation.
+    result = append_summary(
+        folder=old_folder,
+        channel="ideation",
+        channel_id="C1",
+        thread_ts="1700.001",
+        user_text="initial idea",
+        bot_text="ack",
+        timestamp=ts,
+    )
+    original_name = result.path.name
+    assert result.path.exists()
+
+    # Override: move to builds/email-hub/.
+    moved = relocate_existing(old_folder, new_folder, timestamp=ts, thread_ts="1700.001")
+
+    assert moved is not None
+    assert moved.name == original_name
+    assert moved.parent == new_folder
+    assert moved.exists()
+    # Original is gone.
+    assert not result.path.exists()
+
+
+def test_relocate_existing_no_file_is_noop(tmp_path: Path) -> None:
+    """If the old folder doesn't exist or has no summary yet → return None."""
+    from summary_writer import relocate_existing
+
+    # Case 1: old folder doesn't exist.
+    result = relocate_existing(
+        tmp_path / "missing",
+        tmp_path / "new",
+        timestamp=datetime(2026, 4, 22, 10, 0, 0),
+        thread_ts="1700.001",
+    )
+    assert result is None
+
+    # Case 2: old folder exists but no matching file.
+    empty_folder = tmp_path / "empty"
+    empty_folder.mkdir()
+    result = relocate_existing(
+        empty_folder,
+        tmp_path / "new",
+        timestamp=datetime(2026, 4, 22, 10, 0, 0),
+        thread_ts="1700.001",
+    )
+    assert result is None
+
+
+def test_relocate_existing_same_folder_noop(tmp_path: Path) -> None:
+    """Moving to the same folder is a no-op — no rename, returns None."""
+    from summary_writer import append_summary, relocate_existing
+
+    folder = tmp_path / "ideation"
+    ts = datetime(2026, 4, 22, 14, 0, 0)
+    result = append_summary(
+        folder=folder,
+        channel="ideation",
+        channel_id="C1",
+        thread_ts="1700.001",
+        user_text="x",
+        bot_text="y",
+        timestamp=ts,
+    )
+
+    moved = relocate_existing(folder, folder, timestamp=ts, thread_ts="1700.001")
+
+    assert moved is None
+    # File is still there.
+    assert result.path.exists()
+
+
+def test_relocate_across_midnight_finds_yesterdays_file(tmp_path: Path) -> None:
+    """Thread that starts late and overrides after midnight must still move."""
+    from summary_writer import append_summary, relocate_existing
+
+    old_folder = tmp_path / "ideation"
+    new_folder = tmp_path / "builds" / "email-hub"
+
+    # Turn 1 at 23:55 on April 21.
+    t1 = datetime(2026, 4, 21, 23, 55, 0)
+    result1 = append_summary(
+        folder=old_folder,
+        channel="ideation",
+        channel_id="C1",
+        thread_ts="1700.001",
+        user_text="late-night brainstorm",
+        bot_text="ack",
+        timestamp=t1,
+    )
+    assert result1.path.name.startswith("2026-04-21_")
+
+    # Override at 00:05 on April 22 (next day).
+    t2 = datetime(2026, 4, 22, 0, 5, 0)
+    moved = relocate_existing(
+        old_folder, new_folder, timestamp=t2, thread_ts="1700.001"
+    )
+
+    assert moved is not None
+    assert moved.exists()
+    # Filename preserves the original creation date.
+    assert moved.name.startswith("2026-04-21_")
+    # Old folder is empty.
+    assert not any(old_folder.glob("*.md"))
+
+
+def test_append_across_midnight_continues_same_file(tmp_path: Path) -> None:
+    """Turn 1 on day-A and turn 2 on day-B must write to ONE file (not two)."""
+    from summary_writer import append_summary
+
+    folder = tmp_path / "ideation"
+    t1 = datetime(2026, 4, 21, 23, 55, 0)
+    t2 = datetime(2026, 4, 22, 0, 5, 0)
+
+    append_summary(
+        folder=folder,
+        channel="ideation",
+        channel_id="C1",
+        thread_ts="1700.001",
+        user_text="late",
+        bot_text="ok",
+        timestamp=t1,
+    )
+    result2 = append_summary(
+        folder=folder,
+        channel="ideation",
+        channel_id="C1",
+        thread_ts="1700.001",
+        user_text="early",
+        bot_text="ok",
+        timestamp=t2,
+    )
+
+    assert result2.created is False
+    assert result2.turn_number == 2
+    files = list(folder.glob("*.md"))
+    assert len(files) == 1
+    # File keeps day-A's name.
+    assert files[0].name.startswith("2026-04-21_")
+
+
+def test_relocate_then_append_continues_in_new_folder(tmp_path: Path) -> None:
+    """After relocate, the next append_summary in new_folder continues the
+    same file — the turn number must increment."""
+    from summary_writer import append_summary, relocate_existing
+
+    old_folder = tmp_path / "ideation"
+    new_folder = tmp_path / "builds" / "email-hub"
+
+    t1 = datetime(2026, 4, 22, 14, 0, 0)
+    result1 = append_summary(
+        folder=old_folder,
+        channel="ideation",
+        channel_id="C1",
+        thread_ts="1700.001",
+        user_text="idea one",
+        bot_text="ack",
+        timestamp=t1,
+    )
+    assert result1.turn_number == 1
+
+    relocate_existing(old_folder, new_folder, timestamp=t1, thread_ts="1700.001")
+
+    # Append turn 2 in the new folder; same thread_ts, same date.
+    t2 = datetime(2026, 4, 22, 14, 5, 0)
+    result2 = append_summary(
+        folder=new_folder,
+        channel="build-email-hub",
+        channel_id="C1",
+        thread_ts="1700.001",
+        user_text="follow-up",
+        bot_text="reply",
+        timestamp=t2,
+    )
+
+    assert result2.created is False
+    assert result2.turn_number == 2
+    # Only one file across BOTH folders — original moved, no leftover.
+    assert not any(old_folder.glob("*.md"))
+    assert len(list(new_folder.glob("*.md"))) == 1
+
+
 def test_third_turn_accumulates_cost_and_timestamp(tmp_path: Path) -> None:
     from summary_writer import append_summary
 

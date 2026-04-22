@@ -60,7 +60,7 @@ def append_summary(
     date_str = timestamp.strftime("%Y-%m-%d")
     ts_safe = thread_ts  # dots are filesystem-safe everywhere we run
 
-    existing = _find_existing(folder, date_str, ts_safe)
+    existing = _find_existing(folder, ts_safe)
 
     if existing is None:
         path = folder / f"{date_str}_{ts_safe}_{_slugify(user_text)}.md"
@@ -89,11 +89,53 @@ def append_summary(
     return SummaryWriteResult(path=existing, turn_number=turn_number, created=False)
 
 
-def _find_existing(folder: Path, date_str: str, thread_ts: str) -> Path | None:
-    """Locate a prior summary file for this thread on this date."""
-    pattern = f"{date_str}_{thread_ts}_*.md"
+def _find_existing(folder: Path, thread_ts: str) -> Path | None:
+    """Locate a prior summary file for this thread.
+
+    Matches on ``thread_ts`` alone — Slack thread timestamps are globally
+    unique (microsecond-precision unix epochs), so cross-date threads
+    continue in ONE file even if the thread spans midnight.
+    """
+    pattern = f"*_{thread_ts}_*.md"
     matches = sorted(folder.glob(pattern))
     return matches[0] if matches else None
+
+
+def relocate_existing(
+    old_folder: Path,
+    new_folder: Path,
+    timestamp: datetime,
+    thread_ts: str,
+) -> Path | None:
+    """Move an in-progress summary file from `old_folder` to `new_folder`.
+
+    Called when a user sets a save-to override mid-thread — the existing
+    summary file moves so future appends continue in one file. Returns the
+    new path, or None if there was no file to move (yet).
+
+    Safety:
+        - No-op if ``old_folder`` doesn't exist or holds no matching file.
+        - No-op if ``old_folder`` and ``new_folder`` resolve to the same path.
+        - Lazy-creates ``new_folder``.
+        - Overwrites any same-named file already at the destination (highly
+          unlikely — thread_ts is unique per thread — but intentional; the
+          existing file is authoritative).
+    """
+    if old_folder.resolve() == new_folder.resolve():
+        return None
+
+    # `timestamp` kept in the signature for caller convenience / future audit,
+    # but _find_existing now matches by thread_ts alone so midnight-crossing
+    # threads relocate cleanly.
+    del timestamp
+    existing = _find_existing(old_folder, thread_ts) if old_folder.exists() else None
+    if existing is None:
+        return None
+
+    new_folder.mkdir(parents=True, exist_ok=True)
+    destination = new_folder / existing.name
+    existing.replace(destination)
+    return destination
 
 
 def _slugify(text: str) -> str:

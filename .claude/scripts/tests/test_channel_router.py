@@ -223,6 +223,80 @@ defaults:
     assert prefix == "builds/email-hub/"
 
 
+def test_resolve_override_matches_channel_name(tmp_path: Path) -> None:
+    """A target that matches a `channels:` YAML key resolves to its mapped folder."""
+    from channel_router import ChannelRouter
+
+    cfg = _write_config(tmp_path, _MINIMAL_YAML)
+    router = ChannelRouter(cfg, tmp_path)
+
+    assert router.resolve_override("ideation") == (
+        tmp_path / "Fredis/Memory/ideation"
+    ).resolve()
+    assert router.resolve_override("marketing") == (
+        tmp_path / "Fredis/Memory/marketing"
+    ).resolve()
+
+
+def test_resolve_override_falls_back_to_free_form_path(tmp_path: Path) -> None:
+    """Unknown target → treat as relative subpath under Fredis/Memory/."""
+    from channel_router import ChannelRouter
+
+    cfg = _write_config(tmp_path, _MINIMAL_YAML)
+    router = ChannelRouter(cfg, tmp_path)
+
+    result = router.resolve_override("research/ai/sora")
+
+    assert result == (tmp_path / "Fredis/Memory/research/ai/sora").resolve()
+
+
+def test_resolve_override_strips_trailing_slash(tmp_path: Path) -> None:
+    from channel_router import ChannelRouter
+
+    cfg = _write_config(tmp_path, _MINIMAL_YAML)
+    router = ChannelRouter(cfg, tmp_path)
+
+    result = router.resolve_override("research/ai/sora/")
+
+    assert result == (tmp_path / "Fredis/Memory/research/ai/sora").resolve()
+
+
+def test_resolve_override_rejects_empty_target(tmp_path: Path) -> None:
+    from channel_router import ChannelRouter
+
+    cfg = _write_config(tmp_path, _MINIMAL_YAML)
+    router = ChannelRouter(cfg, tmp_path)
+
+    with pytest.raises(ValueError, match="empty"):
+        router.resolve_override("")
+
+    with pytest.raises(ValueError, match="empty"):
+        router.resolve_override("   ")
+
+
+def test_resolve_override_rejects_traversal(tmp_path: Path) -> None:
+    from channel_router import ChannelRouter
+
+    cfg = _write_config(tmp_path, _MINIMAL_YAML)
+    router = ChannelRouter(cfg, tmp_path)
+
+    with pytest.raises(ValueError, match="disallowed"):
+        router.resolve_override("../etc")
+
+    with pytest.raises(ValueError, match="disallowed"):
+        router.resolve_override("research/../../..")
+
+
+def test_resolve_override_rejects_backslash(tmp_path: Path) -> None:
+    from channel_router import ChannelRouter
+
+    cfg = _write_config(tmp_path, _MINIMAL_YAML)
+    router = ChannelRouter(cfg, tmp_path)
+
+    with pytest.raises(ValueError, match="disallowed"):
+        router.resolve_override("research\\ai")
+
+
 def test_production_config_loads(tmp_path: Path) -> None:
     """Smoke test: the real shipping config file loads without errors."""
     from channel_router import ChannelRouter

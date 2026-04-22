@@ -124,6 +124,37 @@ class ChannelRouter:
 
         return self._resolve_under_root(rel), source
 
+    def resolve_override(self, target: str) -> Path:
+        """Resolve a user-supplied save-to target to an absolute vault folder.
+
+        Lookup order:
+            1. `channels:` YAML map — if ``target`` is a configured channel
+               name (e.g. ``"email-hub"``, ``"build-email-hub"``, ``"marketing"``),
+               return its mapped folder.
+            2. Treat ``target`` as a relative subpath under ``Fredis/Memory/``
+               (e.g. ``"research/ai/sora"`` → ``Fredis/Memory/research/ai/sora/``).
+
+        Raises ``ValueError`` if the target is empty, contains disallowed
+        characters, or resolves outside the vault root.
+        """
+        if not target or not target.strip():
+            raise ValueError("save target is empty")
+
+        clean = target.strip().strip("/")
+        # Defence-in-depth — the parser already filters these, but guard here
+        # too so direct callers (e.g. scripts) can't smuggle traversal.
+        if ".." in clean.split("/") or "\\" in clean:
+            raise ValueError(f"save target {target!r} contains disallowed segments")
+
+        # 1) Configured channel name.
+        if clean in self._config.channels:
+            rel = self._config.channels[clean]
+            return self._resolve_under_root(rel)
+
+        # 2) Free-form relative path under Fredis/Memory/.
+        rel = f"Fredis/Memory/{clean}/"
+        return self._resolve_under_root(rel)
+
     def memory_prefix(
         self,
         channel_id: str,

@@ -28,6 +28,52 @@ sys.path.insert(0, str(_CHAT_DIR))
 # ---------------------------------------------------------------------------
 
 
+def _install_fake_sdk_with_sink(
+    monkeypatch: pytest.MonkeyPatch, prompt_sink: list[str]
+) -> None:
+    """Like `_install_fake_sdk` but captures every prompt the fake SDK receives.
+
+    Used by the D5-acknowledgment regression test to assert the save-to
+    directive reaches Claude verbatim.
+    """
+
+    @dataclass
+    class TextBlock:
+        text: str
+
+    @dataclass
+    class AssistantMessage:
+        content: list[Any] = field(default_factory=list)
+
+    @dataclass
+    class ResultMessage:
+        session_id: str = "sdk-session-xyz"
+        total_cost_usd: float | None = 0.01
+
+    class ClaudeAgentOptions:
+        def __init__(self, **kwargs: Any) -> None:
+            self.kwargs = kwargs
+
+    class HookMatcher:
+        def __init__(self, matcher: str, hooks: list[Any]) -> None:
+            self.matcher = matcher
+            self.hooks = hooks
+
+    async def query(prompt: str, options: Any) -> Any:
+        prompt_sink.append(prompt)
+        yield AssistantMessage(content=[TextBlock(text="ok")])
+        yield ResultMessage()
+
+    fake = types.ModuleType("claude_agent_sdk")
+    fake.AssistantMessage = AssistantMessage  # type: ignore[attr-defined]
+    fake.ClaudeAgentOptions = ClaudeAgentOptions  # type: ignore[attr-defined]
+    fake.HookMatcher = HookMatcher  # type: ignore[attr-defined]
+    fake.ResultMessage = ResultMessage  # type: ignore[attr-defined]
+    fake.TextBlock = TextBlock  # type: ignore[attr-defined]
+    fake.query = query  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "claude_agent_sdk", fake)
+
+
 def _install_fake_sdk(monkeypatch: pytest.MonkeyPatch) -> None:
     @dataclass
     class TextBlock:
@@ -377,6 +423,386 @@ def test_channel_scoped_retrieval_runs_two_searches_and_dedupes(
     assert 101 in chunk_ids
     assert 202 in chunk_ids
     assert 303 in chunk_ids
+
+
+class _StatefulFakeStore(_FakeStore):
+    """Tracks the latest session so thread-sticky override tests can verify
+    that subsequent `get()` calls surface the override previously set."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._sessions: dict[str, Any] = {}
+
+    def get(self, platform: str, channel_id: str, thread_id: str) -> Any:
+        key = f"{platform}:{channel_id}:{thread_id}"
+        return self._sessions.get(key)
+
+    def create(self, session: Any) -> None:
+        self._sessions[session.session_id] = session
+        self.created.append(session)
+
+    def update(self, session: Any) -> None:
+        self._sessions[session.session_id] = session
+        self.updated.append(session)
+
+
+def test_save_directive_fresh_thread_lands_in_override_folder(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from channel_router import ChannelRouter
+    from engine import ConversationEngine
+
+    _install_fake_sdk(monkeypatch)
+    _stub_bash_validator(monkeypatch)
+
+    router = ChannelRouter(_write_routing_config(tmp_path), tmp_path)
+    engine = ConversationEngine(
+        _StatefulFakeStore(), tmp_path, channel_router=router
+    )
+    # Chatting in #ideation, but directive redirects to marketing.
+    msg = _build_incoming(
+        "brainstorm pricing, save this to marketing",
+        channel_id="C999",
+        channel_name="ideation",
+        is_dm=False,
+    )
+
+    _run_turn(engine, msg)
+
+    marketing = tmp_path / "Fredis/Memory/marketing"
+    ideation = tmp_path / "Fredis/Memory/ideation"
+
+    # File lands in marketing, NOT ideation.
+    assert marketing.is_dir()
+    assert len(list(marketing.glob("*.md"))) == 1
+    assert not ideation.exists() or not any(ideation.glob("*.md"))
+
+
+def test_save_directive_override_persists_on_session(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from channel_router import ChannelRouter
+    from engine import ConversationEngine
+
+    _install_fake_sdk(monkeypatch)
+    _stub_bash_validator(monkeypatch)
+
+    router = ChannelRouter(_write_routing_config(tmp_path), tmp_path)
+    store = _StatefulFakeStore()
+    engine = ConversationEngine(store, tmp_path, channel_router=router)
+
+    msg = _build_incoming(
+        "idea, save this to marketing",
+        channel_id="C999",
+        channel_name="ideation",
+        is_dm=False,
+    )
+
+    _run_turn(engine, msg)
+
+    # Session row now has override set.
+    assert len(store.created) == 1
+    session = store.created[0]
+    expected = str((tmp_path / "Fredis/Memory/marketing").resolve())
+    assert session.summary_folder_override == expected
+
+
+def test_save_directive_second_turn_without_directive_stays_sticky(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Thread-sticky: once set, the override carries into future turns."""
+    from channel_router import ChannelRouter
+    from engine import ConversationEngine
+
+    _install_fake_sdk(monkeypatch)
+    _stub_bash_validator(monkeypatch)
+
+    router = ChannelRouter(_write_routing_config(tmp_path), tmp_path)
+    store = _StatefulFakeStore()
+    engine = ConversationEngine(store, tmp_path, channel_router=router)
+
+    # Turn 1: directive sets override → marketing.
+    _run_turn(
+        engine,
+        _build_incoming(
+            "idea, save this to marketing",
+            channel_id="C999",
+            channel_name="ideation",
+            is_dm=False,
+        ),
+    )
+
+    # Turn 2: no directive, but override should persist.
+    _run_turn(
+        engine,
+        _build_incoming(
+            "follow-up thought",
+            channel_id="C999",
+            channel_name="ideation",
+            is_dm=False,
+        ),
+    )
+
+    marketing = tmp_path / "Fredis/Memory/marketing"
+    files = list(marketing.glob("*.md"))
+    assert len(files) == 1
+    body = files[0].read_text(encoding="utf-8")
+    assert "Turn 1" in body
+    assert "Turn 2" in body
+    assert "follow-up thought" in body
+
+
+def test_save_directive_mid_thread_moves_file(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Turn 1 writes to channel default; turn 2 override moves the file."""
+    from channel_router import ChannelRouter
+    from engine import ConversationEngine
+
+    _install_fake_sdk(monkeypatch)
+    _stub_bash_validator(monkeypatch)
+
+    router = ChannelRouter(_write_routing_config(tmp_path), tmp_path)
+    store = _StatefulFakeStore()
+    engine = ConversationEngine(store, tmp_path, channel_router=router)
+
+    ideation = tmp_path / "Fredis/Memory/ideation"
+    marketing = tmp_path / "Fredis/Memory/marketing"
+
+    # Turn 1: no directive → lands in ideation.
+    _run_turn(
+        engine,
+        _build_incoming(
+            "first brainstorm",
+            channel_id="C999",
+            channel_name="ideation",
+            is_dm=False,
+        ),
+    )
+    assert len(list(ideation.glob("*.md"))) == 1
+    assert not marketing.exists() or not any(marketing.glob("*.md"))
+
+    # Turn 2: directive redirects → file moves to marketing.
+    _run_turn(
+        engine,
+        _build_incoming(
+            "actually, save this to marketing",
+            channel_id="C999",
+            channel_name="ideation",
+            is_dm=False,
+        ),
+    )
+
+    assert len(list(marketing.glob("*.md"))) == 1
+    assert not any(ideation.glob("*.md"))
+
+
+def test_save_directive_clear_reverts_to_channel_default(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """`clear save target` removes the override and moves the file back."""
+    from channel_router import ChannelRouter
+    from engine import ConversationEngine
+
+    _install_fake_sdk(monkeypatch)
+    _stub_bash_validator(monkeypatch)
+
+    router = ChannelRouter(_write_routing_config(tmp_path), tmp_path)
+    store = _StatefulFakeStore()
+    engine = ConversationEngine(store, tmp_path, channel_router=router)
+
+    ideation = tmp_path / "Fredis/Memory/ideation"
+    marketing = tmp_path / "Fredis/Memory/marketing"
+
+    # Set override.
+    _run_turn(
+        engine,
+        _build_incoming(
+            "save this to marketing",
+            channel_id="C999",
+            channel_name="ideation",
+            is_dm=False,
+        ),
+    )
+    assert len(list(marketing.glob("*.md"))) == 1
+
+    # Clear.
+    _run_turn(
+        engine,
+        _build_incoming(
+            "clear save target",
+            channel_id="C999",
+            channel_name="ideation",
+            is_dm=False,
+        ),
+    )
+
+    # File moved back to ideation; marketing is empty.
+    assert len(list(ideation.glob("*.md"))) == 1
+    assert not any(marketing.glob("*.md"))
+
+    # Session override cleared.
+    session = store._sessions["slack:C999:1700.001"]
+    assert session.summary_folder_override is None
+
+
+def test_save_directive_free_form_path_creates_subfolder(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Target not in YAML → treated as relative vault path, lazy-created."""
+    from channel_router import ChannelRouter
+    from engine import ConversationEngine
+
+    _install_fake_sdk(monkeypatch)
+    _stub_bash_validator(monkeypatch)
+
+    router = ChannelRouter(_write_routing_config(tmp_path), tmp_path)
+    engine = ConversationEngine(
+        _StatefulFakeStore(), tmp_path, channel_router=router
+    )
+
+    msg = _build_incoming(
+        "OpenAI Sora research, save this to research/ai/sora",
+        channel_id="C999",
+        channel_name="research-ai",
+        is_dm=False,
+    )
+
+    _run_turn(engine, msg)
+
+    sora = tmp_path / "Fredis/Memory/research/ai/sora"
+    assert sora.is_dir()
+    assert len(list(sora.glob("*.md"))) == 1
+
+
+def test_save_directive_text_reaches_the_sdk_for_acknowledgment(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """D5 contract: Claude must SEE the directive so it can naturally
+    acknowledge the save destination to the user. The engine parses for
+    routing but does not strip the directive from the user text."""
+    from channel_router import ChannelRouter
+    from engine import ConversationEngine
+
+    prompts: list[str] = []
+    _install_fake_sdk_with_sink(monkeypatch, prompts)
+    _stub_bash_validator(monkeypatch)
+
+    router = ChannelRouter(_write_routing_config(tmp_path), tmp_path)
+    engine = ConversationEngine(
+        _StatefulFakeStore(), tmp_path, channel_router=router
+    )
+    msg = _build_incoming(
+        "pricing ideas, save this to marketing",
+        channel_id="C999",
+        channel_name="ideation",
+        is_dm=False,
+    )
+
+    _run_turn(engine, msg)
+
+    assert len(prompts) == 1
+    prompt = prompts[0]
+    # Directive must be present in what Claude sees — otherwise no ack.
+    assert "save this to marketing" in prompt
+
+
+def test_clear_directive_without_prior_override_is_noop(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """`clear save target` in a fresh thread just lands in the channel
+    default — no relocate, no crash, override stays None."""
+    from channel_router import ChannelRouter
+    from engine import ConversationEngine
+
+    _install_fake_sdk(monkeypatch)
+    _stub_bash_validator(monkeypatch)
+
+    router = ChannelRouter(_write_routing_config(tmp_path), tmp_path)
+    store = _StatefulFakeStore()
+    engine = ConversationEngine(store, tmp_path, channel_router=router)
+
+    msg = _build_incoming(
+        "clear save target, just chatting",
+        channel_id="C999",
+        channel_name="ideation",
+        is_dm=False,
+    )
+
+    _run_turn(engine, msg)
+
+    # File in ideation; no override persisted.
+    ideation = tmp_path / "Fredis/Memory/ideation"
+    assert len(list(ideation.glob("*.md"))) == 1
+    session = store._sessions.get("slack:C999:1700.001")
+    assert session is not None
+    assert session.summary_folder_override is None
+
+
+def test_save_directive_in_dm_is_a_noop_override_not_set(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """DMs route to daily/ — a save directive in a DM actually should
+    still work because the router can resolve the target; only the channel
+    default is DM-daily. Verify the override wins over the DM default."""
+    from channel_router import ChannelRouter
+    from engine import ConversationEngine
+
+    _install_fake_sdk(monkeypatch)
+    _stub_bash_validator(monkeypatch)
+
+    router = ChannelRouter(_write_routing_config(tmp_path), tmp_path)
+    engine = ConversationEngine(
+        _StatefulFakeStore(), tmp_path, channel_router=router
+    )
+    msg = _build_incoming(
+        "private brainstorm, save this to marketing",
+        channel_id="D001",
+        channel_name=None,
+        is_dm=True,
+    )
+
+    _run_turn(engine, msg)
+
+    marketing = tmp_path / "Fredis/Memory/marketing"
+    daily = tmp_path / "Fredis/Memory/daily"
+    assert len(list(marketing.glob("*.md"))) == 1
+    # Nothing in daily/ — the override took precedence over the DM default.
+    assert not daily.exists() or not any(daily.glob("*.md"))
+
+
+def test_save_directive_invalid_target_falls_back_to_channel(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """An invalid target (traversal attempt) must NOT set an override; the
+    summary lands in the channel default."""
+    from channel_router import ChannelRouter
+    from engine import ConversationEngine
+
+    _install_fake_sdk(monkeypatch)
+    _stub_bash_validator(monkeypatch)
+
+    router = ChannelRouter(_write_routing_config(tmp_path), tmp_path)
+    store = _StatefulFakeStore()
+    engine = ConversationEngine(store, tmp_path, channel_router=router)
+
+    msg = _build_incoming(
+        "sneaky save this to ../etc attempt",
+        channel_id="C999",
+        channel_name="ideation",
+        is_dm=False,
+    )
+
+    _run_turn(engine, msg)
+
+    # No override persisted.
+    session = store._sessions.get("slack:C999:1700.001")
+    assert session is not None
+    assert session.summary_folder_override is None
+
+    # File in ideation (channel default).
+    ideation = tmp_path / "Fredis/Memory/ideation"
+    assert len(list(ideation.glob("*.md"))) == 1
 
 
 def test_summary_write_exception_is_nonfatal(

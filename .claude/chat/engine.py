@@ -19,8 +19,9 @@ os.environ.setdefault("CLAUDE_INVOKED_BY", "chat")
 
 from channel_router import ChannelRouter
 from models import Attachment, IncomingMessage, OutgoingMessage
+from save_directive import parse as parse_save_directive
 from session import HeartbeatThread, PostgresSessionStore, Session, SQLiteSessionStore
-from summary_writer import append_summary
+from summary_writer import append_summary, relocate_existing
 
 # Add scripts dir for shared utilities
 _SCRIPTS_DIR = Path(__file__).resolve().parent.parent / "scripts"
@@ -303,6 +304,63 @@ class ConversationEngine:
             },
         }
 
+        # Phase 11.1: parse save-to directive BEFORE sanitize-wrap to compute
+        # the session-level override. The directive text is LEFT IN the user
+        # message so Claude sees it and naturally acknowledges the save
+        # destination to the user — this is the D5-do-nothing-special
+        # acknowledgment contract; if we stripped it Claude would reply about
+        # the content but never confirm where (or whether) the save landed.
+        # Fails open: an invalid target is logged and ignored; the prior
+        # override (if any) stands.
+        directive = parse_save_directive(message.text)
+        session_override_value: str | None = (
+            existing.summary_folder_override if existing else None
+        )
+        relocate_from: Path | None = None
+        relocate_to: Path | None = None
+
+        if directive.matched and self.channel_router is not None:
+            prev_override = session_override_value
+            prev_folder = (
+                Path(prev_override)
+                if prev_override
+                else self.channel_router.resolve(
+                    channel_id=channel_id,
+                    channel_name=message.channel.name,
+                    is_dm=message.channel.is_dm,
+                )
+            )
+            if directive.is_clear:
+                new_folder = self.channel_router.resolve(
+                    channel_id=channel_id,
+                    channel_name=message.channel.name,
+                    is_dm=message.channel.is_dm,
+                )
+                session_override_value = None
+                print(
+                    f"[{datetime.now()}] Save-target cleared; "
+                    f"reverting to channel folder {new_folder}"
+                )
+            else:
+                try:
+                    assert directive.target is not None
+                    new_folder = self.channel_router.resolve_override(directive.target)
+                    session_override_value = str(new_folder)
+                    print(
+                        f"[{datetime.now()}] Save-target override → "
+                        f"{directive.target!r} → {new_folder}"
+                    )
+                except ValueError as e:
+                    print(
+                        f"[{datetime.now()}] Invalid save target "
+                        f"{directive.target!r}: {e} — keeping prior override"
+                    )
+                    new_folder = prev_folder
+
+            if new_folder.resolve() != prev_folder.resolve():
+                relocate_from = prev_folder
+                relocate_to = new_folder
+
         # Wrap inbound user text in the sanitize pipeline BEFORE heartbeat
         # context prepend + attachment-context append. Attachment context is
         # harness-generated (not user-supplied) and belongs OUTSIDE the
@@ -315,6 +373,22 @@ class ConversationEngine:
             f"(len={len(original_text)})"
         )
 
+        # Phase 11.1: if the override folder changed this turn, move the
+        # in-progress summary file so future appends continue in one file.
+        # Non-fatal on error — the write path has its own try/except.
+        if relocate_from is not None and relocate_to is not None:
+            try:
+                moved = relocate_existing(
+                    old_folder=relocate_from,
+                    new_folder=relocate_to,
+                    timestamp=datetime.now(),
+                    thread_ts=thread_id,
+                )
+                if moved is not None:
+                    print(f"[{datetime.now()}] Summary relocated → {moved}")
+            except Exception as e:
+                print(f"[{datetime.now()}] Summary relocate failed (non-fatal): {e}")
+
         # Phase 9: hybrid-search long-term memory using the ORIGINAL text
         # (the wrapped fragment carries injection-defense framing that would
         # poison the query). The retrieval block is assistant-side context
@@ -323,15 +397,30 @@ class ConversationEngine:
         # final ordering is [retrieval] → [heartbeat ctx] → [wrapped user].
         # Phase 11: narrow the first search to the channel's vault folder when
         # the router has an explicit match — channel-local memories rank first.
+        # Phase 11.1: when the thread has an active save-to override, scope to
+        # that override folder instead so retrieval follows where the content
+        # actually lives now.
         channel_prefix = ""
         if self.channel_router is not None:
+            memory_root = self.project_root / "Fredis" / "Memory"
             try:
-                channel_prefix = self.channel_router.memory_prefix(
-                    channel_id=channel_id,
-                    channel_name=message.channel.name,
-                    is_dm=message.channel.is_dm,
-                    memory_dir=self.project_root / "Fredis" / "Memory",
-                )
+                if session_override_value:
+                    try:
+                        rel = (
+                            Path(session_override_value)
+                            .resolve()
+                            .relative_to(memory_root.resolve())
+                        )
+                        channel_prefix = rel.as_posix() + "/"
+                    except ValueError:
+                        channel_prefix = ""
+                else:
+                    channel_prefix = self.channel_router.memory_prefix(
+                        channel_id=channel_id,
+                        channel_name=message.channel.name,
+                        is_dm=message.channel.is_dm,
+                        memory_dir=memory_root,
+                    )
             except Exception as e:
                 print(
                     f"[{datetime.now()}] channel_prefix computation failed "
@@ -477,6 +566,9 @@ class ConversationEngine:
                 existing.message_count += 1
                 existing.total_cost_usd += cost_usd or 0.0
                 existing.updated_at = now
+                # Phase 11.1: propagate save-to override (may be newly set,
+                # cleared, or carried forward from prior turns).
+                existing.summary_folder_override = session_override_value
                 self.session_store.update(existing)
             else:
                 session = Session(
@@ -490,23 +582,28 @@ class ConversationEngine:
                     updated_at=now,
                     message_count=1,
                     total_cost_usd=cost_usd or 0.0,
+                    summary_folder_override=session_override_value,
                 )
                 self.session_store.create(session)
 
-        # Phase 11: per-turn summary to the channel-routed vault folder. Runs
-        # after session persist; failure here must NOT surface to the user
-        # (reply has already been sent).
+        # Phase 11: per-turn summary to the channel-routed vault folder, or
+        # the save-to override folder when one is active on this thread.
+        # Runs after session persist; failure here must NOT surface to the
+        # user (reply has already been sent).
         if (
             self.channel_router is not None
             and session_id_from_sdk
             and response_text.strip()
         ):
             try:
-                folder = self.channel_router.resolve(
-                    channel_id=channel_id,
-                    channel_name=message.channel.name,
-                    is_dm=message.channel.is_dm,
-                )
+                if session_override_value:
+                    folder = Path(session_override_value)
+                else:
+                    folder = self.channel_router.resolve(
+                        channel_id=channel_id,
+                        channel_name=message.channel.name,
+                        is_dm=message.channel.is_dm,
+                    )
                 result = append_summary(
                     folder=folder,
                     channel=message.channel.name,

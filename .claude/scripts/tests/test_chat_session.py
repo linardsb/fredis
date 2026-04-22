@@ -57,6 +57,59 @@ def test_sqlite_create_get_roundtrip(tmp_path: Path) -> None:
     assert got.status == "active"
 
 
+def test_sqlite_summary_folder_override_roundtrip(tmp_path: Path) -> None:
+    """Phase 11.1: override column must round-trip through INSERT and SELECT."""
+    store = SQLiteSessionStore(tmp_path / "c.db")
+    s = _make_session()
+    s.summary_folder_override = "/abs/vault/Fredis/Memory/builds/email-hub"
+    store.create(s)
+
+    got = store.get("slack", "C1", "T1")
+    assert got is not None
+    assert got.summary_folder_override == "/abs/vault/Fredis/Memory/builds/email-hub"
+
+
+def test_sqlite_summary_folder_override_default_none(tmp_path: Path) -> None:
+    """A session created without an override must read back as None."""
+    store = SQLiteSessionStore(tmp_path / "c.db")
+    s = _make_session()
+    store.create(s)
+
+    got = store.get("slack", "C1", "T1")
+    assert got is not None
+    assert got.summary_folder_override is None
+
+
+def test_sqlite_update_clears_override(tmp_path: Path) -> None:
+    """UPDATE must be able to revert the override back to NULL."""
+    store = SQLiteSessionStore(tmp_path / "c.db")
+    s = _make_session()
+    s.summary_folder_override = "/abs/vault/Fredis/Memory/builds/email-hub"
+    store.create(s)
+
+    s.summary_folder_override = None
+    store.update(s)
+
+    got = store.get("slack", "C1", "T1")
+    assert got is not None
+    assert got.summary_folder_override is None
+
+
+def test_sqlite_migration_idempotent_on_existing_db(tmp_path: Path) -> None:
+    """Re-opening a DB that already has the column must be a no-op."""
+    path = tmp_path / "c.db"
+    store1 = SQLiteSessionStore(path)
+    s = _make_session()
+    s.summary_folder_override = "/foo"
+    store1.create(s)
+
+    # Second open: schema migration should no-op, data intact.
+    store2 = SQLiteSessionStore(path)
+    got = store2.get("slack", "C1", "T1")
+    assert got is not None
+    assert got.summary_folder_override == "/foo"
+
+
 def test_sqlite_update_mutates_fields(tmp_path: Path) -> None:
     store = SQLiteSessionStore(tmp_path / "c.db")
     s = _make_session()
