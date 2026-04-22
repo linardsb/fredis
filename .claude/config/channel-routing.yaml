@@ -1,8 +1,9 @@
 version: 1
 
 # Slack channel name → vault folder (relative to project root).
-# If a channel is renamed, either update the key here or pin it in `by_id:` below.
-# Channel IDs in `by_id:` always win over name lookups (rename-resilient).
+# If a channel is renamed, update the key here OR rely on `by_id:` below
+# (which always wins). Channel names must match Slack exactly — lowercase,
+# hyphens only.
 channels:
   # Topic lanes
   ideation:             Fredis/Memory/ideation/
@@ -10,7 +11,7 @@ channels:
   marketing:            Fredis/Memory/marketing/
   product:              Fredis/Memory/product/
   legal:                Fredis/Memory/legal/
-  finance:              Fredis/Memory/finance/
+  finances:             Fredis/Memory/finance/
 
   # Research (domain)
   research-ai:          Fredis/Memory/research/ai/
@@ -19,30 +20,64 @@ channels:
   research-policy:      Fredis/Memory/research/policy/
   research-materials:   Fredis/Memory/research/materials/
 
-  # Builds (per-lane engineering work)
-  build-email-hub:      Fredis/Memory/builds/email-hub/
-  build-vtv:            Fredis/Memory/builds/vtv/
-  build-cab:            Fredis/Memory/builds/cab/
+  # Product builds (per-lane engineering work)
+  email-hub:            Fredis/Memory/builds/email-hub/
+  vtv:                  Fredis/Memory/builds/vtv/
+  cab-app:              Fredis/Memory/builds/cab-app/
 
   # People / orgs
   clients:              Fredis/Memory/retainers/
-  competitors:          Fredis/Memory/competitors/
+  competition:          Fredis/Memory/competitors/
   partners:             Fredis/Memory/partners/
 
   # Integrations (per-platform chatter)
   gmail:                Fredis/Memory/integrations/gmail/
   calendar:             Fredis/Memory/integrations/calendar/
-  asana:                Fredis/Memory/integrations/asana/
+  asana-board:          Fredis/Memory/integrations/asana/
   monday:               Fredis/Memory/integrations/monday/
-  drive:                Fredis/Memory/integrations/drive/
-  sheets:               Fredis/Memory/integrations/sheets/
-  docs:                 Fredis/Memory/integrations/docs/
+  g-drive:              Fredis/Memory/integrations/drive/
+  g-sheets:             Fredis/Memory/integrations/sheets/
+  g-docs:               Fredis/Memory/integrations/docs/
   github:               Fredis/Memory/integrations/github/
 
-# Optional channel-ID → folder map. Wins over `channels:` when a match exists.
-# Populate from Slack (`query.py slack channels`) once the channels are created.
-# Example: "C01234ABC": Fredis/Memory/ideation/
-by_id: {}
+# Channel-ID → folder map. Wins over `channels:` when a match exists —
+# survives channel renames without config edits. Populated from
+# `query.py slack channels` on 2026-04-22.
+by_id:
+  # Topic lanes
+  C0AUE2B6BL6: Fredis/Memory/ideation/             # #ideation
+  C0AUKMRJDD2: Fredis/Memory/research/markets/     # #market-research
+  C0AUG4DR6SE: Fredis/Memory/marketing/            # #marketing
+  C0AUG4FUED8: Fredis/Memory/product/              # #product
+  C0AUCMRCRRB: Fredis/Memory/legal/                # #legal
+  C0AVACFKG0Y: Fredis/Memory/finance/              # #finances
+
+  # Research
+  C0AUV1ME2QH: Fredis/Memory/research/ai/          # #research-ai
+  C0AU9NUEXPD: Fredis/Memory/research/agriculture/ # #research-agriculture
+  C0AUE2W4BB8: Fredis/Memory/research/robotics/    # #research-robotics
+  C0AUV1S3Q3T: Fredis/Memory/research/policy/      # #research-policy
+  C0AUKN2R58C: Fredis/Memory/research/materials/   # #research-materials
+
+  # Product builds
+  C0AVACS6CSC: Fredis/Memory/builds/email-hub/     # #email-hub
+  C0AUG4UD57C: Fredis/Memory/builds/vtv/           # #vtv
+  C0AU0LYGGET: Fredis/Memory/builds/cab-app/       # #cab-app
+
+  # People / orgs
+  C0AUKNB6T6G: Fredis/Memory/retainers/            # #clients
+  C0AVACWUDPA: Fredis/Memory/competitors/          # #competition
+  C0AUKNCT3K6: Fredis/Memory/partners/             # #partners
+
+  # Integrations
+  C0AU9PHDPEX: Fredis/Memory/integrations/gmail/    # #gmail
+  C0AUKNQ983W: Fredis/Memory/integrations/calendar/ # #calendar
+  C0AUE40BW86: Fredis/Memory/integrations/asana/    # #asana-board
+  C0AUE43613Q: Fredis/Memory/integrations/monday/   # #monday
+  C0AUG5Y8MT4: Fredis/Memory/integrations/drive/    # #g-drive
+  C0AUKPCR3C4: Fredis/Memory/integrations/sheets/   # #g-sheets
+  C0AUKPE7MT6: Fredis/Memory/integrations/docs/     # #g-docs
+  C0AUKPEB0SY: Fredis/Memory/integrations/github/   # #github
 
 # DMs and unmapped channels fall through to these defaults.
 defaults:

@@ -313,11 +313,18 @@ def test_production_config_loads(tmp_path: Path) -> None:
     assert ideation.name == "ideation"
     assert ideation.parent.name == "Memory"
 
-    build_vtv = router.resolve(
-        channel_id="CDOESNOTEXIST", channel_name="build-vtv", is_dm=False
+    vtv = router.resolve(
+        channel_id="CDOESNOTEXIST", channel_name="vtv", is_dm=False
     )
-    assert build_vtv.name == "vtv"
-    assert build_vtv.parent.name == "builds"
+    assert vtv.name == "vtv"
+    assert vtv.parent.name == "builds"
+
+    # `by_id:` match wins over channel-name match — use the real VPS ID.
+    vtv_by_id = router.resolve(
+        channel_id="C0AUG4UD57C", channel_name="renamed", is_dm=False
+    )
+    assert vtv_by_id.name == "vtv"
+    assert vtv_by_id.parent.name == "builds"
 
     gmail = router.resolve(
         channel_id="CDOESNOTEXIST", channel_name="gmail", is_dm=False
