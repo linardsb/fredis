@@ -46,7 +46,7 @@
 - **Recurring commitments:** none currently
 
 ### Team
-- Solo. No employees, no co-founders. Atis Vīķis (cousin) and Juris Ņefedovs are partners on the LV Cab project specifically
+- Solo. No employees, no co-founders. Atis (cousin) and Juris Ņefedovs are partners on the LV Cab project specifically — setup in progress, not formalised yet
 
 ## Integrations & Accounts
 
@@ -128,7 +128,7 @@ _Operational map of what Linards sells / could sell. Mostly TBD until early clie
 
 ## Geography & Dual Operations
 
-- **Bridge angle (UK ↔ LV):** personal and family. Atis Vīķis (cousin) and Juris Ņefedovs (Atis's cousin) anchor the LV side
+- **Bridge angle (UK ↔ LV):** personal and family. Atis (cousin) and Juris Ņefedovs (Atis's cousin) anchor the LV side
 - **Argentina:** wife's home country; long-term family base alongside Latvia. Real in-country access for the agri-tech lane
 - **Latvian language register:** uses Latvian for direct LV outreach (e.g., LPV-context emails to Šlesers / Krištopans). Will need to seed `drafts/sent/` with 3–5 sent Latvian emails so the brain can voice-match — currently absent
 - **Local network (East Grinstead):** not yet gathered (asked 2026-04-18). Candidates to plug in when ready: chamber of commerce, BNI, local WhatsApp groups, business directories
@@ -146,7 +146,7 @@ _Source: C8 (service providers / network), G1 (urgent contacts), W1 (whose opini
 - **Ana Laura Suárez** — `analaura.suarez@gmail.com`
 
 ### Network / Service Providers
-- **Atis Vīķis** — business partner, LV (cousin). Board member on planned Cab application. Features, product dev, marketing. WhatsApp; responds quickly
+- **Atis** — cousin, LV. Partner on Cab (setup in progress, not formalised). Features, product dev, marketing. WhatsApp; responds quickly
 - **Juris Ņefedovs** — business advisor, LV. Potential investor in Cab application. Business dev, funding, distribution. WhatsApp; responds quickly
 - **Gavin Hughes** — former Merkle colleague, now Principal Creative Developer at Ometria. WhatsApp. **Conflict node** — Ometria is an email-tech peer/competitor; Email Hub concept shared informally with him in March (see MEMORY.md J5)
 - **Cole Medin** — AI expert, Dynamous community
