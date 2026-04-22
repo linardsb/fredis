@@ -20,6 +20,14 @@ _(Pre-revenue stage — formal locked-in decisions still to be made. Likely firs
 
 - **Port-first, not build-first (2026-04-19).** Linards directive for skills: stop authoring de novo where an existing open-source skill fits. Port, add Fredis advisor-mode wrapper + attribution, only build de novo when no upstream match exists.
 
+- **Phase renumber: Memory Loops = Phase 9, VPS Deploy = Phase 10 (2026-04-21).** Memory loops ship before deployment so VPS migrates a stable schema in one pass — no local-vs-VPS schema drift. `[impact: med, status: decided]`
+
+- **4-loop memory architecture (2026-04-21).** Capture (memory_flush) → Consolidate (memory_reflect) → Dream (weekly synthesis) → Recall (auto-retrieval in chat + heartbeat). Recall is the highest-visible win — surfaces old decisions/drafts contextually. Synthesis drafts to `drafts/active/memory-synthesis/YYYY-Www.md` for human approval; never auto-writes to MEMORY.md. `[impact: high, status: decided]`
+
+- **Fredis cut over to VPS runtime (2026-04-21).** All scheduled services now run on VPS via systemd: `secondbrain-chat`, `fredis-heartbeat.timer` (2h), `fredis-reflect.timer` (daily 08:00), `fredis-synthesis.timer` (Sun 08:00), `deps-audit.timer` (Mon 09:00), `fredis-vault-sync.timer` (2 min). Mac heartbeat + reflect plists unloaded. Code flow: Mac push → GitHub Action → `deploy.sh` on VPS (workflow `paths-ignore`s `Fredis/**` + `docs/**` + `**/*.md`). Memory search via SSH tunnel: local 5433 → remote 5432 (Mac's local Postgres owns 5432). `[impact: high, status: decided]`
+
+- **Phase 10.5 single-repo vault sync (2026-04-21).** `Fredis/` tracked inside `linardsb/fredis` (not a separate vault repo). `vault-sync-repo.sh` uses mkdir-lock + subtree-only `git add -A Fredis/` + `commit --only -- Fredis/`, runs every 2 min on both sides. `concat-both` merge driver registered via `.gitattributes` for daily logs + drafts. WIP code outside `Fredis/` stays unstaged. `[impact: med, status: decided]`
+
 ## Lessons Learned
 
 These are the day-one rules — synthesised from J5. The brain should respect these without re-questioning unless explicitly revisited.
