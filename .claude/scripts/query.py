@@ -447,38 +447,95 @@ def cmd_docs(args: argparse.Namespace) -> None:
         print(f"Content length: ~{char_count} chars")
 
 
-def cmd_monday(args: argparse.Namespace) -> None:
-    """Handle Monday.com commands (read-only)."""
-    from integrations.monday_api import (
-        board_items,
-        format_items_for_context,
-        list_boards,
-        my_items,
-        overdue_items,
-        search,
+def cmd_hubspot(args: argparse.Namespace) -> None:
+    """Handle HubSpot commands (read-only CRM queries)."""
+    from integrations.hubspot_api import (
+        format_objects_for_context,
+        list_objects,
+        list_pipelines,
+        list_properties,
+        search_objects,
     )
 
-    if args.action == "boards":
-        for b in list_boards():
-            print(f"- {b['name']} (id: {b['id']}, items: {b['items_count']})")
+    if args.action == "contacts":
+        props = ["email", "firstname", "lastname", "hs_lead_status",
+                 "lifecyclestage", "urgent_alert"]
+        print(format_objects_for_context(
+            list_objects("contacts", limit=args.max, properties=props)
+        ))
 
-    elif args.action == "board":
-        if not args.target_id:
-            print("Error: board_id required. Run 'monday boards' first.")
-            sys.exit(1)
-        print(format_items_for_context(board_items(args.target_id, limit=args.max)))
+    elif args.action == "companies":
+        props = ["name", "domain", "engagement_type", "retainer_gbp_mo"]
+        print(format_objects_for_context(
+            list_objects("companies", limit=args.max, properties=props)
+        ))
 
-    elif args.action == "my-items":
-        print(format_items_for_context(my_items(limit=args.max)))
+    elif args.action == "deals":
+        props = ["dealname", "dealstage", "amount", "closedate"]
+        if args.stage:
+            filter_groups = [
+                {"filters": [
+                    {"propertyName": "dealstage", "operator": "EQ", "value": args.stage}
+                ]}
+            ]
+            results = search_objects("deals", filter_groups, properties=props,
+                                     limit=args.max)
+        else:
+            results = list_objects("deals", limit=args.max, properties=props)
+        print(format_objects_for_context(results))
 
-    elif args.action == "overdue":
-        print(format_items_for_context(overdue_items(limit=args.max)))
+    elif args.action == "overdue-invoices":
+        from integrations.hubspot_scans import overdue_invoices
+        print(format_objects_for_context(overdue_invoices(limit=args.max)))
+
+    elif args.action == "silent-contacts":
+        from integrations.hubspot_scans import silent_contacts
+        print(format_objects_for_context(silent_contacts(limit=args.max)))
+
+    elif args.action == "stale-deals":
+        from integrations.hubspot_scans import stale_deals
+        print(format_objects_for_context(stale_deals(limit=args.max)))
 
     elif args.action == "search":
         if not args.query:
             print("Error: --query required")
             sys.exit(1)
-        print(format_items_for_context(search(args.query, limit=args.max)))
+        filter_groups = [
+            {"filters": [
+                {"propertyName": "email", "operator": "CONTAINS_TOKEN", "value": args.query}
+            ]}
+        ]
+        print(format_objects_for_context(
+            search_objects("contacts", filter_groups, limit=args.max)
+        ))
+
+    elif args.action == "pipelines":
+        for p in list_pipelines("deals"):
+            print(f"- {p.get('label')} (id: {p.get('id')})")
+            for s in p.get("stages", []):
+                meta = s.get("metadata", {})
+                closed = meta.get("isClosed")
+                print(f"    · {s.get('label')} — closed={closed}")
+
+    elif args.action == "properties":
+        target = args.target_id or "contacts"
+        for prop in list_properties(target):
+            kind = f"{prop.get('type')}/{prop.get('fieldType')}"
+            print(f"- {prop.get('name')} ({kind}): {prop.get('label')}")
+
+
+def cmd_lanes(args: argparse.Namespace) -> None:
+    """Handle GitHub Projects v2 lane queries."""
+    from integrations.github_projects import (
+        breached_lane_gates,
+        format_items_for_context,
+        list_project_items,
+    )
+
+    if args.action == "list":
+        print(format_items_for_context(list_project_items()))
+    elif args.action == "breached":
+        print(format_items_for_context(breached_lane_gates()))
 
 
 def cmd_github(args: argparse.Namespace) -> None:
@@ -612,12 +669,35 @@ def main() -> None:
     docs_parser.add_argument("target_id", nargs="?", default=None, help="Document ID")
     docs_parser.add_argument("--max-chars", type=int, default=4000)
 
-    # Monday.com
-    monday_parser = subparsers.add_parser("monday", help="Monday.com operations (read-only)")
-    monday_parser.add_argument("action", choices=["boards", "board", "my-items", "overdue", "search"])
-    monday_parser.add_argument("target_id", nargs="?", default=None, help="Board ID for 'board' action")
-    monday_parser.add_argument("--max", type=int, default=25)
-    monday_parser.add_argument("--query", default=None, help="Search query for 'search' action")
+    # HubSpot CRM
+    hubspot_parser = subparsers.add_parser(
+        "hubspot", help="HubSpot CRM operations (read-only)"
+    )
+    hubspot_parser.add_argument(
+        "action",
+        choices=[
+            "contacts", "companies", "deals",
+            "overdue-invoices", "silent-contacts", "stale-deals",
+            "search", "pipelines", "properties",
+        ],
+    )
+    hubspot_parser.add_argument(
+        "target_id", nargs="?", default=None,
+        help="Object type for 'properties' action (contacts|companies|deals)",
+    )
+    hubspot_parser.add_argument("--max", type=int, default=25)
+    hubspot_parser.add_argument(
+        "--stage", default=None, help="Filter deals by stage ID"
+    )
+    hubspot_parser.add_argument(
+        "--query", default=None, help="Search query for 'search' action"
+    )
+
+    # GitHub Projects v2 — lanes
+    lanes_parser = subparsers.add_parser(
+        "lanes", help="GitHub Projects v2 — Lanes & Features (read-only)"
+    )
+    lanes_parser.add_argument("action", choices=["list", "breached"])
 
     # GitHub
     github_parser = subparsers.add_parser("github", help="GitHub operations (read-only)")
@@ -647,8 +727,10 @@ def main() -> None:
             cmd_sheets(args)
         elif args.service == "docs":
             cmd_docs(args)
-        elif args.service == "monday":
-            cmd_monday(args)
+        elif args.service == "hubspot":
+            cmd_hubspot(args)
+        elif args.service == "lanes":
+            cmd_lanes(args)
         elif args.service == "github":
             cmd_github(args)
         elif args.service == "drive":

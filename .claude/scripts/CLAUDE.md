@@ -17,7 +17,7 @@ First-run personalisation is a TUI + skill pair that converts the 103-question i
 
 ## Heartbeat System (Proactive Second Brain)
 
-The heartbeat is a scheduled script that proactively checks the user's draft inbox, overdue tasks across Asana + Monday.com, calendar, email, Slack, market/policy/AI research signals, and habit pillars using the Claude Agent SDK. It runs every 120 minutes during active hours (Europe/London, 05:00–20:00) and sends a Slack DM + native macOS notification when something needs attention.
+The heartbeat is a scheduled script that proactively checks the user's draft inbox, overdue tasks (Asana), HubSpot CRM scans (overdue invoices, silent contacts, stale deals), GitHub Projects lane kill-gate breaches, calendar, email, Slack, market/policy/AI research signals, and habit pillars using the Claude Agent SDK. It runs every 120 minutes during active hours (Europe/London, 05:00–20:00) and sends a Slack DM + native macOS notification when something needs attention.
 
 **Location:** `.claude/scripts/`
 
@@ -34,7 +34,7 @@ The heartbeat is a scheduled script that proactively checks the user's draft inb
 
 1. OS scheduler runs the wrapper script every 120 minutes
 2. Wrapper runs `uv run python heartbeat.py` in `.claude/scripts/`
-3. `heartbeat.py` gathers data from Gmail, Calendar, Asana, Slack, Monday.com, and GitHub via direct Python API calls
+3. `heartbeat.py` gathers data from Gmail, Calendar, Asana, Slack, HubSpot CRM, GitHub Projects (lanes), and GitHub (commits/PRs) via direct Python API calls
 4. State diffing compares current data against the previous snapshot — only new/changed items get full context
 5. Guardrail pre-filter (deterministic pattern matching + Haiku LLM) checks for prompt injection in external data
 6. Pre-fetched, diff-annotated data is injected into Claude's prompt; Claude reasons over it and decides what needs attention
@@ -370,12 +370,20 @@ python .claude/scripts/query.py drive find "search term" --type spreadsheet
 python .claude/scripts/query.py drive list --type document --max 10
 python .claude/scripts/query.py drive get <file_id>
 
-# Monday.com (read-only — GraphQL)
-python .claude/scripts/query.py monday boards
-python .claude/scripts/query.py monday board <board_id> --max 25
-python .claude/scripts/query.py monday my-items --max 25
-python .claude/scripts/query.py monday overdue
-python .claude/scripts/query.py monday search --query "invoice"
+# HubSpot CRM (read-only — REST)
+python .claude/scripts/query.py hubspot contacts --max 10
+python .claude/scripts/query.py hubspot companies --max 10
+python .claude/scripts/query.py hubspot deals --max 10 [--stage <stage_id>]
+python .claude/scripts/query.py hubspot overdue-invoices
+python .claude/scripts/query.py hubspot silent-contacts
+python .claude/scripts/query.py hubspot stale-deals
+python .claude/scripts/query.py hubspot search --query "example.com"
+python .claude/scripts/query.py hubspot pipelines
+python .claude/scripts/query.py hubspot properties contacts
+
+# GitHub Projects v2 — Lanes & Features (read-only — GraphQL)
+python .claude/scripts/query.py lanes list
+python .claude/scripts/query.py lanes breached
 
 # GitHub (read-only — REST)
 python .claude/scripts/query.py github recent --hours 24
@@ -389,7 +397,8 @@ python .claude/scripts/query.py github ship
 - **Gmail + Calendar + Sheets + Docs + Drive:** Google OAuth2 (shared token, `gmail.readonly` + `gmail.compose` + `calendar.readonly` + `spreadsheets` + `documents.readonly` + `drive.readonly` scopes)
 - **Asana:** Personal Access Token in `.env` (`ASANA_ACCESS_TOKEN`)
 - **Slack:** Bot Token in `.env` (`SLACK_BOT_TOKEN`)
-- **Monday.com:** API v2 token in `.env` (`MONDAY_API_TOKEN`) — note: header is `Authorization: <token>`, NO `Bearer ` prefix. Board IDs in `MONDAY_BOARD_IDS` (Name:ID pairs), user ID in `MONDAY_USER_ID`.
+- **HubSpot CRM:** Private App token in `.env` (`HUBSPOT_API_TOKEN`) — header is `Authorization: Bearer <token>`. Rate limit: 110 req/10s + 250k/day. Hub ID in `HUBSPOT_HUB_ID`. Heartbeat scans gated on `HUBSPOT_SCANS_ENABLED=true`.
+- **GitHub Projects v2:** Reuses `GITHUB_TOKEN` (GraphQL only — REST doesn't cover v2 Projects). Set `GITHUB_PROJECT_LANES_ID` to the project's node id.
 - **GitHub:** PAT in `.env` (`GITHUB_TOKEN`, reused from the shared top-of-env var), username in `GITHUB_USERNAME`.
 - **Setup:** `cd .claude/scripts && uv run python setup_auth.py`
 - **Re-auth after scope changes:** Delete `google_token.json` and re-run `setup_auth.py`
@@ -472,7 +481,7 @@ Per-agent threat models colocated with code at `.claude/scripts/threat-models/` 
 
 ## Secrets Management
 
-Token rotation procedures for every secret in `.env.example` live at `.claude/scripts/schedule/rotation-runbooks.md`. Rotate on a 90-day cadence or immediately on suspected leak. The runbook covers Slack bot / app tokens, Anthropic / GitHub / Asana / Monday PATs, Google OAuth (refresh token + client secret rotation paths), Postgres password, and SSH keys (VPS + vault git remote).
+Token rotation procedures for every secret in `.env.example` live at `.claude/scripts/schedule/rotation-runbooks.md`. Rotate on a 90-day cadence or immediately on suspected leak. The runbook covers Slack bot / app tokens, Anthropic / GitHub / Asana / HubSpot PATs, Google OAuth (refresh token + client secret rotation paths), Postgres password, and SSH keys (VPS + vault git remote).
 
 ---
 

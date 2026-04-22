@@ -34,7 +34,7 @@ channels:
   gmail:                Fredis/Memory/integrations/gmail/
   calendar:             Fredis/Memory/integrations/calendar/
   asana-board:          Fredis/Memory/integrations/asana/
-  monday:               Fredis/Memory/integrations/monday/
+  hubspot:              Fredis/Memory/integrations/hubspot/
   g-drive:              Fredis/Memory/integrations/drive/
   g-sheets:             Fredis/Memory/integrations/sheets/
   g-docs:               Fredis/Memory/integrations/docs/
@@ -73,7 +73,7 @@ by_id:
   C0AU9PHDPEX: Fredis/Memory/integrations/gmail/    # #gmail
   C0AUKNQ983W: Fredis/Memory/integrations/calendar/ # #calendar
   C0AUE40BW86: Fredis/Memory/integrations/asana/    # #asana-board
-  C0AUE43613Q: Fredis/Memory/integrations/monday/   # #monday
+  C0AUE43613Q: Fredis/Memory/integrations/hubspot/  # #hubspot (formerly #monday; ID stable)
   C0AUG5Y8MT4: Fredis/Memory/integrations/drive/    # #g-drive
   C0AUKPCR3C4: Fredis/Memory/integrations/sheets/   # #g-sheets
   C0AUKPE7MT6: Fredis/Memory/integrations/docs/     # #g-docs
@@ -106,6 +106,7 @@ models:
     - gmail
     - calendar
     - asana-board
+    - hubspot
     - g-drive
     - g-sheets
     - g-docs

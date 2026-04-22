@@ -181,8 +181,10 @@ def _fetch_raw_data() -> dict[str, Any]:
         "due_soon_tasks": [],
         "slack_important": [],
         "slack_warnings": [],
-        "monday_overdue": [],
-        "monday_my_items": [],
+        "hubspot_overdue_invoices": [],
+        "hubspot_silent_contacts": [],
+        "hubspot_stale_deals": [],
+        "github_breached_gates": [],
         "github_commits": [],
         "github_review_requests": [],
         "errors": {},
@@ -253,52 +255,43 @@ def _fetch_raw_data() -> dict[str, Any]:
         data["errors"]["slack"] = str(e)
         print(f"[{now_local()}] Slack error (non-fatal): {e}")
 
-    # Monday.com
-    try:
-        from integrations.monday_api import my_items as monday_my_items
-        from integrations.monday_api import overdue_items as monday_overdue
+    # HubSpot CRM scans — flag-gated. Off by default; flip
+    # HUBSPOT_SCANS_ENABLED=true after bootstrap + migration land real data.
+    from config import HUBSPOT_SCANS_ENABLED
 
-        data["monday_overdue"] = monday_overdue(limit=25)
-        data["monday_my_items"] = monday_my_items(limit=25)
-        print(
-            f"[{now_local()}] Monday: {len(data['monday_overdue'])} overdue, "
-            f"{len(data['monday_my_items'])} assigned to me"
-        )
-    except Exception as e:
-        data["errors"]["monday"] = str(e)
-        print(f"[{now_local()}] Monday error (non-fatal): {e}")
-
-    # Monday targeted scans — flag-gated. Off by default; flip
-    # MONDAY_SCANS_ENABLED=true after seeding real rows on the boards.
-    from config import MONDAY_SCANS_ENABLED
-
-    data["monday_overdue_invoices"] = []
-    data["monday_silent_contacts"] = []
-    data["monday_stale_deals"] = []
-    data["monday_breached_gates"] = []
-    if MONDAY_SCANS_ENABLED:
+    if HUBSPOT_SCANS_ENABLED:
         try:
-            from integrations.monday_scans import (
-                breached_lane_gates,
+            from integrations.hubspot_scans import (
                 overdue_invoices,
                 silent_contacts,
                 stale_deals,
             )
 
-            data["monday_overdue_invoices"] = overdue_invoices(limit=50)
-            data["monday_silent_contacts"] = silent_contacts(limit=50)
-            data["monday_stale_deals"] = stale_deals(limit=50)
-            data["monday_breached_gates"] = breached_lane_gates(limit=25)
+            data["hubspot_overdue_invoices"] = overdue_invoices(limit=50)
+            data["hubspot_silent_contacts"] = silent_contacts(limit=50)
+            data["hubspot_stale_deals"] = stale_deals(limit=50)
             print(
-                f"[{now_local()}] Monday scans: "
-                f"{len(data['monday_overdue_invoices'])} overdue invoices, "
-                f"{len(data['monday_silent_contacts'])} silent contacts, "
-                f"{len(data['monday_stale_deals'])} stale deals, "
-                f"{len(data['monday_breached_gates'])} breached gates"
+                f"[{now_local()}] HubSpot scans: "
+                f"{len(data['hubspot_overdue_invoices'])} overdue invoices, "
+                f"{len(data['hubspot_silent_contacts'])} silent contacts, "
+                f"{len(data['hubspot_stale_deals'])} stale deals"
             )
         except Exception as e:
-            data["errors"]["monday_scans"] = str(e)
-            print(f"[{now_local()}] Monday scans error (non-fatal): {e}")
+            data["errors"]["hubspot"] = str(e)
+            print(f"[{now_local()}] HubSpot scans error (non-fatal): {e}")
+
+        # GitHub Projects v2 — lane kill-gate breaches. Reuses GITHUB_TOKEN.
+        try:
+            from integrations.github_projects import breached_lane_gates
+
+            data["github_breached_gates"] = breached_lane_gates()
+            print(
+                f"[{now_local()}] GitHub Projects: "
+                f"{len(data['github_breached_gates'])} breached lane gates"
+            )
+        except Exception as e:
+            data["errors"]["github_projects"] = str(e)
+            print(f"[{now_local()}] GitHub Projects error (non-fatal): {e}")
 
     # GitHub
     try:
@@ -1270,29 +1263,32 @@ async def run_heartbeat(
     context, source_ids = format_context_with_diff(raw_data, diff)
     print(f"[{now_local()}] Context formatted ({len(context)} chars, {len(source_ids)} source IDs)")
 
-    # Monday + GitHub sit outside the diff pipeline; format standalone. Formatters
-    # already wrap themselves in <external_data> and sanitize.
-    monday_ctx = ""
-    scan_buckets = [
-        raw_data.get("monday_overdue"),
-        raw_data.get("monday_my_items"),
-        raw_data.get("monday_overdue_invoices"),
-        raw_data.get("monday_silent_contacts"),
-        raw_data.get("monday_stale_deals"),
-        raw_data.get("monday_breached_gates"),
+    # HubSpot + GitHub sit outside the diff pipeline; format standalone.
+    # Formatters wrap themselves in <external_data> and sanitize.
+    hubspot_ctx = ""
+    hubspot_buckets = [
+        raw_data.get("hubspot_overdue_invoices"),
+        raw_data.get("hubspot_silent_contacts"),
+        raw_data.get("hubspot_stale_deals"),
     ]
-    if any(scan_buckets):
-        from integrations.monday_api import format_items_for_context as format_monday
+    if any(hubspot_buckets):
+        from integrations.hubspot_api import format_objects_for_context
 
         seen_ids: set[str] = set()
         combined = []
-        for bucket in scan_buckets:
+        for bucket in hubspot_buckets:
             for item in bucket or []:
                 if item.id in seen_ids:
                     continue
                 seen_ids.add(item.id)
                 combined.append(item)
-        monday_ctx = format_monday(combined)
+        hubspot_ctx = format_objects_for_context(combined)
+
+    github_projects_ctx = ""
+    if raw_data.get("github_breached_gates"):
+        from integrations.github_projects import format_items_for_context
+
+        github_projects_ctx = format_items_for_context(raw_data["github_breached_gates"])
 
     github_ctx = ""
     if raw_data.get("github_commits") or raw_data.get("github_review_requests"):
@@ -1427,8 +1423,11 @@ The following data was gathered directly from APIs. Items are annotated as NEW o
 
 {context}
 
-## Monday.com (CRM / project tasks)
-{monday_ctx or "No Monday.com data this run."}
+## HubSpot CRM (contacts / deals / invoice tracking)
+{hubspot_ctx or "No HubSpot data this run."}
+
+## GitHub Projects — Lanes & Features (kill-gate breaches)
+{github_projects_ctx or "No breached lane gates this run."}
 
 ## GitHub Activity (last 24h)
 Ship-pillar signal auto-tick: **{"YES" if ship_tick else "no"}** (commits pushed in last 24h: {len(raw_data.get("github_commits", []))}).

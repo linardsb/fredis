@@ -86,12 +86,12 @@ _REGISTRY: dict[str, IntegrationInfo] = {
         required_config=[],
         module_path="integrations.drive_api",
     ),
-    "monday": IntegrationInfo(
-        name="monday",
-        display_name="Monday.com",
+    "hubspot": IntegrationInfo(
+        name="hubspot",
+        display_name="HubSpot CRM",
         auth_type="token",
-        required_config=["MONDAY_API_TOKEN"],
-        module_path="integrations.monday_api",
+        required_config=["HUBSPOT_API_TOKEN"],
+        module_path="integrations.hubspot_api",
     ),
     "github": IntegrationInfo(
         name="github",

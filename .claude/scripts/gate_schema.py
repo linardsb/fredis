@@ -26,7 +26,7 @@ class Gate:
         threshold: human-readable threshold (e.g., "signed LOI", "< 10 users")
         deadline: date by which the threshold must be met
         observable_source: free-form tag describing how to observe the metric
-            (e.g., 'gmail_search:"from:merkle"', 'monday:<board>/item_count')
+            (e.g., 'gmail_search:"from:merkle"', 'hubspot:contacts/urgent_alert')
         pre_committed_at: date the gate was committed
         status: open / breached / closed
         rationale: why the gate exists

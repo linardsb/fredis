@@ -106,32 +106,15 @@ CHAT_ALLOWED_USERS = os.getenv("CHAT_ALLOWED_USERS", SLACK_OWNER_USER_ID).split(
 # Calendar
 GOOGLE_CALENDAR_ID = os.getenv("GOOGLE_CALENDAR_ID", "")
 
-# Monday.com
-MONDAY_API_TOKEN = os.getenv("MONDAY_API_TOKEN", "")
-MONDAY_USER_ID = os.getenv("MONDAY_USER_ID", "")
-# Monday scans (overdue invoices, silent contacts, stale deals, breached gates)
-# — off by default; flip on after seeding real data on the boards.
-MONDAY_SCANS_ENABLED = os.getenv("MONDAY_SCANS_ENABLED", "false").lower() == "true"
-MONDAY_SILENT_CONTACT_DAYS = int(os.getenv("MONDAY_SILENT_CONTACT_DAYS", "14"))
-MONDAY_STALE_DEAL_DAYS = int(os.getenv("MONDAY_STALE_DEAL_DAYS", "14"))
+# HubSpot CRM (replaces Monday.com as of 2026-04-22)
+HUBSPOT_API_TOKEN = os.getenv("HUBSPOT_API_TOKEN", "")
+HUBSPOT_HUB_ID = os.getenv("HUBSPOT_HUB_ID", "")
+HUBSPOT_SCANS_ENABLED = os.getenv("HUBSPOT_SCANS_ENABLED", "false").lower() == "true"
+HUBSPOT_SILENT_CONTACT_DAYS = int(os.getenv("HUBSPOT_SILENT_CONTACT_DAYS", "14"))
+HUBSPOT_STALE_DEAL_DAYS = int(os.getenv("HUBSPOT_STALE_DEAL_DAYS", "14"))
 
-# Monday board mapping — friendly name to numeric board ID.
-# Two input formats are supported (use whichever reads better in your .env):
-#   (1) Per-board vars: MONDAY_BOARD_DEALS=1234, MONDAY_BOARD_CLIENT_PROJECTS=5678
-#       Underscores in the key turn into spaces + title case in the display name.
-#   (2) Combined:       MONDAY_BOARD_IDS=Deals:1234,Client Projects:5678
-MONDAY_BOARDS: dict[str, str] = {}
-for _k, _v in os.environ.items():
-    if _k.startswith("MONDAY_BOARD_") and _k != "MONDAY_BOARD_IDS" and _v:
-        _name = _k[len("MONDAY_BOARD_"):].replace("_", " ").title()
-        MONDAY_BOARDS[_name] = _v.strip()
-_monday_boards_raw = os.getenv("MONDAY_BOARD_IDS", "")
-if _monday_boards_raw:
-    for pair in _monday_boards_raw.split(","):
-        pair = pair.strip()
-        if ":" in pair:
-            bname, bid = pair.split(":", 1)
-            MONDAY_BOARDS.setdefault(bname.strip(), bid.strip())
+# GitHub Projects v2 — product lanes tracker (replaces Monday "Lanes & Features" board)
+GITHUB_PROJECT_LANES_ID = os.getenv("GITHUB_PROJECT_LANES_ID", "")
 
 # GitHub
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
