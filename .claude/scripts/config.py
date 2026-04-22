@@ -109,6 +109,11 @@ GOOGLE_CALENDAR_ID = os.getenv("GOOGLE_CALENDAR_ID", "")
 # Monday.com
 MONDAY_API_TOKEN = os.getenv("MONDAY_API_TOKEN", "")
 MONDAY_USER_ID = os.getenv("MONDAY_USER_ID", "")
+# Monday scans (overdue invoices, silent contacts, stale deals, breached gates)
+# — off by default; flip on after seeding real data on the boards.
+MONDAY_SCANS_ENABLED = os.getenv("MONDAY_SCANS_ENABLED", "false").lower() == "true"
+MONDAY_SILENT_CONTACT_DAYS = int(os.getenv("MONDAY_SILENT_CONTACT_DAYS", "14"))
+MONDAY_STALE_DEAL_DAYS = int(os.getenv("MONDAY_STALE_DEAL_DAYS", "14"))
 
 # Monday board mapping — friendly name to numeric board ID.
 # Two input formats are supported (use whichever reads better in your .env):

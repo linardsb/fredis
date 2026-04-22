@@ -307,6 +307,252 @@ def search(
 
 
 # ---------------------------------------------------------------------------
+# Mutations (write path — used by bootstrap scripts, not heartbeat)
+# ---------------------------------------------------------------------------
+#
+# Monday's API rejects `formula` as a column_type in create_column. Formula
+# columns exist in the schema once a user creates them in the UI, but they
+# can't be created via mutation. Bootstrap scripts list them as a post-run
+# manual checklist. Everything else below is API-creatable.
+
+
+def get_board_columns(board_id: str) -> list[dict[str, str]]:
+    """Fetch existing columns on a board.
+
+    Used by bootstrap scripts for idempotency — check a column's title isn't
+    already present before calling create_column.
+    """
+    query = """
+    query ($id: [ID!]) {
+      boards (ids: $id) { columns { id title type settings_str } }
+    }
+    """
+    data = _gql(query, {"id": [board_id]})
+    boards = data.get("boards") or []
+    if not boards:
+        return []
+    cols = boards[0].get("columns") or []
+    return [
+        {
+            "id": str(c.get("id", "")),
+            "title": str(c.get("title", "")),
+            "type": str(c.get("type", "")),
+            "settings_str": str(c.get("settings_str", "")),
+        }
+        for c in cols
+    ]
+
+
+def get_board_groups(board_id: str) -> list[dict[str, str]]:
+    """Fetch existing groups on a board (for idempotency)."""
+    query = """
+    query ($id: [ID!]) {
+      boards (ids: $id) { groups { id title } }
+    }
+    """
+    data = _gql(query, {"id": [board_id]})
+    boards = data.get("boards") or []
+    if not boards:
+        return []
+    groups = boards[0].get("groups") or []
+    return [
+        {"id": str(g.get("id", "")), "title": str(g.get("title", ""))} for g in groups
+    ]
+
+
+def create_board(
+    board_name: str,
+    board_kind: str = "public",
+    description: str | None = None,
+) -> str:
+    """Create a new board, return its ID.
+
+    board_kind: "public" | "private" | "share". Default public — the workspace
+    owner has access; other members follow workspace permissions.
+    """
+    if board_kind not in ("public", "private", "share"):
+        raise ValueError(f"board_kind must be public/private/share, got {board_kind!r}")
+    query = """
+    mutation ($name: String!, $kind: BoardKind!, $desc: String) {
+      create_board (board_name: $name, board_kind: $kind, description: $desc) {
+        id
+      }
+    }
+    """
+    variables: dict[str, Any] = {"name": board_name, "kind": board_kind, "desc": description}
+    data = _gql(query, variables)
+    board = data.get("create_board") or {}
+    board_id = str(board.get("id", ""))
+    if not board_id:
+        raise RuntimeError(f"create_board returned no id: {data!r}")
+    return board_id
+
+
+def rename_board(board_id: str, new_name: str) -> bool:
+    """Rename a board. Returns True on success.
+
+    Uses update_board mutation with board_attribute=name. new_value is a
+    plain String for the name attribute (not a JSON-encoded value).
+    """
+    query = """
+    mutation ($id: ID!, $val: String!) {
+      update_board (board_id: $id, board_attribute: name, new_value: $val)
+    }
+    """
+    data = _gql(query, {"id": board_id, "val": new_name})
+    return bool(data.get("update_board"))
+
+
+def create_column(
+    board_id: str,
+    title: str,
+    column_type: str,
+    defaults: dict[str, Any] | None = None,
+    description: str | None = None,
+) -> str:
+    """Create a column on a board, return its column id.
+
+    column_type must match Monday's ColumnType enum — examples:
+      text, long_text, numbers, date, checkbox, status, dropdown, people,
+      link, email, phone, board_relation, file, tags, timeline, week, world_clock
+
+    `formula` is NOT accepted by this mutation — add those in the UI.
+
+    For status/dropdown, `defaults` carries the label set. For board_relation,
+    `defaults` carries the linked board IDs. Shape is documented at
+    https://developer.monday.com/api-reference/reference/create-a-column.
+    """
+    import json as _json
+
+    query = """
+    mutation ($board_id: ID!, $title: String!, $type: ColumnType!, $defaults: JSON, $desc: String) {
+      create_column (
+        board_id: $board_id,
+        title: $title,
+        column_type: $type,
+        defaults: $defaults,
+        description: $desc
+      ) { id }
+    }
+    """
+    variables: dict[str, Any] = {
+        "board_id": board_id,
+        "title": title,
+        "type": column_type,
+        "defaults": _json.dumps(defaults) if defaults else None,
+        "desc": description,
+    }
+    data = _gql(query, variables)
+    col = data.get("create_column") or {}
+    col_id = str(col.get("id", ""))
+    if not col_id:
+        raise RuntimeError(f"create_column returned no id: {data!r}")
+    return col_id
+
+
+def create_group(board_id: str, group_name: str) -> str:
+    """Create a group on a board, return its group id."""
+    query = """
+    mutation ($board_id: ID!, $name: String!) {
+      create_group (board_id: $board_id, group_name: $name) { id }
+    }
+    """
+    data = _gql(query, {"board_id": board_id, "name": group_name})
+    group = data.get("create_group") or {}
+    group_id = str(group.get("id", ""))
+    if not group_id:
+        raise RuntimeError(f"create_group returned no id: {data!r}")
+    return group_id
+
+
+def create_item(
+    board_id: str,
+    item_name: str,
+    group_id: str | None = None,
+    column_values: dict[str, Any] | None = None,
+) -> str:
+    """Create an item (row) on a board, return its item id.
+
+    column_values is a {column_id: value} map; values are Monday's native
+    column-value shapes (e.g. {"label": "In progress"} for status).
+    """
+    import json as _json
+
+    query = """
+    mutation ($board_id: ID!, $name: String!, $group_id: String, $col_vals: JSON) {
+      create_item (
+        board_id: $board_id,
+        item_name: $name,
+        group_id: $group_id,
+        column_values: $col_vals
+      ) { id }
+    }
+    """
+    variables: dict[str, Any] = {
+        "board_id": board_id,
+        "name": item_name,
+        "group_id": group_id,
+        "col_vals": _json.dumps(column_values) if column_values else None,
+    }
+    data = _gql(query, variables)
+    item = data.get("create_item") or {}
+    item_id = str(item.get("id", ""))
+    if not item_id:
+        raise RuntimeError(f"create_item returned no id: {data!r}")
+    return item_id
+
+
+def update_column_value(
+    board_id: str,
+    item_id: str,
+    column_id: str,
+    value: Any,
+) -> bool:
+    """Update a single column value on an existing item.
+
+    `value` is passed through JSON serialization — Monday's native column-value
+    shape applies (e.g. {"date": "2026-04-22"} for date columns).
+    """
+    import json as _json
+
+    query = """
+    mutation ($board_id: ID!, $item_id: ID!, $col_id: String!, $val: JSON!) {
+      change_column_value (
+        board_id: $board_id,
+        item_id: $item_id,
+        column_id: $col_id,
+        value: $val
+      ) { id }
+    }
+    """
+    data = _gql(
+        query,
+        {
+            "board_id": board_id,
+            "item_id": item_id,
+            "col_id": column_id,
+            "val": _json.dumps(value),
+        },
+    )
+    return bool((data.get("change_column_value") or {}).get("id"))
+
+
+def add_update(item_id: str, body: str) -> str:
+    """Post an update (comment) on an item, return the update id."""
+    query = """
+    mutation ($item_id: ID!, $body: String!) {
+      create_update (item_id: $item_id, body: $body) { id }
+    }
+    """
+    data = _gql(query, {"item_id": item_id, "body": body})
+    update = data.get("create_update") or {}
+    update_id = str(update.get("id", ""))
+    if not update_id:
+        raise RuntimeError(f"create_update returned no id: {data!r}")
+    return update_id
+
+
+# ---------------------------------------------------------------------------
 # Formatting
 # ---------------------------------------------------------------------------
 

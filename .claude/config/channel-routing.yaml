@@ -106,7 +106,6 @@ models:
     - gmail
     - calendar
     - asana-board
-    - monday
     - g-drive
     - g-sheets
     - g-docs
