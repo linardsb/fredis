@@ -58,6 +58,10 @@ These are the day-one rules — synthesised from J5. The brain should respect th
 
 - **Re-evaluate dismissed fixes when new defenses change the risk calculus.** Dismissed tightening coarse input regexes as "weakening security" — but after building the output redactor (`redact-secrets.py`), the residual risk of a looser input gate was much lower. Should have circled back immediately. General rule: when a new defensive layer lands, re-scan earlier trade-offs it might have made cheaper.
 
+- **Chat auto-retrieval must prepend per-turn, not via `system_prompt.append` (2026-04-21).** Retrieval context has to be prepended to `message.text` on every turn because `system_prompt` is session-init only — resumed Slack threads (majority of traffic) would never see retrieval hits otherwise. Pattern mirrors heartbeat-context injection at `engine.py:232-238`. Final message order is `[retrieval] → [heartbeat] → [wrapped user]` so heartbeat context isn't displaced by memory hits. `[impact: med, status: decided]`
+
+- **Claude.ai web connectors are account-level, not local MCPs (2026-04-21).** `claude.ai Gmail/Calendar/Drive/Figma` connectors sync from Claude.ai web settings — cannot be removed via `claude mcp remove`. They appear in the deferred tools list but show "Needs authentication" and do nothing. To actually disconnect: https://claude.ai → Settings → Connectors. Harmless duplicates; Fredis has zero dependency on them (direct Python APIs via `query.py`). `[impact: low, status: resolved]`
+
 ## Important Facts
 
 - **The "why" behind everything:** building enough durable, diversified income streams to let his family (wife, son, dog) live freely across UK, Latvia, and Argentina. A permanent home in Latvia and Argentina (wife's home country) is the long-game. Every research lane is a sub-investigation of this one question.
@@ -67,7 +71,7 @@ These are the day-one rules — synthesised from J5. The brain should respect th
 - **Source for voice-matching (English):** the Tim Jackson Email Hub note (D8 in the interview) is the canonical English voice sample.
 - **Reference personality:** Chris Lori (seasoned trader) — calm, evidence-first, doesn't soften the call.
 - **Phase 5.1 skill-stack complete (2026-04-19):** 28 skills live under `.claude/skills/` — 25 ported from alirezarezvani/claude-skills (MIT), 3 de novo (`ip-overhang-guard`, `business-cycle-analyst`, `robotics-engineer`). All use Anthropic 3-level progressive disclosure. Test baseline: 282/282 pass, ruff clean, mypy clean.
-- **Heartbeat + reflection running on schedule (2026-04-19):** launchd plists installed on Mac — heartbeat every 120 min (self-gates active hours), reflection daily at 08:00. macOS TCC resolved by granting `/bin/bash` Full Disk Access (repo is in `~/Desktop/`, a TCC-protected path).
+- **Heartbeat + reflection + synthesis + deps-audit + vault-sync running on VPS (2026-04-21):** systemd timers own every scheduled job. Mac launchd plists for heartbeat + reflect unloaded during Phase 10 cutover. Test baseline: pytest **513 pass / 2 skip**, ruff clean, mypy 3 pre-existing integrations errors unchanged.
 
 ## Active Projects
 
@@ -83,7 +87,8 @@ These are the day-one rules — synthesised from J5. The brain should respect th
 
 ## Upcoming Events
 
-_(No fixed recurring commitments yet — Y2 not provided. The brain should populate this as deadlines, calls, and family dates surface.)_
+- **Year 10 Consultation Evening — Thu 30 Apr 2026** (son's school). Book appointment slots.
+- **Ashdown Park dinner — Sat 20 Jun 2026.** Dietary requirements confirmed; thread resolved.
 
 ## Preferences Confirmed
 
@@ -117,7 +122,6 @@ _(No fixed recurring commitments yet — Y2 not provided. The brain should popul
 - How to reach UK + LV SMBs that haven't adopted AI workflows yet (C10)
 - UK Ltd registration before first invoice
 - VC pipeline build-out (post Tim Jackson one-shot)
-- Chat listener persistence — Slack chat bot works but dies on terminal close. Launchd plist (`com.linards.fredis-chat.plist`) agreed in principle, not built yet (2026-04-19)
 - Research/analyst skill — identified as a real gap. Three modes proposed: brief (heartbeat morning sweep), deep (on-demand report to `research/`), synthesise (cross-lane strategic read). Not yet built (2026-04-18)
 - `setup_workspace.py` bugs #2-#4 — stale defaults (30 min, 08-22, etc.) are a booby trap if the script is ever re-run. Documented in `.agent/audits/2026-04-18_phases-0-4-audit.md` (2026-04-19)
 
