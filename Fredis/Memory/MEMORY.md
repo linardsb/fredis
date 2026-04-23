@@ -38,6 +38,8 @@ _(Pre-revenue stage — formal locked-in decisions still to be made. Likely firs
 
 - **HubSpot advisor-mode boundary codified (2026-04-23).** Internal CRM mutations (create/update/archive records, log past engagements, move deal stages) are OK to execute directly from Slack chat. Outbound emails, quotes/invoices, customer-facing ticket comments route to `drafts/active/` — never auto-sent. Plan at `.agent/plans/hubspot-slack-writes.md`. All 5 write operations smoke-tested via Slack on 2026-04-23 (create contact, add note, create deal, move stage, archive). Tickets skipped for v1; archive-only (no hard delete). `[impact: med, status: decided]`
 
+- **HubSpot tickets = Fredis Review Queue (2026-04-23).** Un-deferred the tickets-v1 skip. Pipeline `Fredis Review` (repurposed the default "Support Pipeline" — HubSpot Free caps tickets at 1 pipeline) with 5 stages: Drafted → In review → Needs send → Actioned / Rejected. 7 custom properties: lane, skill_source, draft_path, urgency, slack_thread_url, heartbeat_run_id, dedupe_key. Every actionable heartbeat detection (overdue invoice, silent urgent contact, stale deal >30d, breached kill-gate) creates a ticket + posts `[DRAFT] ...` to `#hubspot` in Slack. DM Fredis "what's in my queue" or use `hubspot queue` CLI to review. Flag-gated on `HUBSPOT_TICKETS_ENABLED`. Plan: `.agent/plans/fredis-hubspot-tickets-slack.md`. `[impact: high, status: decided]`
+
 ## Lessons Learned
 
 These are the day-one rules — synthesised from J5. The brain should respect these without re-questioning unless explicitly revisited.
