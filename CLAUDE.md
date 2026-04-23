@@ -10,7 +10,7 @@ The `.claude/skills/` directory groups Fredis's skills by purpose. Every skill o
 
 **Advisor framing (2026-04-19, Linards's directive):** Each skill is **both** an execution point *and* an advisor persona. When Linards invokes a role-based skill, it should respond *from that professional's perspective* on how to approach the business/product question — not just run a playbook. The ported persona skills (`solo-founder`, `startup-cto`, `product-manager`) are explicit wrappers for this voice; the function-based role skills (`ceo-advisor`, `cto-advisor`, `product-strategist`, etc.) carry the same expectation. Treat the skill's encoded framework as the advisor's toolkit, not a rigid script.
 
-**20-skill layout after Phase 5.2 consolidation (2026-04-20):** workflow-specialist bundles route via trigger phrases; merged bundles absorb 33 Wave 1 originals into 10 dirs with 100% content preserved under `references/`. Shared primitives live in `.claude/skills/_shared/` (`lanes.md`, `atis-test.md`, `chris-lori-voice.md`, `draft-path-convention.md`) — leading-underscore keeps the dir out of auto-discovery.
+**24-skill layout after Phase 12 starter-pack additions (2026-04-23):** Phase 5.2 consolidation added 20 workflow-specialist bundles; Phase 12 adds 4 manual-invocation starter-pack skills (`draft-reply`, `meeting-notes`, `client-log`, `uk-latvia-context`) covering everyday chat-invoked flows. Shared primitives live in `.claude/skills/_shared/` (`lanes.md`, `atis-test.md`, `chris-lori-voice.md`, `draft-path-convention.md`) — leading-underscore keeps the dir out of auto-discovery.
 
 | # | Skill | Absorbs / Purpose |
 |---|-------|--------------------|
@@ -34,6 +34,10 @@ The `.claude/skills/` directory groups Fredis's skills by purpose. Every skill o
 | 18 | **`idea-validation`** | market-landscape-scan + problem-validation + minimum-lovable-product (new) |
 | 19 | **`product-shape`** | pricing-shaper + positioning-sharpener + mvp-architect (new) |
 | 20 | **`launch-governance`** | launch-wedge + metrics-gate + bet-review + decision-logger (new, heartbeat-wired) |
+| 21 | **`draft-reply`** | Voice-matched email/Slack reply drafting — retrieves 3 past replies from `drafts/sent/`, creates native Gmail draft via `query.py gmail create-draft --from-file` (Phase 12) |
+| 22 | **`meeting-notes`** | Structured meeting capture to `Fredis/Memory/meetings/YYYY-MM-DD_<slug>.md` (capture-mode carve-out; Phase 12) |
+| 23 | **`client-log`** | Appender for `Fredis/Memory/retainers/<client>.md` — dated entries with context/decisions/open-items (capture-mode carve-out; Phase 12) |
+| 24 | **`uk-latvia-context`** | Reference pack for UK + Latvian admin (Companies House, HMRC, Lursoft, VID, cross-border). Grows organically — structure seeded, Q&A added on demand (Phase 12) |
 
 **Voice modes** — merged skills with persona references surface them via invocation ("in solo-founder voice", "in startup-cto voice", "in product-manager voice"). Default is neutral SOUL voice.
 

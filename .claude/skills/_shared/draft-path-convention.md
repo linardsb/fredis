@@ -62,6 +62,26 @@ status: draft
 The heartbeat reads `drafts/active/` to flag inbox build-up. Keeping that folder tidy is part of
 advisor-mode hygiene — stale drafts mean the inbox is a pile.
 
+## Capture-mode exceptions
+
+A narrow set of skills writes directly to a topical folder rather than `drafts/active/`. These are
+**capture-mode** skills — their output is not a send-candidate awaiting review, so routing through
+`drafts/active/` would add a pointless manual-move step and bury the files under a retrieval prefix
+that means "unsent reply drafts".
+
+| Skill | Writes to | Why |
+|---|---|---|
+| `meeting-notes` | `Fredis/Memory/meetings/YYYY-MM-DD_<slug>.md` | Meeting captures never send. Retrieval via `--path-prefix meetings/`. |
+| `client-log` | `Fredis/Memory/retainers/<client-slug>.md` | Permanent client record, appended. Retrieval via `--path-prefix retainers/`. |
+
+Capture-mode skills MUST document this exception explicitly in their own SKILL.md under a §Path
+heading. New capture-mode skills require this file's table to be updated at the same time.
+
+`draft-reply` is NOT a capture-mode exception — it follows the standard `drafts/active/draft-reply/`
+path because its output is a send-candidate, even though `heartbeat.py:1086` reconciles the state
+field automatically on send. The automatic reconciler is the reason `draft-reply` uses
+`status: active` instead of the default `status: draft` — see its SKILL.md for the full rationale.
+
 ## The never-send boundary
 
 Never in any automated path:
