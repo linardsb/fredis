@@ -113,6 +113,22 @@ HUBSPOT_SCANS_ENABLED = os.getenv("HUBSPOT_SCANS_ENABLED", "false").lower() == "
 HUBSPOT_SILENT_CONTACT_DAYS = int(os.getenv("HUBSPOT_SILENT_CONTACT_DAYS", "14"))
 HUBSPOT_STALE_DEAL_DAYS = int(os.getenv("HUBSPOT_STALE_DEAL_DAYS", "14"))
 
+# HubSpot Tickets — Fredis Review queue. Default off; flip to true after
+# the bootstrap pipeline + properties exist and smoke tests pass.
+HUBSPOT_TICKETS_ENABLED = (
+    os.getenv("HUBSPOT_TICKETS_ENABLED", "false").lower() == "true"
+)
+HUBSPOT_TICKETS_PIPELINE_NAME = os.getenv(
+    "HUBSPOT_TICKETS_PIPELINE_NAME", "Fredis Review"
+)
+HUBSPOT_TICKETS_SLACK_CHANNEL = os.getenv(
+    "HUBSPOT_TICKETS_SLACK_CHANNEL", "hubspot"
+)
+HUBSPOT_TICKETS_REOPEN_DAYS = int(os.getenv("HUBSPOT_TICKETS_REOPEN_DAYS", "7"))
+HUBSPOT_STALE_DEAL_TICKET_DAYS = int(
+    os.getenv("HUBSPOT_STALE_DEAL_TICKET_DAYS", "30")
+)
+
 # GitHub Projects v2 — product lanes tracker (replaces Monday "Lanes & Features" board)
 GITHUB_PROJECT_LANES_ID = os.getenv("GITHUB_PROJECT_LANES_ID", "")
 

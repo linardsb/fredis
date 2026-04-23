@@ -59,6 +59,11 @@ def _ns(**kwargs: Any) -> argparse.Namespace:
         disposition=None, direction=None,
         start=None, end=None, subject=None, sent_at=None, body=None,
         assoc_from=None, assoc_to=None, type_id=None,
+        # Ticket-specific flags
+        lane=None, urgency=None, skill_source=None, draft_path=None,
+        dedupe_key=None, heartbeat_run=None, slack_thread=None,
+        content=None, contact_id=None, company_id=None, deal_id=None,
+        note=None,
     )
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)
@@ -500,3 +505,189 @@ def test_unassociate_calls_delete_association(hs_mocks: Any) -> None:
     hs_mocks["delete_association"].assert_called_once_with(
         "contacts", "42", "companies", "77"
     )
+
+
+# =============================================================================
+# Tickets — Fredis Review queue
+# =============================================================================
+
+
+def _stub_ticket(id_: str = "t1",
+                 properties: dict[str, Any] | None = None) -> hubspot_api.HubSpotObject:
+    return hubspot_api.HubSpotObject(
+        id=id_, object_type="tickets", properties=properties or {}
+    )
+
+
+def test_create_ticket_invokes_api_with_custom_props() -> None:
+    with patch("integrations.hubspot_api.create_ticket") as create_ticket:
+        create_ticket.return_value = _stub_ticket(id_="77")
+        args = _ns(
+            action="create-ticket",
+            subject="Smoke",
+            content="body",
+            lane="admin",
+            skill_source="integrations",
+            urgency="whenever",
+            draft_path="Fredis/Memory/drafts/active/admin/smoke.md",
+            contact_id="111",
+            deal_id="222",
+        )
+        query.cmd_hubspot(args)
+    kwargs = create_ticket.call_args.kwargs
+    assert kwargs["subject"] == "Smoke"
+    assert kwargs["content"] == "body"
+    assert kwargs["lane"] == "admin"
+    assert kwargs["skill_source"] == "integrations"
+    assert kwargs["urgency"] == "whenever"
+    assert kwargs["draft_path"] == "Fredis/Memory/drafts/active/admin/smoke.md"
+    assert kwargs["contact_ids"] == ["111"]
+    assert kwargs["company_ids"] is None
+    assert kwargs["deal_ids"] == ["222"]
+
+
+def test_create_ticket_requires_subject() -> None:
+    with patch("integrations.hubspot_api.create_ticket") as create_ticket:
+        args = _ns(action="create-ticket")
+        with pytest.raises(ValueError, match="--subject required"):
+            query.cmd_hubspot(args)
+        create_ticket.assert_not_called()
+
+
+def test_get_ticket_prints_found(capsys: Any) -> None:
+    with patch("integrations.hubspot_api.get_ticket") as get_ticket:
+        get_ticket.return_value = _stub_ticket(
+            id_="77",
+            properties={"subject": "Hi", "lane": "admin", "urgency": "today"},
+        )
+        args = _ns(action="get-ticket", target_id="77")
+        query.cmd_hubspot(args)
+    out = capsys.readouterr().out
+    assert "Ticket 77" in out
+    assert "subject: Hi" in out
+    assert "lane: admin" in out
+
+
+def test_get_ticket_missing_prints_not_found(capsys: Any) -> None:
+    with patch("integrations.hubspot_api.get_ticket") as get_ticket:
+        get_ticket.return_value = None
+        args = _ns(action="get-ticket", target_id="404")
+        query.cmd_hubspot(args)
+    assert "not found" in capsys.readouterr().out
+
+
+def test_move_ticket_invokes_api() -> None:
+    with patch("integrations.hubspot_api.move_ticket") as move_ticket:
+        move_ticket.return_value = _stub_ticket(id_="77")
+        args = _ns(action="move-ticket", target_id="77", to_stage="Needs send")
+        query.cmd_hubspot(args)
+    move_ticket.assert_called_once_with("77", "Needs send")
+
+
+def test_move_ticket_requires_id_and_stage() -> None:
+    args = _ns(action="move-ticket", to_stage="Needs send")  # no target_id
+    with pytest.raises(ValueError, match="Ticket id .* required"):
+        query.cmd_hubspot(args)
+
+
+def test_close_ticket_actioned() -> None:
+    with patch("integrations.hubspot_api.close_ticket") as close_ticket:
+        close_ticket.return_value = _stub_ticket(id_="77")
+        args = _ns(action="close-ticket", target_id="77", close_as="actioned")
+        query.cmd_hubspot(args)
+    close_ticket.assert_called_once_with("77", as_="actioned", note=None)
+
+
+def test_close_ticket_rejected_with_note() -> None:
+    with patch("integrations.hubspot_api.close_ticket") as close_ticket:
+        close_ticket.return_value = _stub_ticket(id_="77")
+        args = _ns(
+            action="close-ticket",
+            target_id="77",
+            close_as="rejected",
+            note="already handled",
+        )
+        query.cmd_hubspot(args)
+    close_ticket.assert_called_once_with(
+        "77", as_="rejected", note="already handled"
+    )
+
+
+def test_close_ticket_rejects_deal_disposition() -> None:
+    """--as won/lost is valid for deals but not tickets."""
+    args = _ns(action="close-ticket", target_id="77", close_as="won")
+    with pytest.raises(ValueError, match="must be 'actioned' or 'rejected'"):
+        query.cmd_hubspot(args)
+
+
+def test_list_tickets_prints_flat(capsys: Any) -> None:
+    with patch("integrations.hubspot_api.list_open_tickets") as list_open:
+        list_open.return_value = [
+            _stub_ticket(
+                id_="77",
+                properties={
+                    "subject": "Invoice review",
+                    "lane": "client",
+                    "urgency": "today",
+                },
+            ),
+        ]
+        args = _ns(action="list-tickets")
+        query.cmd_hubspot(args)
+    list_open.assert_called_once_with(lane=None, urgency=None, limit=25)
+    out = capsys.readouterr().out
+    assert "Open tickets (1)" in out
+    assert "77 | client | today | Invoice review" in out
+
+
+def test_list_tickets_filters_by_lane_and_urgency() -> None:
+    with patch("integrations.hubspot_api.list_open_tickets") as list_open:
+        list_open.return_value = []
+        args = _ns(
+            action="list-tickets", lane="content", urgency="today", max=50
+        )
+        query.cmd_hubspot(args)
+    list_open.assert_called_once_with(lane="content", urgency="today", limit=50)
+
+
+def test_queue_groups_by_urgency(capsys: Any) -> None:
+    with patch("integrations.hubspot_api.list_open_tickets") as list_open:
+        list_open.return_value = [
+            _stub_ticket(id_="a", properties={
+                "subject": "Pay VAT",
+                "lane": "admin",
+                "urgency": "today",
+                "skill_source": "heartbeat",
+            }),
+            _stub_ticket(id_="b", properties={
+                "subject": "LinkedIn draft",
+                "lane": "content",
+                "urgency": "whenever",
+                "skill_source": "content-social",
+            }),
+            _stub_ticket(id_="c", properties={
+                "subject": "Silent: Jane",
+                "lane": "client",
+                "urgency": "this_week",
+                "skill_source": "heartbeat",
+            }),
+        ]
+        args = _ns(action="queue")
+        query.cmd_hubspot(args)
+    out = capsys.readouterr().out
+    # Sections must appear in today → this_week → whenever order
+    today_pos = out.index("## today")
+    week_pos = out.index("## this_week")
+    whenever_pos = out.index("## whenever")
+    assert today_pos < week_pos < whenever_pos
+    assert "[admin] Pay VAT" in out
+    assert "[client] Silent: Jane" in out
+    assert "[content] LinkedIn draft" in out
+
+
+def test_queue_empty_prints_no_tickets(capsys: Any) -> None:
+    with patch("integrations.hubspot_api.list_open_tickets") as list_open:
+        list_open.return_value = []
+        args = _ns(action="queue")
+        query.cmd_hubspot(args)
+    assert "No open tickets" in capsys.readouterr().out

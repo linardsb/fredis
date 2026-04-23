@@ -37,7 +37,7 @@ if sys.stdout.encoding != "utf-8":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 if sys.stderr.encoding != "utf-8":
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -162,6 +162,181 @@ def diff_snapshot(prev: dict[str, Any], curr: dict[str, Any]) -> dict[str, Any]:
 # =============================================================================
 # DIRECT INTEGRATION CONTEXT GATHERING (Phase 5 + State Diffing)
 # =============================================================================
+
+
+_LANE_FROM_TITLE: tuple[tuple[str, str], ...] = (
+    ("email hub", "email_hub"),
+    ("vtv", "vtv"),
+    ("cab", "cab"),
+    ("content", "content"),
+)
+
+_TICKET_LANE_VALUES: frozenset[str] = frozenset({
+    "email_hub", "vtv", "cab", "content", "ops", "client", "admin",
+})
+
+
+def _lane_from_gate_title(title: str) -> str:
+    """Derive a ticket lane from a GitHub Projects lane-item title.
+
+    UGOKI / GERBONI and other non-enum lanes fall back to `ops`.
+    """
+    t = (title or "").lower()
+    for needle, lane in _LANE_FROM_TITLE:
+        if needle in t:
+            return lane
+    return "ops"
+
+
+def _lane_for_gate(gate_lane: str) -> str:
+    """Normalize a gate_loader lane slug (hyphens) to a Fredis ticket lane."""
+    normalized = (gate_lane or "").lower().replace("-", "_")
+    if normalized in _TICKET_LANE_VALUES:
+        return normalized
+    return "ops"
+
+
+def _is_stale_beyond(iso_date: str | None, days: int) -> bool:
+    """True if the ISO-date string is more than `days` days in the past."""
+    if not iso_date:
+        return False
+    try:
+        dt = datetime.fromisoformat(str(iso_date).replace("Z", "+00:00"))
+    except (ValueError, TypeError):
+        return False
+    return (datetime.now(UTC) - dt).days >= days
+
+
+def _dispatch_review_tickets(data: dict[str, Any]) -> None:
+    """Dispatch Fredis Review tickets for every actionable detection in
+    `data`. Flag-gated inside `ticket_dispatcher.dispatch_ticket` — no-op
+    when HUBSPOT_TICKETS_ENABLED is false.
+    """
+    from config import HUBSPOT_STALE_DEAL_TICKET_DAYS, HUBSPOT_TICKETS_ENABLED
+    if not HUBSPOT_TICKETS_ENABLED:
+        return
+
+    from ticket_dispatcher import dispatch_ticket, write_heartbeat_draft
+
+    run_id = f"hb-{now_local().strftime('%Y%m%d-%H%M')}"
+    created_count = 0
+    skipped_count = 0
+
+    def _count(result: dict[str, Any]) -> None:
+        nonlocal created_count, skipped_count
+        if result.get("created"):
+            created_count += 1
+        else:
+            skipped_count += 1
+
+    # Overdue invoices — client lane, urgency=today.
+    for deal in data.get("hubspot_overdue_invoices", []):
+        p = deal.properties
+        name = p.get("dealname") or f"deal-{deal.id}"
+        subject = f"Overdue invoice: {name}"
+        body = (
+            f"Deal id: {deal.id}\n"
+            f"Stage: Invoice\n"
+            f"Amount: {p.get('amount', '?')}\n"
+            f"Close date (past): {p.get('closedate', '?')}"
+        )
+        draft_path = write_heartbeat_draft(
+            "overdue-invoice", deal.id, subject, body
+        )
+        _count(dispatch_ticket(
+            subject=subject,
+            content=body,
+            lane="client",
+            skill_source="heartbeat",
+            urgency="today",
+            draft_path=draft_path,
+            heartbeat_run_id=run_id,
+            deal_ids=[deal.id],
+        ))
+
+    # Silent urgent contacts — client lane, urgency=this_week.
+    for contact in data.get("hubspot_silent_contacts", []):
+        p = contact.properties
+        first = p.get("firstname", "") or ""
+        last = p.get("lastname", "") or ""
+        email = p.get("email", "") or ""
+        name = f"{first} {last}".strip() or email or f"contact-{contact.id}"
+        subject = f"Silent urgent contact: {name}"
+        body = (
+            f"Contact id: {contact.id}\n"
+            f"Email: {email or '?'}\n"
+            f"Last contacted: {p.get('notes_last_contacted') or 'never'}"
+        )
+        draft_path = write_heartbeat_draft(
+            "silent-contact", contact.id, subject, body
+        )
+        _count(dispatch_ticket(
+            subject=subject,
+            content=body,
+            lane="client",
+            skill_source="heartbeat",
+            urgency="this_week",
+            draft_path=draft_path,
+            heartbeat_run_id=run_id,
+            contact_ids=[contact.id],
+        ))
+
+    # Stale deals — only >HUBSPOT_STALE_DEAL_TICKET_DAYS idle become tickets.
+    # Deals between the scan cutoff and this threshold stay advisory-only
+    # in Claude's context (daily log if Claude decides they're worth noting).
+    for deal in data.get("hubspot_stale_deals", []):
+        last = deal.properties.get("hs_lastmodifieddate")
+        if not _is_stale_beyond(last, HUBSPOT_STALE_DEAL_TICKET_DAYS):
+            continue
+        p = deal.properties
+        name = p.get("dealname") or f"deal-{deal.id}"
+        subject = f"Stale deal (>{HUBSPOT_STALE_DEAL_TICKET_DAYS}d): {name}"
+        body = (
+            f"Deal id: {deal.id}\n"
+            f"Stage: {p.get('dealstage', '?')}\n"
+            f"Last modified: {last}"
+        )
+        draft_path = write_heartbeat_draft(
+            "stale-deal", deal.id, subject, body
+        )
+        _count(dispatch_ticket(
+            subject=subject,
+            content=body,
+            lane="client",
+            skill_source="heartbeat",
+            urgency="this_week",
+            draft_path=draft_path,
+            heartbeat_run_id=run_id,
+            deal_ids=[deal.id],
+        ))
+
+    # Breached kill-gates — urgency=today, skill=launch-governance.
+    for item in data.get("github_breached_gates", []):
+        title = getattr(item, "title", "") or ""
+        subject = f"Breached kill-gate: {title}"
+        body = (
+            f"Lane item: {title}\n"
+            f"URL: {getattr(item, 'url', '') or '?'}\n"
+            f"Item id: {getattr(item, 'id', '?')}"
+        )
+        draft_path = write_heartbeat_draft(
+            "breached-gate", getattr(item, "id", "unknown"), subject, body
+        )
+        _count(dispatch_ticket(
+            subject=subject,
+            content=body,
+            lane=_lane_from_gate_title(title),
+            skill_source="launch-governance",
+            urgency="today",
+            draft_path=draft_path,
+            heartbeat_run_id=run_id,
+        ))
+
+    if created_count or skipped_count:
+        print(
+            f"[{now_local()}] Ticket dispatch: {created_count} created, "
+            f"{skipped_count} skipped"
+        )
 
 
 def _fetch_raw_data() -> dict[str, Any]:
@@ -292,6 +467,14 @@ def _fetch_raw_data() -> dict[str, Any]:
         except Exception as e:
             data["errors"]["github_projects"] = str(e)
             print(f"[{now_local()}] GitHub Projects error (non-fatal): {e}")
+
+        # Dispatch actionable detections to the Fredis Review ticket queue.
+        # No-op when HUBSPOT_TICKETS_ENABLED is false (checked inside dispatcher).
+        try:
+            _dispatch_review_tickets(data)
+        except Exception as e:
+            data["errors"]["ticket_dispatch"] = str(e)
+            print(f"[{now_local()}] Ticket dispatch error (non-fatal): {e}")
 
     # GitHub
     try:
@@ -735,6 +918,7 @@ def surface_gate_breaches() -> list[str]:
     GATE_BREACH_DRAFTS_DIR.mkdir(parents=True, exist_ok=True)
     today = now_local().strftime("%Y-%m-%d")
     surfaced: list[str] = []
+    run_id = f"hb-{now_local().strftime('%Y%m%d-%H%M')}"
     for breach in breaches:
         gate = breach.gate
         slug = f"{today}-{gate.lane}-{gate.metric}-breach.md"
@@ -744,6 +928,30 @@ def surface_gate_breaches() -> list[str]:
         out.write_text(render_breach_draft(breach, template), encoding="utf-8")
         surfaced.append(f"{gate.lane}/{gate.metric}")
         print(f"[{now_local()}] Gate breach draft: {slug}")
+        # Dispatch a Fredis Review ticket for the breach. The anchor is
+        # lane/metric (not the date-stamped path) so dedupe stays stable
+        # across days until the ticket is closed.
+        try:
+            from config import HUBSPOT_TICKETS_ENABLED, PROJECT_ROOT
+            if HUBSPOT_TICKETS_ENABLED:
+                from ticket_dispatcher import dispatch_ticket
+                dispatch_ticket(
+                    subject=f"Breached gate: {gate.lane}/{gate.metric}",
+                    content=(
+                        f"Gate: {gate.lane}/{gate.metric}\n"
+                        f"Threshold: {gate.threshold}\n"
+                        f"Deadline: {gate.deadline.isoformat()}\n"
+                        f"Reason: {breach.reason}"
+                    ),
+                    lane=_lane_for_gate(gate.lane),
+                    skill_source="launch-governance",
+                    urgency="today",
+                    draft_path=str(out.relative_to(PROJECT_ROOT)),
+                    dedupe_anchor=f"gate:{gate.lane}/{gate.metric}",
+                    heartbeat_run_id=run_id,
+                )
+        except Exception as exc:
+            print(f"[{now_local()}] Gate ticket dispatch error (non-fatal): {exc}")
     return surfaced
 
 

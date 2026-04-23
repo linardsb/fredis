@@ -993,6 +993,100 @@ def cmd_hubspot(args: argparse.Namespace) -> None:
         delete_association(from_type, from_id, to_type, to_id)
         print(f"Removed association {from_type[:-1]} {from_id} ↮ {to_type[:-1]} {to_id}.")
 
+    # ------------------------------------------------------------------
+    # Tickets — Fredis Review queue
+    # ------------------------------------------------------------------
+    elif args.action == "create-ticket":
+        from integrations.hubspot_api import create_ticket
+        if not args.subject:
+            raise ValueError("--subject required.")
+        created = create_ticket(
+            subject=args.subject,
+            content=args.content or "",
+            lane=args.lane,
+            skill_source=args.skill_source,
+            urgency=args.urgency,
+            draft_path=args.draft_path,
+            dedupe_key=args.dedupe_key,
+            heartbeat_run_id=args.heartbeat_run,
+            slack_thread_url=args.slack_thread,
+            contact_ids=[args.contact_id] if args.contact_id else None,
+            company_ids=[args.company_id] if args.company_id else None,
+            deal_ids=[args.deal_id] if args.deal_id else None,
+        )
+        print(f"Created ticket {created.id}: {args.subject!r}")
+
+    elif args.action == "get-ticket":
+        from integrations.hubspot_api import get_ticket
+        if not args.target_id:
+            raise ValueError("Ticket id required as positional argument.")
+        found = get_ticket(
+            args.target_id,
+            properties=[
+                "subject", "content", "hs_pipeline_stage",
+                "lane", "skill_source", "urgency", "draft_path",
+                "hs_ticket_priority", "dedupe_key",
+                "heartbeat_run_id", "slack_thread_url",
+            ],
+        )
+        if found is None:
+            print(f"Ticket {args.target_id} not found.")
+        else:
+            print(f"Ticket {found.id}:")
+            for k, v in sorted(found.properties.items()):
+                if v:
+                    print(f"  {k}: {v}")
+
+    elif args.action == "move-ticket":
+        from integrations.hubspot_api import move_ticket
+        if not args.target_id or not args.to_stage:
+            raise ValueError("Ticket id (positional) and --to-stage required.")
+        moved = move_ticket(args.target_id, args.to_stage)
+        print(f"Moved ticket {moved.id} → {args.to_stage!r}.")
+
+    elif args.action == "close-ticket":
+        from integrations.hubspot_api import close_ticket
+        if not args.target_id:
+            raise ValueError("Ticket id required as positional argument.")
+        if args.close_as not in ("actioned", "rejected"):
+            raise ValueError("--as must be 'actioned' or 'rejected' for close-ticket.")
+        closed = close_ticket(
+            args.target_id, as_=args.close_as, note=args.note
+        )
+        print(f"Closed ticket {closed.id} as {args.close_as}.")
+
+    elif args.action in ("list-tickets", "queue"):
+        from integrations.hubspot_api import list_open_tickets
+        tickets = list_open_tickets(
+            lane=args.lane, urgency=args.urgency, limit=args.max
+        )
+        if not tickets:
+            print("No open tickets.")
+        elif args.action == "queue":
+            # Group by urgency for quick scan.
+            order = ("today", "this_week", "whenever", "")
+            groups: dict[str, list[Any]] = {k: [] for k in order}
+            for t in tickets:
+                groups.setdefault(t.properties.get("urgency", "") or "", []).append(t)
+            for urg in order:
+                if not groups[urg]:
+                    continue
+                print(f"\n## {urg or 'unscheduled'}")
+                for t in groups[urg]:
+                    p = t.properties
+                    lane = p.get("lane", "?")
+                    skill = p.get("skill_source", "?")
+                    subject = p.get("subject", "")
+                    print(f"  - [{lane}] {subject} (id={t.id}, skill={skill})")
+        else:
+            print(f"Open tickets ({len(tickets)}):")
+            for t in tickets:
+                p = t.properties
+                print(
+                    f"  - {t.id} | {p.get('lane', '?')} | "
+                    f"{p.get('urgency', '?')} | {p.get('subject', '')}"
+                )
+
 
 def cmd_lanes(args: argparse.Namespace) -> None:
     """Handle GitHub Projects v2 lane queries."""
@@ -1160,6 +1254,9 @@ def main() -> None:
             "log-call", "log-meeting", "log-email",
             # writes — associations
             "associate", "unassociate",
+            # tickets — Fredis Review queue
+            "create-ticket", "get-ticket", "move-ticket", "close-ticket",
+            "list-tickets", "queue",
         ],
     )
     hubspot_parser.add_argument(
@@ -1232,7 +1329,39 @@ def main() -> None:
     hubspot_parser.add_argument("--to-stage", default=None,
                                 help="Stage label for move-deal")
     hubspot_parser.add_argument("--as", dest="close_as", default=None,
-                                choices=["won", "lost"])
+                                choices=["won", "lost", "actioned", "rejected"])
+    # Ticket-specific flags
+    hubspot_parser.add_argument(
+        "--lane", default=None,
+        choices=["email_hub", "vtv", "cab", "content", "ops", "client", "admin"],
+        help="Ticket lane (Fredis Review queue)",
+    )
+    hubspot_parser.add_argument(
+        "--urgency", default=None,
+        choices=["today", "this_week", "whenever"],
+        help="Ticket urgency (auto-derives hs_ticket_priority)",
+    )
+    hubspot_parser.add_argument(
+        "--skill", dest="skill_source", default=None,
+        help="Skill or subsystem creating the ticket",
+    )
+    hubspot_parser.add_argument("--draft-path", default=None,
+                                help="Repo-relative path to the draft markdown")
+    hubspot_parser.add_argument("--dedupe-key", default=None)
+    hubspot_parser.add_argument("--heartbeat-run", default=None,
+                                help="heartbeat_run_id for heartbeat-sourced tickets")
+    hubspot_parser.add_argument("--slack-thread", default=None,
+                                help="slack_thread_url if ticket born from Slack")
+    hubspot_parser.add_argument("--content", default=None,
+                                help="Ticket body / description")
+    hubspot_parser.add_argument("--contact-id", default=None,
+                                help="Associate ticket with a HubSpot contact id")
+    hubspot_parser.add_argument("--company-id", default=None,
+                                help="Associate ticket with a HubSpot company id")
+    hubspot_parser.add_argument("--deal-id", default=None,
+                                help="Associate ticket with a HubSpot deal id")
+    hubspot_parser.add_argument("--note", default=None,
+                                help="Rejection note (close-ticket --as rejected)")
     # Engagement args
     hubspot_parser.add_argument("--about", default=None,
                                 help="<type>:<id|email|domain|dealname>")

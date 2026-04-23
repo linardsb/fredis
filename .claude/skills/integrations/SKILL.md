@@ -19,6 +19,7 @@ TL;DR — all Fredis's external platform surfaces live here. Prefer direct Pytho
 | "google doc", "read doc", "open doc" | `references/direct-integrations.md` — Docs section |
 | "find in drive", "google drive", "list files" | `references/direct-integrations.md` — Drive section |
 | "hubspot contacts", "create contact", "move deal", "add note on deal", "log call", "archive contact", "stale deals" | `references/direct-integrations.md` — HubSpot section |
+| "what's in my queue", "show my queue", "tickets today", "review queue", "create ticket", "move ticket", "close ticket", "reject ticket" | `references/direct-integrations.md` — HubSpot tickets (Fredis Review queue) |
 | "github recent", "github review requests", "github mentions", "github ship" | `references/direct-integrations.md` — GitHub section |
 | "lanes", "breached gates", "github project lanes" | `references/direct-integrations.md` — GitHub Projects v2 section |
 | "connect to MCP server", "list MCP tools", "call Zapier action", "use sequential thinking", any generic MCP surface | `references/mcp-client.md` |
@@ -39,7 +40,9 @@ Linards reviews and sends manually from the draft file.
 
 **Read-first bias.** Integrations are primarily read surfaces. Write operations (`gmail create-draft`, `asana create`, `sheets write`, `sheets append`, `asana comment`, `asana complete`, `asana move`, `slack update`, all `hubspot create-*`/`update-*`/`archive-*`/`add-note`/`create-task`/`log-*`/`associate`/`unassociate`) modify state on Linards's accounts — only run when explicitly asked and after surfacing intent.
 
-**HubSpot write boundary.** Internal CRM mutations (contacts/companies/deals/notes/tasks/logged engagements) write directly. Outbound email through HubSpot's email tool, quotes, and invoices still route through `Fredis/Memory/drafts/active/` — **logging ≠ sending**.
+**HubSpot write boundary.** Internal CRM mutations (contacts/companies/deals/notes/tasks/logged engagements, ticket create/move/close) write directly. Outbound email through HubSpot's email tool, quotes, and invoices still route through `Fredis/Memory/drafts/active/` — **logging ≠ sending**.
+
+**Fredis Review tickets.** Every actionable draft Fredis produces creates a HubSpot ticket in the `Fredis Review` pipeline — the unified review queue. CLI surface: `hubspot create-ticket`, `hubspot queue` (grouped by urgency), `hubspot get-ticket <id>`, `hubspot move-ticket <id> --to-stage "Needs send"`, `hubspot close-ticket <id> --as actioned|rejected`. Tickets appear in `#hubspot` Slack when created by the heartbeat (flag-gated on `HUBSPOT_TICKETS_ENABLED`). CLI calls bypass the Slack feed — they're for interactive review only.
 
 ## References
 

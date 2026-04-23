@@ -2,6 +2,8 @@
 
 Fredis is an **advisor**, not an agent with send-authority. Heartbeats and scheduled runs draft into `Fredis/Memory/drafts/active/` — Linards reviews and sends from Gmail/Slack himself. Automated sending is disabled across every external channel (Slack messages, email, social platforms). See `SOUL.md` for the full never-send boundary.
 
+**Review queue (HubSpot tickets).** Every actionable draft Fredis produces also creates a ticket in the HubSpot `Fredis Review` pipeline (5 stages: Drafted → In review → Needs send → Actioned / Rejected) and posts a `[DRAFT] ...` notice to `#hubspot` in Slack. The ticket is the inbox; the draft file is the content. DM Fredis "what's in my queue" to scan, or use the `hubspot queue` / `hubspot create-ticket` / `hubspot move-ticket` / `hubspot close-ticket` CLI. Flag-gated on `HUBSPOT_TICKETS_ENABLED`. Plan: `.agent/plans/fredis-hubspot-tickets-slack.md`.
+
 ## Skill Stack
 
 The `.claude/skills/` directory groups Fredis's skills by purpose. Every skill operates under §Advisor Mode — outputs go to `Fredis/Memory/drafts/active/<skill>/` and are never auto-sent.

@@ -44,6 +44,21 @@ DEFAULT_LIMIT = 25
 ASSOCIATION_CONTACT_TO_COMPANY = 1
 ASSOCIATION_DEAL_TO_COMPANY = 5
 ASSOCIATION_DEAL_TO_CONTACT = 3
+# Ticket associations use a separate typeId block from the contact/company/deal
+# cross-associations above.
+ASSOCIATION_TICKET_TO_CONTACT = 16
+ASSOCIATION_TICKET_TO_COMPANY = 26
+ASSOCIATION_TICKET_TO_DEAL = 28
+# Engagement → ticket associations (notes, tasks, etc. anchored on a ticket).
+ASSOCIATION_NOTE_TO_TICKET = 228
+
+FREDIS_REVIEW_PIPELINE_NAME = "Fredis Review"
+# Urgency slug → HubSpot built-in priority value.
+TICKET_URGENCY_TO_PRIORITY: dict[str, str] = {
+    "today": "HIGH",
+    "this_week": "MEDIUM",
+    "whenever": "LOW",
+}
 
 
 @dataclass
@@ -405,6 +420,24 @@ def create_pipeline(
     return _request("POST", f"/crm/v3/pipelines/{object_type}", json=body)
 
 
+def update_pipeline(
+    object_type: str,
+    pipeline_id: str,
+    name: str,
+    stages: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """PUT /crm/v3/pipelines/{object_type}/{pipeline_id} — replace label + stages.
+
+    Destructive: stages whose IDs are not in the new payload are deleted.
+    Use when you want to repurpose an existing pipeline (e.g. on tiers that cap
+    the pipeline count at 1).
+    """
+    body = {"label": name, "displayOrder": 0, "stages": stages}
+    return _request(
+        "PUT", f"/crm/v3/pipelines/{object_type}/{pipeline_id}", json=body
+    )
+
+
 # ---------------------------------------------------------------------------
 # Engagements (tasks / notes)
 # ---------------------------------------------------------------------------
@@ -549,6 +582,255 @@ def build_associations(
             }
         )
     return out
+
+
+# ---------------------------------------------------------------------------
+# Tickets — Fredis Review queue
+# ---------------------------------------------------------------------------
+
+# Open stages (labels) within the Fredis Review pipeline.
+TICKET_OPEN_STAGE_LABELS = ("Drafted", "In review", "Needs send")
+TICKET_CLOSED_STAGE_LABELS = ("Actioned", "Rejected")
+
+
+def resolve_ticket_stage_id(
+    label: str,
+    pipeline_name: str = FREDIS_REVIEW_PIPELINE_NAME,
+) -> str:
+    """Look up a ticket stage ID by label within the named pipeline.
+
+    HubSpot stores pipeline stages by numeric ID; labels are the user-facing
+    names. Most callers pass a label (e.g. "Drafted") and let this helper
+    resolve the ID.
+    """
+    for p in list_pipelines("tickets"):
+        if p.get("label") != pipeline_name:
+            continue
+        for s in p.get("stages", []):
+            if str(s.get("label", "")).lower() == label.lower():
+                return str(s.get("id"))
+        raise ValueError(
+            f"ticket stage {label!r} not found in pipeline {pipeline_name!r}"
+        )
+    raise ValueError(f"ticket pipeline {pipeline_name!r} not found")
+
+
+def _resolve_pipeline_and_stage(
+    stage_label: str,
+    pipeline_name: str = FREDIS_REVIEW_PIPELINE_NAME,
+) -> tuple[str, str]:
+    """Return (pipeline_id, stage_id) for a named pipeline + stage label."""
+    for p in list_pipelines("tickets"):
+        if p.get("label") != pipeline_name:
+            continue
+        pipeline_id = str(p.get("id"))
+        for s in p.get("stages", []):
+            if str(s.get("label", "")).lower() == stage_label.lower():
+                return pipeline_id, str(s.get("id"))
+        raise ValueError(
+            f"ticket stage {stage_label!r} not found in pipeline {pipeline_name!r}"
+        )
+    raise ValueError(f"ticket pipeline {pipeline_name!r} not found")
+
+
+def _build_ticket_associations(
+    contact_ids: list[str] | None,
+    company_ids: list[str] | None,
+    deal_ids: list[str] | None,
+) -> list[dict[str, Any]]:
+    """Translate per-object ID lists into the v4 associations payload."""
+    pairs: list[tuple[str, str, int]] = []
+    for cid in contact_ids or []:
+        pairs.append(("contacts", cid, ASSOCIATION_TICKET_TO_CONTACT))
+    for cid in company_ids or []:
+        pairs.append(("companies", cid, ASSOCIATION_TICKET_TO_COMPANY))
+    for did in deal_ids or []:
+        pairs.append(("deals", did, ASSOCIATION_TICKET_TO_DEAL))
+    return build_associations(pairs)
+
+
+def create_ticket(
+    subject: str,
+    content: str = "",
+    *,
+    lane: str | None = None,
+    skill_source: str | None = None,
+    urgency: str | None = None,
+    draft_path: str | None = None,
+    dedupe_key: str | None = None,
+    heartbeat_run_id: str | None = None,
+    slack_thread_url: str | None = None,
+    stage_label: str = "Drafted",
+    pipeline_name: str = FREDIS_REVIEW_PIPELINE_NAME,
+    contact_ids: list[str] | None = None,
+    company_ids: list[str] | None = None,
+    deal_ids: list[str] | None = None,
+) -> HubSpotObject:
+    """Create a Fredis Review ticket.
+
+    Subject and content use HubSpot's built-in properties; `lane`,
+    `skill_source`, `urgency`, `draft_path`, `heartbeat_run_id`,
+    `slack_thread_url`, and `dedupe_key` are the custom properties created
+    by `bootstrap_hubspot_tickets.py`. `hs_ticket_priority` is auto-derived
+    from urgency (today→HIGH, this_week→MEDIUM, whenever→LOW).
+    """
+    pipeline_id, stage_id = _resolve_pipeline_and_stage(stage_label, pipeline_name)
+    # `source_type` omitted — HubSpot tickets restrict it to CHAT/EMAIL/FORM/PHONE,
+    # none of which honestly describe an API-created review ticket. Leaving null.
+    props: dict[str, Any] = {
+        "subject": subject,
+        "content": content,
+        "hs_pipeline": pipeline_id,
+        "hs_pipeline_stage": stage_id,
+    }
+    if lane:
+        props["lane"] = lane
+    if skill_source:
+        props["skill_source"] = skill_source
+    if urgency:
+        props["urgency"] = urgency
+        priority = TICKET_URGENCY_TO_PRIORITY.get(urgency)
+        if priority:
+            props["hs_ticket_priority"] = priority
+    if draft_path:
+        props["draft_path"] = draft_path
+    if dedupe_key:
+        props["dedupe_key"] = dedupe_key
+    if heartbeat_run_id:
+        props["heartbeat_run_id"] = heartbeat_run_id
+    if slack_thread_url:
+        props["slack_thread_url"] = slack_thread_url
+
+    payload: dict[str, Any] = {"properties": props}
+    associations = _build_ticket_associations(contact_ids, company_ids, deal_ids)
+    if associations:
+        payload["associations"] = associations
+    data = _request("POST", "/crm/v3/objects/tickets", json=payload)
+    return _parse_object(data, "tickets")
+
+
+def get_ticket(
+    ticket_id: str,
+    properties: list[str] | None = None,
+) -> HubSpotObject | None:
+    """GET a ticket by ID. Returns None on 404."""
+    return get_object("tickets", ticket_id, properties=properties)
+
+
+def move_ticket(
+    ticket_id: str,
+    to_stage_label: str,
+    pipeline_name: str = FREDIS_REVIEW_PIPELINE_NAME,
+) -> HubSpotObject:
+    """PATCH a ticket to a new stage. Resolves stage label → ID first."""
+    _, stage_id = _resolve_pipeline_and_stage(to_stage_label, pipeline_name)
+    return update_object("tickets", ticket_id, {"hs_pipeline_stage": stage_id})
+
+
+def close_ticket(
+    ticket_id: str,
+    as_: str = "actioned",
+    note: str | None = None,
+    pipeline_name: str = FREDIS_REVIEW_PIPELINE_NAME,
+) -> HubSpotObject:
+    """Close a ticket as `actioned` or `rejected`. Optional note creates a
+    NOTE engagement associated with the ticket — used for capturing the
+    rejection reason on `close_ticket(..., as_="rejected", note="...")`.
+    """
+    mapping = {"actioned": "Actioned", "rejected": "Rejected"}
+    try:
+        label = mapping[as_.lower()]
+    except KeyError as e:
+        raise ValueError(
+            f"close_ticket as_={as_!r}: must be 'actioned' or 'rejected'"
+        ) from e
+
+    result = move_ticket(ticket_id, label, pipeline_name=pipeline_name)
+    if note:
+        create_note(
+            body=note,
+            associations=build_associations(
+                [("tickets", ticket_id, ASSOCIATION_NOTE_TO_TICKET)]
+            ),
+        )
+    return result
+
+
+def list_open_tickets(
+    lane: str | None = None,
+    urgency: str | None = None,
+    limit: int = 100,
+    pipeline_name: str = FREDIS_REVIEW_PIPELINE_NAME,
+) -> list[HubSpotObject]:
+    """Search for open Fredis Review tickets, optionally filtered by lane/urgency."""
+    open_stage_ids = [
+        resolve_ticket_stage_id(label, pipeline_name)
+        for label in TICKET_OPEN_STAGE_LABELS
+    ]
+    filters: list[dict[str, Any]] = [
+        {
+            "propertyName": "hs_pipeline_stage",
+            "operator": "IN",
+            "values": open_stage_ids,
+        }
+    ]
+    if lane:
+        filters.append({"propertyName": "lane", "operator": "EQ", "value": lane})
+    if urgency:
+        filters.append(
+            {"propertyName": "urgency", "operator": "EQ", "value": urgency}
+        )
+    return search_objects(
+        "tickets",
+        filter_groups=[{"filters": filters}],
+        properties=[
+            "subject",
+            "content",
+            "hs_pipeline_stage",
+            "lane",
+            "skill_source",
+            "urgency",
+            "draft_path",
+            "hs_ticket_priority",
+        ],
+        limit=limit,
+    )
+
+
+def search_tickets_by_dedupe_key(
+    dedupe_key: str,
+    open_only: bool = True,
+    pipeline_name: str = FREDIS_REVIEW_PIPELINE_NAME,
+) -> list[HubSpotObject]:
+    """Return tickets matching a dedupe_key. Used by heartbeat to skip
+    creating duplicate tickets on repeat ticks.
+    """
+    filters: list[dict[str, Any]] = [
+        {"propertyName": "dedupe_key", "operator": "EQ", "value": dedupe_key}
+    ]
+    if open_only:
+        open_stage_ids = [
+            resolve_ticket_stage_id(label, pipeline_name)
+            for label in TICKET_OPEN_STAGE_LABELS
+        ]
+        filters.append(
+            {
+                "propertyName": "hs_pipeline_stage",
+                "operator": "IN",
+                "values": open_stage_ids,
+            }
+        )
+    return search_objects(
+        "tickets",
+        filter_groups=[{"filters": filters}],
+        properties=[
+            "subject",
+            "dedupe_key",
+            "hs_pipeline_stage",
+            "hs_lastmodifieddate",
+        ],
+        limit=50,
+    )
 
 
 # ---------------------------------------------------------------------------

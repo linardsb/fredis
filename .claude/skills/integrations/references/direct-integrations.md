@@ -93,6 +93,19 @@ python .claude/scripts/query.py hubspot log-email --with contact:<id|email> --su
 python .claude/scripts/query.py hubspot associate --from <type>:<id|key> --to <type>:<id|key> [--type-id N]
 python .claude/scripts/query.py hubspot unassociate --from <type>:<id> --to <type>:<id>
 
+# HubSpot tickets — Fredis Review queue
+python .claude/scripts/query.py hubspot create-ticket --subject "..." \
+    [--content "..."] [--lane email_hub|vtv|cab|content|ops|client|admin] \
+    [--urgency today|this_week|whenever] [--skill <name>] \
+    [--draft-path "Fredis/Memory/drafts/active/<skill>/<file>.md"] \
+    [--contact-id <id>] [--company-id <id>] [--deal-id <id>]
+python .claude/scripts/query.py hubspot get-ticket <ticket_id>
+python .claude/scripts/query.py hubspot move-ticket <ticket_id> --to-stage "Drafted|In review|Needs send"
+python .claude/scripts/query.py hubspot close-ticket <ticket_id> --as actioned
+python .claude/scripts/query.py hubspot close-ticket <ticket_id> --as rejected [--note "..."]
+python .claude/scripts/query.py hubspot list-tickets [--lane <lane>] [--urgency <urgency>] [--max N]
+python .claude/scripts/query.py hubspot queue   # shortcut: open tickets grouped by urgency
+
 # GitHub — read-only
 python .claude/scripts/query.py github recent [--hours N]
 python .claude/scripts/query.py github review-requests
