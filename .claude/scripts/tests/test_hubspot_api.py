@@ -357,6 +357,150 @@ def test_name_falls_back_across_types() -> None:
 
 
 # =============================================================================
+# Archive
+# =============================================================================
+
+
+def test_archive_object_uses_delete() -> None:
+    captured, fake = _capture()
+    captured["_response"] = {}
+    with patch("integrations.hubspot_api.requests.request", side_effect=fake):
+        hubspot_api.archive_object("contacts", "1234")
+    assert captured["method"] == "DELETE"
+    assert captured["url"].endswith("/crm/v3/objects/contacts/1234")
+
+
+def test_batch_archive_posts_inputs() -> None:
+    captured, fake = _capture()
+    captured["_response"] = {}
+    with patch("integrations.hubspot_api.requests.request", side_effect=fake):
+        hubspot_api.batch_archive("deals", ["1", "2", "3"])
+    assert captured["method"] == "POST"
+    assert captured["url"].endswith("/crm/v3/objects/deals/batch/archive")
+    assert captured["json"] == {"inputs": [{"id": "1"}, {"id": "2"}, {"id": "3"}]}
+
+
+# =============================================================================
+# Associations — list / delete
+# =============================================================================
+
+
+def test_list_associations_hits_v4_endpoint() -> None:
+    captured, fake = _capture()
+    captured["_response"] = {
+        "results": [
+            {"toObjectId": "99", "associationTypes": [{"typeId": 1}]},
+            "garbage_non_dict",
+        ]
+    }
+    with patch("integrations.hubspot_api.requests.request", side_effect=fake):
+        results = hubspot_api.list_associations("contacts", "42", "companies")
+    assert captured["method"] == "GET"
+    assert captured["url"].endswith(
+        "/crm/v4/objects/contacts/42/associations/companies"
+    )
+    assert len(results) == 1
+    assert results[0]["toObjectId"] == "99"
+
+
+def test_delete_association_hits_v4_delete() -> None:
+    captured, fake = _capture()
+    captured["_response"] = {}
+    with patch("integrations.hubspot_api.requests.request", side_effect=fake):
+        hubspot_api.delete_association("contacts", "42", "companies", "99")
+    assert captured["method"] == "DELETE"
+    assert captured["url"].endswith(
+        "/crm/v4/objects/contacts/42/associations/companies/99"
+    )
+
+
+# =============================================================================
+# Engagement helpers — log_call / log_meeting / log_email
+# =============================================================================
+
+
+def test_log_call_posts_to_calls_endpoint() -> None:
+    captured, fake = _capture()
+    captured["_response"] = {"id": "call_1"}
+    associations = hubspot_api.build_associations([("contacts", "42", 194)])
+    with patch("integrations.hubspot_api.requests.request", side_effect=fake):
+        hubspot_api.log_call(
+            "Discovery call",
+            duration_ms=1_800_000,
+            disposition="CONNECTED",
+            direction="OUTBOUND",
+            body="discussed scope",
+            associations=associations,
+        )
+    assert captured["method"] == "POST"
+    assert captured["url"].endswith("/crm/v3/objects/calls")
+    props = captured["json"]["properties"]
+    assert props["hs_call_title"] == "Discovery call"
+    assert props["hs_call_duration"] == 1_800_000
+    assert props["hs_call_disposition"] == "CONNECTED"
+    assert props["hs_call_direction"] == "OUTBOUND"
+    assert props["hs_call_body"] == "discussed scope"
+    assert "hs_timestamp" in props
+    assert captured["json"]["associations"] == associations
+
+
+def test_log_meeting_posts_start_and_end_ms() -> None:
+    from datetime import UTC as _UTC
+    from datetime import datetime as _dt
+
+    start = _dt(2026, 5, 1, 10, 0, tzinfo=_UTC)
+    end = _dt(2026, 5, 1, 11, 0, tzinfo=_UTC)
+    captured, fake = _capture()
+    captured["_response"] = {"id": "meeting_1"}
+    with patch("integrations.hubspot_api.requests.request", side_effect=fake):
+        hubspot_api.log_meeting(
+            "Kickoff", start, end, body="notes from call"
+        )
+    assert captured["method"] == "POST"
+    assert captured["url"].endswith("/crm/v3/objects/meetings")
+    props = captured["json"]["properties"]
+    assert props["hs_meeting_title"] == "Kickoff"
+    assert props["hs_meeting_body"] == "notes from call"
+    assert props["hs_meeting_start_time"] == int(start.timestamp() * 1000)
+    assert props["hs_meeting_end_time"] == int(end.timestamp() * 1000)
+
+
+def test_log_email_posts_to_emails_endpoint() -> None:
+    from datetime import UTC as _UTC
+    from datetime import datetime as _dt
+
+    sent_at = _dt(2026, 4, 22, 10, 30, tzinfo=_UTC)
+    captured, fake = _capture()
+    captured["_response"] = {"id": "email_1"}
+    with patch("integrations.hubspot_api.requests.request", side_effect=fake):
+        hubspot_api.log_email(
+            "Proposal",
+            "See attached",
+            direction="EMAIL",
+            sent_at=sent_at,
+        )
+    assert captured["method"] == "POST"
+    assert captured["url"].endswith("/crm/v3/objects/emails")
+    props = captured["json"]["properties"]
+    assert props["hs_email_subject"] == "Proposal"
+    assert props["hs_email_text"] == "See attached"
+    assert props["hs_email_direction"] == "EMAIL"
+    assert props["hs_timestamp"] == int(sent_at.timestamp() * 1000)
+
+
+def test_build_associations_shapes_v4_payload() -> None:
+    out = hubspot_api.build_associations(
+        [("contacts", "42", 194), ("deals", "77", 214)]
+    )
+    assert len(out) == 2
+    assert out[0]["to"] == {"id": "42"}
+    assert out[0]["types"][0]["associationTypeId"] == 194
+    assert out[0]["types"][0]["associationCategory"] == "HUBSPOT_DEFINED"
+    assert out[1]["to"] == {"id": "77"}
+    assert out[1]["types"][0]["associationTypeId"] == 214
+
+
+# =============================================================================
 # 429 surfaces as runtime error with status code
 # =============================================================================
 

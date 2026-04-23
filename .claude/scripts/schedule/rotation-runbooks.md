@@ -72,14 +72,14 @@ Only set if overriding the Claude Code CLI credentials
 4. Verify: `uv run python query.py asana my-tasks --max 5`.
 5. Revoke old: developer console → **Revoke**.
 
-### `MONDAY_API_TOKEN` — JWT-shaped
+### `HUBSPOT_API_TOKEN` — Private App token
 
-1. Generate: Monday.com → avatar menu → **Admin** → **API** → **Generate
-   new token**.
-2. Update `MONDAY_API_TOKEN` in both `.env` files.
+1. Generate: HubSpot → **Settings** → **Integrations** → **Private Apps** →
+   pick the existing app → **Auth** tab → **Rotate token**.
+2. Update `HUBSPOT_API_TOKEN` in both `.env` files (local + VPS).
 3. Restart: same as GitHub.
-4. Verify: `uv run python query.py monday my-items --max 5`.
-5. Revoke old: API page → previous token row → **Revoke**.
+4. Verify: `cd .claude/scripts && uv run python query.py hubspot contacts --max 1`.
+5. The old token auto-revokes on rotation.
 
 ### Google OAuth (Gmail / Calendar / Drive / Docs / Sheets)
 
@@ -168,7 +168,7 @@ Same shape as VPS key, but the public key lives on the git-remote host
 | `ANTHROPIC_API_KEY` | console.anthropic.com/settings/keys | heartbeat + chat | `heartbeat.py --test` |
 | `GITHUB_TOKEN` | github.com/settings/tokens | heartbeat + chat | `query.py github recent` |
 | `ASANA_ACCESS_TOKEN` | app.asana.com/0/developer-console | heartbeat + chat | `query.py asana my-tasks` |
-| `MONDAY_API_TOKEN` | Monday admin → API | heartbeat + chat | `query.py monday my-items` |
+| `HUBSPOT_API_TOKEN` | HubSpot → Settings → Integrations → Private Apps | heartbeat + chat | `query.py hubspot contacts --max 1` |
 | Google OAuth refresh token | Delete + re-run `setup_auth.py` | heartbeat + chat | `query.py gmail list` |
 | Google OAuth client secret | Google Cloud Console → Credentials → Reset Secret | heartbeat + chat | after re-auth, `query.py gmail list` |
 | Postgres password | `ALTER USER` on DB | chat service | `systemctl status secondbrain-chat` |

@@ -166,19 +166,8 @@ DEAL_PROPERTIES: list[dict[str, Any]] = [
             {"label": "Content", "value": "content", "displayOrder": 3},
         ],
     },
-    {
-        "name": "currency",
-        "label": "Currency",
-        "type": "enumeration",
-        "fieldType": "select",
-        "groupName": "dealinformation",
-        "options": [
-            {"label": "GBP", "value": "gbp", "displayOrder": 0},
-            {"label": "EUR", "value": "eur", "displayOrder": 1},
-            {"label": "USD", "value": "usd", "displayOrder": 2},
-            {"label": "Other", "value": "other", "displayOrder": 3},
-        ],
-    },
+    # Note: HubSpot has a built-in `deal_currency_code` property that covers
+    # currency natively — no need to add a custom enum.
 ]
 
 
@@ -240,8 +229,10 @@ def main(dry_run: bool) -> int:
     try:
         ensure_pipeline(dry_run)
     except RuntimeError as e:
-        print(f"  [err] {e}")
-        return 1
+        # HubSpot Free caps custom pipelines at 1 — if a default already
+        # exists, creation fails. Properties don't depend on the pipeline,
+        # so continue. Rename / reshape the default pipeline in the UI later.
+        print(f"  [warn] pipeline step skipped: {e}")
 
     totals: dict[str, tuple[int, int]] = {}
     for ot, specs in (
@@ -253,8 +244,9 @@ def main(dry_run: bool) -> int:
         try:
             totals[ot] = ensure_properties(ot, specs, dry_run)
         except RuntimeError as e:
-            print(f"  [err] {e}")
-            return 1
+            # Don't bail — partial progress is useful; next run will catch up.
+            print(f"  [warn] {ot} properties step errored: {e}")
+            totals[ot] = (0, 0)
 
     print("\n=== Summary ===")
     for ot, (c, s) in totals.items():

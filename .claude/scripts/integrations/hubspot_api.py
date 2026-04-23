@@ -310,6 +310,49 @@ def create_association(
     )
 
 
+def list_associations(
+    from_type: str, from_id: str, to_type: str
+) -> list[dict[str, Any]]:
+    """GET /crm/v4/objects/{from_type}/{from_id}/associations/{to_type}."""
+    data = _request(
+        "GET",
+        f"/crm/v4/objects/{from_type}/{from_id}/associations/{to_type}",
+    )
+    results = data.get("results", [])
+    return [r for r in results if isinstance(r, dict)]
+
+
+def delete_association(
+    from_type: str, from_id: str, to_type: str, to_id: str
+) -> dict[str, Any]:
+    """DELETE /crm/v4/objects/{from_type}/{from_id}/associations/{to_type}/{to_id}.
+
+    Removes all associations between the two records (every typeId).
+    """
+    return _request(
+        "DELETE",
+        f"/crm/v4/objects/{from_type}/{from_id}/associations/{to_type}/{to_id}",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Archive (soft-delete — recoverable for 90 days via HubSpot UI)
+# ---------------------------------------------------------------------------
+
+
+def archive_object(object_type: str, object_id: str) -> dict[str, Any]:
+    """DELETE /crm/v3/objects/{object_type}/{id} — archives, not hard-delete."""
+    return _request("DELETE", f"/crm/v3/objects/{object_type}/{object_id}")
+
+
+def batch_archive(object_type: str, ids: list[str]) -> dict[str, Any]:
+    """POST /crm/v3/objects/{object_type}/batch/archive."""
+    body = {"inputs": [{"id": i} for i in ids]}
+    return _request(
+        "POST", f"/crm/v3/objects/{object_type}/batch/archive", json=body
+    )
+
+
 # ---------------------------------------------------------------------------
 # Schema — properties
 # ---------------------------------------------------------------------------
@@ -408,6 +451,104 @@ def create_task(
     if associations:
         payload["associations"] = associations
     return _request("POST", "/crm/v3/objects/tasks", json=payload)
+
+
+def log_call(
+    summary: str,
+    duration_ms: int | None = None,
+    disposition: str | None = None,
+    direction: str = "OUTBOUND",
+    body: str = "",
+    associations: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """POST /crm/v3/objects/calls — record a past call.
+
+    Logging only — does not place a call. `direction` is "INBOUND" or "OUTBOUND".
+    """
+    props: dict[str, Any] = {
+        "hs_call_title": summary,
+        "hs_call_body": body,
+        "hs_call_direction": direction,
+        "hs_timestamp": int(datetime.now(UTC).timestamp() * 1000),
+    }
+    if duration_ms is not None:
+        props["hs_call_duration"] = duration_ms
+    if disposition:
+        props["hs_call_disposition"] = disposition
+    payload: dict[str, Any] = {"properties": props}
+    if associations:
+        payload["associations"] = associations
+    return _request("POST", "/crm/v3/objects/calls", json=payload)
+
+
+def log_meeting(
+    title: str,
+    start: datetime,
+    end: datetime,
+    body: str = "",
+    associations: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """POST /crm/v3/objects/meetings — record a past meeting."""
+    props: dict[str, Any] = {
+        "hs_meeting_title": title,
+        "hs_meeting_body": body,
+        "hs_meeting_start_time": int(start.timestamp() * 1000),
+        "hs_meeting_end_time": int(end.timestamp() * 1000),
+        "hs_timestamp": int(start.timestamp() * 1000),
+    }
+    payload: dict[str, Any] = {"properties": props}
+    if associations:
+        payload["associations"] = associations
+    return _request("POST", "/crm/v3/objects/meetings", json=payload)
+
+
+def log_email(
+    subject: str,
+    body: str,
+    direction: str,
+    sent_at: datetime,
+    associations: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """POST /crm/v3/objects/emails — record past correspondence.
+
+    Logging only — does not send. `direction` is "INCOMING_EMAIL" or "EMAIL"
+    (HubSpot's outbound value).
+    """
+    props: dict[str, Any] = {
+        "hs_email_subject": subject,
+        "hs_email_text": body,
+        "hs_email_direction": direction,
+        "hs_timestamp": int(sent_at.timestamp() * 1000),
+    }
+    payload: dict[str, Any] = {"properties": props}
+    if associations:
+        payload["associations"] = associations
+    return _request("POST", "/crm/v3/objects/emails", json=payload)
+
+
+def build_associations(
+    pairs: list[tuple[str, str, int]],
+) -> list[dict[str, Any]]:
+    """Build the v4 associations payload for engagement creation.
+
+    Each pair is (to_type, to_id, association_type_id). Only `to_id` and
+    `type_id` end up in the wire shape — `to_type` is included so callers
+    can keep their tuples self-documenting.
+    """
+    out: list[dict[str, Any]] = []
+    for _to_type, to_id, type_id in pairs:
+        out.append(
+            {
+                "to": {"id": to_id},
+                "types": [
+                    {
+                        "associationCategory": "HUBSPOT_DEFINED",
+                        "associationTypeId": type_id,
+                    }
+                ],
+            }
+        )
+    return out
 
 
 # ---------------------------------------------------------------------------

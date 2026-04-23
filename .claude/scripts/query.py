@@ -20,6 +20,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 
 def cmd_gmail(args: argparse.Namespace) -> None:
@@ -447,41 +448,230 @@ def cmd_docs(args: argparse.Namespace) -> None:
         print(f"Content length: ~{char_count} chars")
 
 
+# ---------------------------------------------------------------------------
+# HubSpot helpers — key / stage / association resolution
+# ---------------------------------------------------------------------------
+
+# Default v4 association typeIds for engagement → target. Source of truth:
+# https://developers.hubspot.com/docs/api/crm/associations/v4
+_ENGAGEMENT_ASSOC_TYPE_IDS: dict[tuple[str, str], int] = {
+    ("notes", "contacts"): 202,
+    ("notes", "companies"): 190,
+    ("notes", "deals"): 214,
+    ("tasks", "contacts"): 204,
+    ("tasks", "companies"): 192,
+    ("tasks", "deals"): 216,
+    ("calls", "contacts"): 194,
+    ("calls", "companies"): 182,
+    ("calls", "deals"): 206,
+    ("meetings", "contacts"): 200,
+    ("meetings", "companies"): 188,
+    ("meetings", "deals"): 212,
+    ("emails", "contacts"): 198,
+    ("emails", "companies"): 186,
+    ("emails", "deals"): 210,
+}
+
+_OBJECT_ASSOC_TYPE_IDS: dict[tuple[str, str], int] = {
+    ("contacts", "companies"): 1,
+    ("companies", "contacts"): 2,
+    ("deals", "companies"): 5,
+    ("companies", "deals"): 6,
+    ("deals", "contacts"): 3,
+    ("contacts", "deals"): 4,
+}
+
+_HUBSPOT_PRIMARY_KEY: dict[str, str] = {
+    "contacts": "email",
+    "companies": "domain",
+    "deals": "dealname",
+}
+
+_HUBSPOT_TYPE_ALIASES: dict[str, str] = {
+    "contact": "contacts",
+    "contacts": "contacts",
+    "company": "companies",
+    "companies": "companies",
+    "deal": "deals",
+    "deals": "deals",
+}
+
+
+def _hubspot_normalize_type(t: str) -> str:
+    """Singular or plural → plural HubSpot object type."""
+    norm = _HUBSPOT_TYPE_ALIASES.get(t.lower())
+    if norm is None:
+        raise ValueError(f"Unknown object type '{t}'. Use contact/company/deal.")
+    return norm
+
+
+def _hubspot_resolve_key(object_type: str, key: str) -> str:
+    """Resolve email / domain / dealname → HubSpot ID. Pure digits pass through."""
+    from integrations.hubspot_api import search_objects
+
+    if key.isdigit():
+        return key
+    pk = _HUBSPOT_PRIMARY_KEY[object_type]
+    matches = search_objects(
+        object_type,
+        [{"filters": [{"propertyName": pk, "operator": "EQ", "value": key}]}],
+        limit=2,
+    )
+    if not matches:
+        raise ValueError(f"No {object_type[:-1]} with {pk}='{key}'.")
+    if len(matches) > 1:
+        ids = ", ".join(m.id for m in matches)
+        raise ValueError(
+            f"Found {len(matches)} {object_type} matching '{key}' "
+            f"(IDs: {ids}); use the HubSpot ID instead."
+        )
+    return matches[0].id
+
+
+def _hubspot_pipeline(pipeline_name: str = "Consultancy") -> dict[str, Any]:
+    """Look up a deal pipeline by case-insensitive label, fall back to the first."""
+    from integrations.hubspot_api import list_pipelines
+
+    pipelines = list_pipelines("deals")
+    if not pipelines:
+        raise ValueError("No deal pipelines defined in HubSpot.")
+    for p in pipelines:
+        if str(p.get("label", "")).lower() == pipeline_name.lower():
+            return p
+    return pipelines[0]
+
+
+def _hubspot_resolve_stage_id(
+    stage_label: str, pipeline_name: str = "Consultancy"
+) -> str:
+    """Case-insensitive stage label → internal stage ID."""
+    pipe = _hubspot_pipeline(pipeline_name)
+    for s in pipe.get("stages", []):
+        if str(s.get("label", "")).lower() == stage_label.lower():
+            return str(s.get("id", ""))
+    raise ValueError(
+        f"Stage '{stage_label}' not in pipeline '{pipe.get('label')}'."
+    )
+
+
+def _hubspot_resolve_closed_stage_id(
+    status: str, pipeline_name: str = "Consultancy"
+) -> str:
+    """Find the closed-won (highest probability) or closed-lost (zero/lost label) stage ID."""
+    pipe = _hubspot_pipeline(pipeline_name)
+    closed = [
+        s for s in pipe.get("stages", [])
+        if str(s.get("metadata", {}).get("isClosed", "")).lower() == "true"
+    ]
+    if not closed:
+        raise ValueError(
+            f"Pipeline '{pipe.get('label')}' has no closed stages — "
+            f"mark a stage closed in HubSpot UI first."
+        )
+    if status == "won":
+        won = max(
+            closed,
+            key=lambda s: float(s.get("metadata", {}).get("probability", 0) or 0),
+        )
+        return str(won.get("id", ""))
+    if status == "lost":
+        lost = [
+            s for s in closed
+            if float(s.get("metadata", {}).get("probability", 0) or 0) == 0
+            or "lost" in str(s.get("label", "")).lower()
+        ]
+        if not lost:
+            raise ValueError(
+                f"No closed-lost stage in '{pipe.get('label')}' — "
+                f"add one in HubSpot UI first."
+            )
+        return str(lost[0].get("id", ""))
+    raise ValueError(f"--as must be 'won' or 'lost', got '{status}'.")
+
+
+def _hubspot_engagement_assoc(
+    engagement_type: str, target_type: str, target_id: str
+) -> list[dict[str, Any]]:
+    """Build the v4 associations payload for an engagement (note/task/call/...)."""
+    from integrations.hubspot_api import build_associations
+
+    type_id = _ENGAGEMENT_ASSOC_TYPE_IDS.get((engagement_type, target_type))
+    if type_id is None:
+        raise ValueError(
+            f"No default association typeId for {engagement_type}→{target_type}."
+        )
+    return build_associations([(target_type, target_id, type_id)])
+
+
+def _hubspot_parse_about(about: str) -> tuple[str, str]:
+    """Parse '<type>:<key>' → (plural_type, key)."""
+    if ":" not in about:
+        raise ValueError(
+            "expected '<type>:<key>' (e.g. contact:tim@walking.vc, deal:Acme)."
+        )
+    t, k = about.split(":", 1)
+    return _hubspot_normalize_type(t), k.strip()
+
+
+def _bool_arg(val: str | None) -> str | None:
+    """Argparse-friendly bool: 'true'/'false'/'yes'/'no'/'1'/'0' → 'true'/'false'."""
+    if val is None:
+        return None
+    v = val.strip().lower()
+    if v in ("true", "yes", "1", "y"):
+        return "true"
+    if v in ("false", "no", "0", "n"):
+        return "false"
+    raise ValueError(f"expected true/false, got '{val}'.")
+
+
 def cmd_hubspot(args: argparse.Namespace) -> None:
-    """Handle HubSpot commands (read-only CRM queries)."""
+    """Handle HubSpot commands (CRM read + write)."""
+    from datetime import datetime
+
     from integrations.hubspot_api import (
+        archive_object,
+        create_association,
+        create_note,
+        create_object,
+        create_task,
+        delete_association,
         format_objects_for_context,
         list_objects,
         list_pipelines,
         list_properties,
+        log_call,
+        log_email,
+        log_meeting,
         search_objects,
+        update_object,
     )
 
     if args.action == "contacts":
-        props = ["email", "firstname", "lastname", "hs_lead_status",
-                 "lifecyclestage", "urgent_alert"]
+        prop_names = ["email", "firstname", "lastname", "hs_lead_status",
+                      "lifecyclestage", "urgent_alert"]
         print(format_objects_for_context(
-            list_objects("contacts", limit=args.max, properties=props)
+            list_objects("contacts", limit=args.max, properties=prop_names)
         ))
 
     elif args.action == "companies":
-        props = ["name", "domain", "engagement_type", "retainer_gbp_mo"]
+        prop_names = ["name", "domain", "engagement_type", "retainer_gbp_mo"]
         print(format_objects_for_context(
-            list_objects("companies", limit=args.max, properties=props)
+            list_objects("companies", limit=args.max, properties=prop_names)
         ))
 
     elif args.action == "deals":
-        props = ["dealname", "dealstage", "amount", "closedate"]
+        prop_names = ["dealname", "dealstage", "amount", "closedate"]
         if args.stage:
             filter_groups = [
                 {"filters": [
                     {"propertyName": "dealstage", "operator": "EQ", "value": args.stage}
                 ]}
             ]
-            results = search_objects("deals", filter_groups, properties=props,
+            results = search_objects("deals", filter_groups, properties=prop_names,
                                      limit=args.max)
         else:
-            results = list_objects("deals", limit=args.max, properties=props)
+            results = list_objects("deals", limit=args.max, properties=prop_names)
         print(format_objects_for_context(results))
 
     elif args.action == "overdue-invoices":
@@ -522,6 +712,286 @@ def cmd_hubspot(args: argparse.Namespace) -> None:
         for prop in list_properties(target):
             kind = f"{prop.get('type')}/{prop.get('fieldType')}"
             print(f"- {prop.get('name')} ({kind}): {prop.get('label')}")
+
+    # ----- writes ---------------------------------------------------------
+
+    elif args.action == "create-contact":
+        if not args.email:
+            raise ValueError("--email required for create-contact.")
+        props: dict[str, Any] = {"email": args.email}
+        if args.firstname:
+            props["firstname"] = args.firstname
+        if args.lastname:
+            props["lastname"] = args.lastname
+        if args.phone:
+            props["phone"] = args.phone
+        if args.urgent is not None:
+            props["urgent_alert"] = _bool_arg(args.urgent)
+        if args.conflict is not None:
+            props["conflict_node"] = _bool_arg(args.conflict)
+        if args.conflict_reason:
+            props["conflict_reason"] = args.conflict_reason
+        if args.preferred_channel:
+            props["preferred_channel"] = args.preferred_channel
+        if args.lifecyclestage:
+            props["lifecyclestage"] = args.lifecyclestage
+        obj = create_object("contacts", props)
+        if args.company_domain:
+            company_id = _hubspot_resolve_key("companies", args.company_domain)
+            create_association(
+                "contacts", obj.id, "companies", company_id,
+                type_id=_OBJECT_ASSOC_TYPE_IDS[("contacts", "companies")],
+            )
+        print(f"Created contact: {obj.name} (ID: {obj.id})")
+
+    elif args.action == "update-contact":
+        if not args.target_id:
+            raise ValueError("contact id|email required as positional arg.")
+        cid = _hubspot_resolve_key("contacts", args.target_id)
+        props = {}
+        if args.urgent is not None:
+            props["urgent_alert"] = _bool_arg(args.urgent)
+        if args.conflict is not None:
+            props["conflict_node"] = _bool_arg(args.conflict)
+        if args.conflict_reason is not None:
+            props["conflict_reason"] = args.conflict_reason
+        if args.phone:
+            props["phone"] = args.phone
+        if args.preferred_channel:
+            props["preferred_channel"] = args.preferred_channel
+        if args.lifecyclestage:
+            props["lifecyclestage"] = args.lifecyclestage
+        if args.firstname:
+            props["firstname"] = args.firstname
+        if args.lastname:
+            props["lastname"] = args.lastname
+        if not props:
+            raise ValueError("no fields to update.")
+        obj = update_object("contacts", cid, props)
+        print(f"Updated contact: {obj.name} (ID: {obj.id})")
+
+    elif args.action == "archive-contact":
+        if not args.target_id:
+            raise ValueError("contact id|email required as positional arg.")
+        cid = _hubspot_resolve_key("contacts", args.target_id)
+        archive_object("contacts", cid)
+        print(f"Archived contact ID: {cid}")
+
+    elif args.action == "create-company":
+        if not args.name or not args.domain:
+            raise ValueError("--name and --domain required for create-company.")
+        props = {"name": args.name, "domain": args.domain}
+        if args.engagement:
+            props["engagement_type"] = args.engagement
+        if args.retainer_gbp is not None:
+            props["retainer_gbp_mo"] = args.retainer_gbp
+        if args.contract_end:
+            props["contract_end_date"] = args.contract_end
+        obj = create_object("companies", props)
+        print(f"Created company: {obj.name} (ID: {obj.id})")
+
+    elif args.action == "update-company":
+        if not args.target_id:
+            raise ValueError("company id|domain required as positional arg.")
+        cid = _hubspot_resolve_key("companies", args.target_id)
+        props = {}
+        if args.name:
+            props["name"] = args.name
+        if args.engagement:
+            props["engagement_type"] = args.engagement
+        if args.retainer_gbp is not None:
+            props["retainer_gbp_mo"] = args.retainer_gbp
+        if args.contract_end:
+            props["contract_end_date"] = args.contract_end
+        if not props:
+            raise ValueError("no fields to update.")
+        obj = update_object("companies", cid, props)
+        print(f"Updated company: {obj.name} (ID: {obj.id})")
+
+    elif args.action == "archive-company":
+        if not args.target_id:
+            raise ValueError("company id|domain required as positional arg.")
+        cid = _hubspot_resolve_key("companies", args.target_id)
+        archive_object("companies", cid)
+        print(f"Archived company ID: {cid}")
+
+    elif args.action == "create-deal":
+        if not args.name or args.amount is None or not args.stage:
+            raise ValueError(
+                "--name, --amount, and --stage required for create-deal."
+            )
+        stage_id = _hubspot_resolve_stage_id(args.stage, args.pipeline)
+        pipe = _hubspot_pipeline(args.pipeline)
+        props = {
+            "dealname": args.name,
+            "amount": str(args.amount),
+            "dealstage": stage_id,
+            "pipeline": str(pipe.get("id")),
+        }
+        if args.currency:
+            props["deal_currency_code"] = args.currency.upper()
+        if args.service_line:
+            props["service_line"] = args.service_line
+        if args.source:
+            props["source"] = args.source
+        if args.close_date:
+            props["closedate"] = args.close_date
+        if args.probability is not None:
+            props["hs_deal_stage_probability"] = str(args.probability)
+        deal = create_object("deals", props)
+        if args.contact_email:
+            cid = _hubspot_resolve_key("contacts", args.contact_email)
+            create_association(
+                "deals", deal.id, "contacts", cid,
+                type_id=_OBJECT_ASSOC_TYPE_IDS[("deals", "contacts")],
+            )
+        if args.company_domain:
+            coid = _hubspot_resolve_key("companies", args.company_domain)
+            create_association(
+                "deals", deal.id, "companies", coid,
+                type_id=_OBJECT_ASSOC_TYPE_IDS[("deals", "companies")],
+            )
+        print(f"Created deal: {deal.name} (ID: {deal.id})")
+
+    elif args.action == "move-deal":
+        if not args.target_id or not args.to_stage:
+            raise ValueError("deal id and --to-stage required.")
+        stage_id = _hubspot_resolve_stage_id(args.to_stage, args.pipeline)
+        obj = update_object("deals", args.target_id, {"dealstage": stage_id})
+        print(f"Moved deal {obj.id} to stage '{args.to_stage}'.")
+
+    elif args.action == "update-deal":
+        if not args.target_id:
+            raise ValueError("deal id required as positional arg.")
+        props = {}
+        if args.amount is not None:
+            props["amount"] = str(args.amount)
+        if args.close_date:
+            props["closedate"] = args.close_date
+        if args.probability is not None:
+            props["hs_deal_stage_probability"] = str(args.probability)
+        if args.service_line:
+            props["service_line"] = args.service_line
+        if args.source:
+            props["source"] = args.source
+        if not props:
+            raise ValueError("no fields to update.")
+        obj = update_object("deals", args.target_id, props)
+        print(f"Updated deal: {obj.name} (ID: {obj.id})")
+
+    elif args.action == "close-deal":
+        if not args.target_id or not args.close_as:
+            raise ValueError("deal id and --as won|lost required.")
+        stage_id = _hubspot_resolve_closed_stage_id(args.close_as, args.pipeline)
+        obj = update_object("deals", args.target_id, {"dealstage": stage_id})
+        print(f"Closed deal {obj.id} as {args.close_as}.")
+
+    elif args.action == "archive-deal":
+        if not args.target_id:
+            raise ValueError("deal id required as positional arg.")
+        archive_object("deals", args.target_id)
+        print(f"Archived deal ID: {args.target_id}")
+
+    elif args.action == "add-note":
+        if not args.about or not args.text:
+            raise ValueError("--about and --text required.")
+        target_type, target_key = _hubspot_parse_about(args.about)
+        target_id = _hubspot_resolve_key(target_type, target_key)
+        assoc = _hubspot_engagement_assoc("notes", target_type, target_id)
+        result = create_note(args.text, associations=assoc)
+        print(f"Added note (ID: {result.get('id')}) to {target_type[:-1]} {target_id}.")
+
+    elif args.action == "create-task":
+        if not args.about or not args.title or not args.due:
+            raise ValueError("--about, --title, --due required.")
+        target_type, target_key = _hubspot_parse_about(args.about)
+        target_id = _hubspot_resolve_key(target_type, target_key)
+        assoc = _hubspot_engagement_assoc("tasks", target_type, target_id)
+        due_date = datetime.strptime(args.due, "%Y-%m-%d").date()
+        result = create_task(
+            args.title, body=args.notes or "", due_date=due_date, associations=assoc,
+        )
+        print(f"Created task (ID: {result.get('id')}) due {args.due}.")
+
+    elif args.action == "log-call":
+        if not args.with_target or not args.summary:
+            raise ValueError("--with and --summary required.")
+        target_type, target_key = _hubspot_parse_about(args.with_target)
+        target_id = _hubspot_resolve_key(target_type, target_key)
+        assoc = _hubspot_engagement_assoc("calls", target_type, target_id)
+        duration_ms = (args.duration_min * 60 * 1000) if args.duration_min else None
+        direction = (args.direction or "out").lower()
+        direction = "INBOUND" if direction.startswith("in") else "OUTBOUND"
+        result = log_call(
+            args.summary,
+            duration_ms=duration_ms,
+            disposition=args.disposition,
+            direction=direction,
+            body=args.notes or "",
+            associations=assoc,
+        )
+        print(f"Logged call (ID: {result.get('id')}) to {target_type[:-1]} {target_id}.")
+
+    elif args.action == "log-meeting":
+        if not args.with_target or not args.title or not args.start or not args.end:
+            raise ValueError("--with, --title, --start, --end required.")
+        target_type, target_key = _hubspot_parse_about(args.with_target)
+        target_id = _hubspot_resolve_key(target_type, target_key)
+        assoc = _hubspot_engagement_assoc("meetings", target_type, target_id)
+        start = datetime.fromisoformat(args.start)
+        end = datetime.fromisoformat(args.end)
+        result = log_meeting(
+            args.title, start, end, body=args.notes or "", associations=assoc,
+        )
+        print(f"Logged meeting (ID: {result.get('id')}).")
+
+    elif args.action == "log-email":
+        if (
+            not args.with_target or not args.subject or not args.direction
+            or not args.sent_at
+        ):
+            raise ValueError("--with, --subject, --direction, --sent-at required.")
+        target_type, target_key = _hubspot_parse_about(args.with_target)
+        target_id = _hubspot_resolve_key(target_type, target_key)
+        assoc = _hubspot_engagement_assoc("emails", target_type, target_id)
+        sent_at = datetime.fromisoformat(args.sent_at)
+        direction = (
+            "INCOMING_EMAIL" if args.direction.lower().startswith("in") else "EMAIL"
+        )
+        result = log_email(
+            args.subject, args.body or "",
+            direction=direction, sent_at=sent_at, associations=assoc,
+        )
+        print(f"Logged email (ID: {result.get('id')}).")
+
+    elif args.action == "associate":
+        if not args.assoc_from or not args.assoc_to:
+            raise ValueError("--from and --to required.")
+        from_type, from_key = _hubspot_parse_about(args.assoc_from)
+        to_type, to_key = _hubspot_parse_about(args.assoc_to)
+        from_id = _hubspot_resolve_key(from_type, from_key)
+        to_id = _hubspot_resolve_key(to_type, to_key)
+        type_id = (
+            args.type_id
+            if args.type_id is not None
+            else _OBJECT_ASSOC_TYPE_IDS.get((from_type, to_type))
+        )
+        if type_id is None:
+            raise ValueError(
+                f"No default typeId for {from_type}→{to_type}; pass --type-id."
+            )
+        create_association(from_type, from_id, to_type, to_id, type_id=type_id)
+        print(f"Associated {from_type[:-1]} {from_id} ↔ {to_type[:-1]} {to_id}.")
+
+    elif args.action == "unassociate":
+        if not args.assoc_from or not args.assoc_to:
+            raise ValueError("--from and --to required.")
+        from_type, from_key = _hubspot_parse_about(args.assoc_from)
+        to_type, to_key = _hubspot_parse_about(args.assoc_to)
+        from_id = _hubspot_resolve_key(from_type, from_key)
+        to_id = _hubspot_resolve_key(to_type, to_key)
+        delete_association(from_type, from_id, to_type, to_id)
+        print(f"Removed association {from_type[:-1]} {from_id} ↮ {to_type[:-1]} {to_id}.")
 
 
 def cmd_lanes(args: argparse.Namespace) -> None:
@@ -671,27 +1141,133 @@ def main() -> None:
 
     # HubSpot CRM
     hubspot_parser = subparsers.add_parser(
-        "hubspot", help="HubSpot CRM operations (read-only)"
+        "hubspot", help="HubSpot CRM operations (read + write)"
     )
     hubspot_parser.add_argument(
         "action",
         choices=[
+            # reads
             "contacts", "companies", "deals",
             "overdue-invoices", "silent-contacts", "stale-deals",
             "search", "pipelines", "properties",
+            # writes — contacts / companies / deals
+            "create-contact", "update-contact", "archive-contact",
+            "create-company", "update-company", "archive-company",
+            "create-deal", "update-deal", "move-deal", "close-deal",
+            "archive-deal",
+            # writes — engagements
+            "add-note", "create-task",
+            "log-call", "log-meeting", "log-email",
+            # writes — associations
+            "associate", "unassociate",
         ],
     )
     hubspot_parser.add_argument(
         "target_id", nargs="?", default=None,
-        help="Object type for 'properties' action (contacts|companies|deals)",
+        help=(
+            "Positional ID/key (object type for 'properties'; record id|email "
+            "for update/archive/move/close)"
+        ),
     )
     hubspot_parser.add_argument("--max", type=int, default=25)
     hubspot_parser.add_argument(
-        "--stage", default=None, help="Filter deals by stage ID"
+        "--stage", default=None,
+        help="Filter deals by stage ID (read), or stage label (create-deal)",
     )
     hubspot_parser.add_argument(
         "--query", default=None, help="Search query for 'search' action"
     )
+    # Contact properties
+    hubspot_parser.add_argument("--email", default=None)
+    hubspot_parser.add_argument("--firstname", default=None)
+    hubspot_parser.add_argument("--lastname", default=None)
+    hubspot_parser.add_argument("--phone", default=None)
+    hubspot_parser.add_argument("--urgent", default=None,
+                                help="true/false — sets urgent_alert")
+    hubspot_parser.add_argument("--conflict", default=None,
+                                help="true/false — sets conflict_node")
+    hubspot_parser.add_argument("--conflict-reason", default=None)
+    hubspot_parser.add_argument(
+        "--preferred-channel", default=None,
+        choices=["whatsapp", "email", "slack", "facebook_dm"],
+    )
+    hubspot_parser.add_argument(
+        "--lifecyclestage", default=None,
+        help="lead|marketingqualifiedlead|salesqualifiedlead|customer|...",
+    )
+    # Company properties
+    hubspot_parser.add_argument("--name", default=None,
+                                help="Company name (create-company) or deal name")
+    hubspot_parser.add_argument("--domain", default=None,
+                                help="Company domain (create-company)")
+    hubspot_parser.add_argument(
+        "--engagement", default=None,
+        choices=["retainer", "project", "prospect", "dormant"],
+    )
+    hubspot_parser.add_argument("--retainer-gbp", type=float, default=None)
+    hubspot_parser.add_argument("--contract-end", default=None,
+                                help="YYYY-MM-DD")
+    # Deal properties
+    hubspot_parser.add_argument("--amount", type=float, default=None)
+    hubspot_parser.add_argument("--pipeline", default="Consultancy",
+                                help="Pipeline label (default: Consultancy)")
+    hubspot_parser.add_argument("--currency", default=None,
+                                help="GBP|EUR|USD — sets deal_currency_code")
+    hubspot_parser.add_argument("--contact-email", default=None,
+                                help="Contact email/id to associate (create-deal)")
+    hubspot_parser.add_argument("--company-domain", default=None,
+                                help="Company domain/id to associate")
+    hubspot_parser.add_argument(
+        "--service-line", default=None,
+        choices=["ai_agentic", "custom_app", "saas",
+                 "marketing_ops", "agri_ai", "advisory"],
+    )
+    hubspot_parser.add_argument(
+        "--source", default=None,
+        choices=["cold", "inbound", "referral", "content"],
+    )
+    hubspot_parser.add_argument("--close-date", default=None,
+                                help="YYYY-MM-DD")
+    hubspot_parser.add_argument("--probability", type=float, default=None)
+    hubspot_parser.add_argument("--to-stage", default=None,
+                                help="Stage label for move-deal")
+    hubspot_parser.add_argument("--as", dest="close_as", default=None,
+                                choices=["won", "lost"])
+    # Engagement args
+    hubspot_parser.add_argument("--about", default=None,
+                                help="<type>:<id|email|domain|dealname>")
+    hubspot_parser.add_argument("--text", default=None,
+                                help="Note body for add-note")
+    hubspot_parser.add_argument("--title", default=None,
+                                help="Title for create-task / log-meeting")
+    hubspot_parser.add_argument("--due", default=None,
+                                help="YYYY-MM-DD for create-task")
+    hubspot_parser.add_argument("--notes", default=None,
+                                help="Body/notes for task/call/meeting")
+    hubspot_parser.add_argument(
+        "--status", default=None,
+        choices=["not_started", "in_progress", "waiting", "completed"],
+    )
+    hubspot_parser.add_argument("--with", dest="with_target", default=None,
+                                help="<type>:<id|email> for log-* commands")
+    hubspot_parser.add_argument("--summary", default=None)
+    hubspot_parser.add_argument("--duration-min", type=int, default=None)
+    hubspot_parser.add_argument("--disposition", default=None)
+    hubspot_parser.add_argument("--direction", default=None,
+                                help="in|out for log-call / log-email")
+    hubspot_parser.add_argument("--start", default=None, help="ISO datetime")
+    hubspot_parser.add_argument("--end", default=None, help="ISO datetime")
+    hubspot_parser.add_argument("--subject", default=None)
+    hubspot_parser.add_argument("--sent-at", default=None, help="ISO datetime")
+    hubspot_parser.add_argument("--body", default=None,
+                                help="Body for log-email")
+    # Association args
+    hubspot_parser.add_argument("--from", dest="assoc_from", default=None,
+                                help="<type>:<id|key> for associate/unassociate")
+    hubspot_parser.add_argument("--to", dest="assoc_to", default=None,
+                                help="<type>:<id|key> for associate/unassociate")
+    hubspot_parser.add_argument("--type-id", type=int, default=None,
+                                help="Override default association typeId")
 
     # GitHub Projects v2 — lanes
     lanes_parser = subparsers.add_parser(

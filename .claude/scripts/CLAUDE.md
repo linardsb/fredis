@@ -370,7 +370,7 @@ python .claude/scripts/query.py drive find "search term" --type spreadsheet
 python .claude/scripts/query.py drive list --type document --max 10
 python .claude/scripts/query.py drive get <file_id>
 
-# HubSpot CRM (read-only — REST)
+# HubSpot CRM — reads (REST)
 python .claude/scripts/query.py hubspot contacts --max 10
 python .claude/scripts/query.py hubspot companies --max 10
 python .claude/scripts/query.py hubspot deals --max 10 [--stage <stage_id>]
@@ -380,6 +380,29 @@ python .claude/scripts/query.py hubspot stale-deals
 python .claude/scripts/query.py hubspot search --query "example.com"
 python .claude/scripts/query.py hubspot pipelines
 python .claude/scripts/query.py hubspot properties contacts
+
+# HubSpot CRM — writes (internal CRM mutations only — Advisor-mode allows direct writes)
+# Contacts / companies / deals
+python .claude/scripts/query.py hubspot create-contact --email tim@walking.vc [--firstname Tim] [--lastname Jackson] [--phone P] [--company-domain walking.vc] [--urgent true|false] [--conflict true|false] [--conflict-reason "..."] [--preferred-channel email|whatsapp|slack|facebook_dm] [--lifecyclestage lead|...]
+python .claude/scripts/query.py hubspot update-contact <id|email> [--urgent ...] [--phone ...] [--firstname ...] [--lifecyclestage ...]
+python .claude/scripts/query.py hubspot archive-contact <id|email>
+python .claude/scripts/query.py hubspot create-company --name "..." --domain D [--engagement retainer|project|prospect|dormant] [--retainer-gbp N] [--contract-end YYYY-MM-DD]
+python .claude/scripts/query.py hubspot update-company <id|domain> [...]
+python .claude/scripts/query.py hubspot archive-company <id|domain>
+python .claude/scripts/query.py hubspot create-deal --name "..." --amount N --stage <label> [--pipeline Consultancy] [--currency GBP|EUR|USD] [--contact-email X] [--company-domain D] [--service-line ai_agentic|custom_app|saas|marketing_ops|agri_ai|advisory] [--source cold|inbound|referral|content] [--close-date YYYY-MM-DD] [--probability 0..1]
+python .claude/scripts/query.py hubspot move-deal <id> --to-stage <label>
+python .claude/scripts/query.py hubspot update-deal <id> [--amount N] [--close-date ...] [--probability ...] [--service-line ...] [--source ...]
+python .claude/scripts/query.py hubspot close-deal <id> --as won|lost
+python .claude/scripts/query.py hubspot archive-deal <id>
+# Engagements (logging — never sends external comms)
+python .claude/scripts/query.py hubspot add-note --about <type>:<id|key> --text "..."
+python .claude/scripts/query.py hubspot create-task --about <type>:<id|key> --title "..." --due YYYY-MM-DD [--notes "..."] [--status not_started|in_progress|waiting|completed]
+python .claude/scripts/query.py hubspot log-call --with contact:<id|email> --summary "..." [--duration-min N] [--disposition "..."] [--direction in|out]
+python .claude/scripts/query.py hubspot log-meeting --with contact:<id|email> --title "..." --start <iso> --end <iso> [--notes "..."]
+python .claude/scripts/query.py hubspot log-email --with contact:<id|email> --subject "..." --direction in|out --sent-at <iso> [--body "..."]
+# Associations
+python .claude/scripts/query.py hubspot associate --from <type>:<id|key> --to <type>:<id|key> [--type-id N]
+python .claude/scripts/query.py hubspot unassociate --from <type>:<id> --to <type>:<id>
 
 # GitHub Projects v2 — Lanes & Features (read-only — GraphQL)
 python .claude/scripts/query.py lanes list

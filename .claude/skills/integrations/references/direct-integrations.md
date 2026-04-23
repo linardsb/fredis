@@ -1,9 +1,9 @@
-# Direct Platform Integrations (Gmail / Calendar / Asana / Slack / Monday / GitHub / Sheets / Docs / Drive)
+# Direct Platform Integrations (Gmail / Calendar / Asana / Slack / HubSpot / GitHub / Sheets / Docs / Drive)
 
 
 # Direct Platform Integrations
 
-Query Gmail, Calendar, Asana, Slack, Sheets, Docs, and Drive directly — no Zapier/MCP needed.
+Query Gmail, Calendar, Asana, Slack, HubSpot, GitHub, Sheets, Docs, and Drive directly — no Zapier/MCP needed.
 
 ## Script Path
 
@@ -53,7 +53,66 @@ python .claude/scripts/query.py docs info <document_id>
 python .claude/scripts/query.py drive find "search term" [--type spreadsheet|document|folder|presentation|pdf] [--max N]
 python .claude/scripts/query.py drive list [--type TYPE] [--max N]
 python .claude/scripts/query.py drive get <file_id>
+
+# HubSpot CRM — reads
+python .claude/scripts/query.py hubspot contacts [--max N]
+python .claude/scripts/query.py hubspot companies [--max N]
+python .claude/scripts/query.py hubspot deals [--max N] [--stage <stage_id>]
+python .claude/scripts/query.py hubspot search --query "example.com"
+python .claude/scripts/query.py hubspot pipelines
+python .claude/scripts/query.py hubspot properties [contacts|companies|deals]
+python .claude/scripts/query.py hubspot overdue-invoices
+python .claude/scripts/query.py hubspot silent-contacts
+python .claude/scripts/query.py hubspot stale-deals
+
+# HubSpot CRM — writes (internal CRM state — Advisor-mode allows direct writes)
+python .claude/scripts/query.py hubspot create-contact --email X [--firstname Y] [--lastname Z] \
+    [--phone P] [--company-domain D] [--urgent true|false] [--conflict true|false] \
+    [--conflict-reason "..."] [--preferred-channel email|whatsapp|slack|facebook_dm] \
+    [--lifecyclestage lead|...]
+python .claude/scripts/query.py hubspot update-contact <id|email> [--urgent ...] [--phone ...] \
+    [--firstname ...] [--lastname ...] [--lifecyclestage ...]
+python .claude/scripts/query.py hubspot archive-contact <id|email>
+python .claude/scripts/query.py hubspot create-company --name "..." --domain D \
+    [--engagement retainer|project|prospect|dormant] [--retainer-gbp N] [--contract-end YYYY-MM-DD]
+python .claude/scripts/query.py hubspot update-company <id|domain> [...]
+python .claude/scripts/query.py hubspot archive-company <id|domain>
+python .claude/scripts/query.py hubspot create-deal --name "..." --amount N --stage <label> \
+    [--pipeline Consultancy] [--currency GBP|EUR|USD] [--contact-email X] [--company-domain D] \
+    [--service-line ai_agentic|custom_app|saas|marketing_ops|agri_ai|advisory] \
+    [--source cold|inbound|referral|content] [--close-date YYYY-MM-DD] [--probability 0..1]
+python .claude/scripts/query.py hubspot move-deal <id> --to-stage <label>
+python .claude/scripts/query.py hubspot update-deal <id> [--amount N] [--close-date ...] [--probability ...]
+python .claude/scripts/query.py hubspot close-deal <id> --as won|lost
+python .claude/scripts/query.py hubspot archive-deal <id>
+python .claude/scripts/query.py hubspot add-note --about <type>:<id|key> --text "..."
+python .claude/scripts/query.py hubspot create-task --about <type>:<id|key> --title "..." --due YYYY-MM-DD [--notes "..."]
+python .claude/scripts/query.py hubspot log-call --with contact:<id|email> --summary "..." [--duration-min N] [--disposition "..."] [--direction in|out]
+python .claude/scripts/query.py hubspot log-meeting --with contact:<id|email> --title "..." --start <iso> --end <iso> [--notes "..."]
+python .claude/scripts/query.py hubspot log-email --with contact:<id|email> --subject "..." --direction in|out --sent-at <iso> [--body "..."]
+python .claude/scripts/query.py hubspot associate --from <type>:<id|key> --to <type>:<id|key> [--type-id N]
+python .claude/scripts/query.py hubspot unassociate --from <type>:<id> --to <type>:<id>
+
+# GitHub — read-only
+python .claude/scripts/query.py github recent [--hours N]
+python .claude/scripts/query.py github review-requests
+python .claude/scripts/query.py github mentions [--hours N]
+python .claude/scripts/query.py github ship
+
+# GitHub Projects v2 — Lanes
+python .claude/scripts/query.py lanes list
+python .claude/scripts/query.py lanes breached
 ```
+
+## HubSpot writes — Advisor-mode boundary
+
+Writing **internal CRM state** (contacts/companies/deals/notes/tasks/logged engagements) is permitted directly — these are equivalent to taking notes on Linards's behalf inside his own system.
+
+What still routes through `Fredis/Memory/drafts/active/` and is **never** sent via HubSpot:
+- Outbound email via HubSpot's email tool → `drafts/active/client-comms/`
+- Quotes / invoices to clients → `drafts/active/finance/`
+
+Principle: **logging ≠ sending**. Recording that a call happened is internal state. Sending a new message is external comm. If in doubt, draft it.
 
 ## Setup
 
