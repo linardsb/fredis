@@ -363,7 +363,12 @@ class ConversationEngine:
             "complete, self-contained answer. Never end with just sources or "
             "a summary.\n"
             "\n# Advisor mode\n"
-            "Draft replies into Fredis/Memory/drafts/active/; never send. "
+            "Never send externally — always draft. Routing by destination:\n"
+            "- **Email drafts (any kind, new or reply)** → Gmail Drafts "
+            "folder via `mcp__fredis__gmail_create_draft`. Do NOT write "
+            "email bodies to the filesystem.\n"
+            "- **Non-email outbound** (Slack follow-ups, letter drafts, "
+            "posts, internal memos) → `Fredis/Memory/drafts/active/`.\n"
             "Context (read on demand): SOUL.md, USER.md, MEMORY.md, "
             f"daily/{datetime.now().strftime('%Y-%m-%d')}.md.\n"
             + self._integration_facts

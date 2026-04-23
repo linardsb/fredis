@@ -158,10 +158,12 @@ async def _gmail_thread(args: dict[str, Any]) -> dict[str, Any]:
 
 @tool(
     "gmail_create_draft",
-    "Create a Gmail draft (saved to the user's Drafts folder — NEVER sent). "
-    "For a reply, pass thread_id AND message_id of the message you're replying "
-    "to so Gmail threads it correctly. This is the advisor-mode path: Linards "
-    "reviews drafts in Gmail and sends himself.",
+    "Create a Gmail draft in the user's Gmail Drafts folder (NEVER sent). "
+    "USE THIS for ALL email drafts — both brand-new emails and replies. "
+    "Do not write email drafts to the filesystem; they belong in Gmail. "
+    "thread_id and message_id are optional — omit them for new emails, "
+    "pass them only when replying so Gmail threads the reply correctly. "
+    "Advisor-mode path: Linards reviews the draft in Gmail and sends himself.",
     {
         "to": Annotated[str, "Recipient email address"],
         "subject": Annotated[str, "Subject line"],
