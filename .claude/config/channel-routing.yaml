@@ -103,7 +103,10 @@ models:
     - research-materials
     - clients
   haiku:
-    - gmail
+    # gmail promoted to sonnet (default) on 2026-04-23 — Haiku ignored
+    # multi-rule prompts (routing drafts to Gmail, searching inbox before
+    # asking about named people). Reliability matters more than the
+    # ~$0.08/msg cost difference for a draft-assistant surface.
     - calendar
     - asana-board
     - hubspot
