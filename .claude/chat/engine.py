@@ -315,6 +315,25 @@ class ConversationEngine:
         else:
             selected_model = "claude-sonnet-4-6"
 
+        # First reply in a thread gets a topic header so the Slack
+        # "last reply" preview surfaces the topic — helps distinguish
+        # threads at a glance when openers are terse ("@Fredis").
+        # Only added on new sessions; resumed threads already have context.
+        is_first_turn = existing is None and not message.channel.is_dm
+        topic_rule = (
+            "\n# Thread topic header (first reply only)\n"
+            "This is the FIRST reply in a new channel thread. Begin your "
+            "response with a single line of bold text in this exact format:\n"
+            "`*Topic: <3-7 word topic>*`\n"
+            "Then a blank line, then your normal reply. Pick a topic from "
+            "the user's question (not from tool output). No emoji. Examples:\n"
+            "`*Topic: Ryan follow-up – billing + pest report*`\n"
+            "`*Topic: Inbox scan – last 6h*`\n"
+            "`*Topic: Draft reply to Atis*`\n"
+            if is_first_turn
+            else ""
+        )
+
         system_append = (
             "\n\n# Chat (Slack) rules\n"
             "Only your FINAL turn is shown — all tool calls and intermediate "
@@ -326,6 +345,7 @@ class ConversationEngine:
             "Context (read on demand): SOUL.md, USER.md, MEMORY.md, "
             f"daily/{datetime.now().strftime('%Y-%m-%d')}.md.\n"
             + self._integration_facts
+            + topic_rule
             + "\n# Images\n"
             "Include absolute file paths in your response — the engine "
             "auto-uploads them to the current Slack thread. Never call the "
