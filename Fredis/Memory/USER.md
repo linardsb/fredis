@@ -61,7 +61,8 @@ _Secrets and account IDs live in `.claude/scripts/.env`. This section documents 
 
 ### Task Management
 - Asana: PAT configured in `.env`; no projects tracked yet — wire up when first client project lands
-- Monday.com: API token + seven board IDs configured in `.env` (`MONDAY_API_TOKEN`, `MONDAY_BOARD_IDS`). Boards: Deals, Leads, Accounts, Client Projects, Activities + two additional (see `.env`). Primary CRM.
+- HubSpot Free: Private App token + hub ID configured in `.env` (`HUBSPOT_API_TOKEN`, `HUBSPOT_HUB_ID`). **Primary CRM** as of 2026-04-23 (replaced Monday.com). Schema bootstrapped with custom properties for urgent-alert contacts, engagement-type companies, service-line + source deals. Free-tier constraints: 1 deal pipeline max; GBP not yet enabled on portal. Engineering work stays in GitHub Projects, not HubSpot.
+- Monday.com: removed 2026-04-23. `MONDAY_*` env vars to be cleaned up in next commit.
 
 ### Slack
 - User ID: configured in `.env` (`SLACK_USER_ID`)
@@ -121,7 +122,7 @@ _Operational map of what Linards sells / could sell. Mostly TBD until early clie
   - Agriculture × AI (prospective service line — UK SFI / EU CAP via LV / Argentine export regimes — see MEMORY.md M11)
   - AI robotics (passive prospect — see MEMORY.md M10)
 - **Pricing model per line:** open — thinking in progress (asked 2026-04-18, no decision yet). Revisit once first paid engagement lands; that anchor usually sets the shape
-- **Deal-flow stages (Monday.com):** inbound → discovery call → proposal → signed → kickoff → delivery → invoice → post-delivery
+- **Deal-flow stages (HubSpot):** inbound → discovery call → proposal → signed → kickoff → delivery → invoice → post-delivery. Stages need renaming in HubSpot UI to match (default "Sales Pipeline" still in place as of 2026-04-23).
 - **Lead sources by line:** none flowing yet — historical: 2018 Tim Jackson (Walking Ventures) for UGOKI; 2026 Ainars Šlesers + Vilis Krištopans (VTV) cold outreach successes
 - **High-touch priority for urgent alerts:** generating leads and potential clients
 - **Drafts tagged by service line in frontmatter:** yes — e.g., `service: bookkeeping`, `service: ai-build` (RAG filtering enabler)

@@ -28,6 +28,16 @@ _(Pre-revenue stage — formal locked-in decisions still to be made. Likely firs
 
 - **Phase 10.5 single-repo vault sync (2026-04-21).** `Fredis/` tracked inside `linardsb/fredis` (not a separate vault repo). `vault-sync-repo.sh` uses mkdir-lock + subtree-only `git add -A Fredis/` + `commit --only -- Fredis/`, runs every 2 min on both sides. `concat-both` merge driver registered via `.gitattributes` for daily logs + drafts. WIP code outside `Fredis/` stays unstaged. `[impact: med, status: decided]`
 
+- **Heartbeat priority-1 whitelist + daily summary timer (2026-04-22).** Priority-1 prompt rewritten: real-person emails, GitHub @mentions, Slack DMs, calendar conflicts, overdue CRM tasks always surface; marketing/newsletters/dependabot/digests silenced. Motivated by the 09:38 customer-email miss that day. New `--summary` CLI flag bypasses HEARTBEAT_OK + active-hours gate; `fredis-summary.timer` fires 17:00 BST daily on VPS for end-of-day wrap. Commit `2c66101`. `[impact: med, status: decided]`
+
+- **CLAUDE.md split into nested pattern (2026-04-22).** Root `/CLAUDE.md` trimmed from ~460 → ~100 lines (Advisor Mode, Skill Stack, Memory Layout, Hooks, Architecture pointers). Subsystem detail moved to `.claude/scripts/CLAUDE.md` — dev-facing, invisible to Fredis SDK callers that set `cwd=PROJECT_ROOT`. Net saving ~5.5k tokens per heartbeat tick. `[impact: med, status: decided]`
+
+- **No git-history scrub for rotated Postgres password (2026-04-22).** Rotation alone invalidates the credential since repo is private. History scrub only triggers if repo ever goes public. `docs/phases.md` text scrub still pending but non-urgent. `[impact: low, status: decided]`
+
+- **CRM switch: Monday.com → HubSpot Free + GitHub Projects (2026-04-23).** Linards cut Monday.com entirely — no data migration, fresh HubSpot workspace. Commit `bb38524` shipped the migration; HubSpot schema bootstrapped with 9 custom properties (4 contact, 3 company, 2 deal). Known HubSpot Free constraint: 1 deal pipeline cap → use default pipeline, rename stages in UI; `overdue_invoices` heartbeat scan blocked until stages renamed to match plan spec (`Inbound → Discovery → Proposal → Signed → Kickoff → Delivery → Invoice → Post-delivery`). `MONDAY_*` env vars removed. Engineering stays in GitHub Projects, not HubSpot. `[impact: high, status: decided]`
+
+- **HubSpot advisor-mode boundary codified (2026-04-23).** Internal CRM mutations (create/update/archive records, log past engagements, move deal stages) are OK to execute directly from Slack chat. Outbound emails, quotes/invoices, customer-facing ticket comments route to `drafts/active/` — never auto-sent. Plan at `.agent/plans/hubspot-slack-writes.md`. All 5 write operations smoke-tested via Slack on 2026-04-23 (create contact, add note, create deal, move stage, archive). Tickets skipped for v1; archive-only (no hard delete). `[impact: med, status: decided]`
+
 ## Lessons Learned
 
 These are the day-one rules — synthesised from J5. The brain should respect these without re-questioning unless explicitly revisited.
@@ -61,6 +71,10 @@ These are the day-one rules — synthesised from J5. The brain should respect th
 - **Chat auto-retrieval must prepend per-turn, not via `system_prompt.append` (2026-04-21).** Retrieval context has to be prepended to `message.text` on every turn because `system_prompt` is session-init only — resumed Slack threads (majority of traffic) would never see retrieval hits otherwise. Pattern mirrors heartbeat-context injection at `engine.py:232-238`. Final message order is `[retrieval] → [heartbeat] → [wrapped user]` so heartbeat context isn't displaced by memory hits. `[impact: med, status: decided]`
 
 - **Claude.ai web connectors are account-level, not local MCPs (2026-04-21).** `claude.ai Gmail/Calendar/Drive/Figma` connectors sync from Claude.ai web settings — cannot be removed via `claude mcp remove`. They appear in the deferred tools list but show "Needs authentication" and do nothing. To actually disconnect: https://claude.ai → Settings → Connectors. Harmless duplicates; Fredis has zero dependency on them (direct Python APIs via `query.py`). `[impact: low, status: resolved]`
+
+- **Ghost Mac processes silently steal Slack Socket Mode events (2026-04-22).** Slack load-balances across all active WebSocket connections for the same bot token — `app_mention` events fan out to every connection, but `message.channels` events go to only one. A stale local `fredis-chat` process on Mac was stealing thread-engage events meant for the VPS. Always check for duplicate bot-token consumers (`ps aux | grep fredis`) before debugging Slack event delivery. Secondary rule: `message.channels` also requires `/invite @Fredis` in the channel AND enabling the event in the Slack app's Event Subscriptions (separate from OAuth scopes). `[impact: med, status: decided]`
+
+- **`OnCalendar` embedded timezone requires systemd 246+ (2026-04-22).** VPS confirmed compatible. Worth remembering for future timer files — older systemd needs a separate `Environment=TZ=...` stanza instead. `[impact: low, status: decided]`
 
 ## Important Facts
 
@@ -124,6 +138,9 @@ These are the day-one rules — synthesised from J5. The brain should respect th
 - VC pipeline build-out (post Tim Jackson one-shot)
 - Research/analyst skill — identified as a real gap. Three modes proposed: brief (heartbeat morning sweep), deep (on-demand report to `research/`), synthesise (cross-lane strategic read). Not yet built (2026-04-18)
 - `setup_workspace.py` bugs #2-#4 — stale defaults (30 min, 08-22, etc.) are a booby trap if the script is ever re-run. Documented in `.agent/audits/2026-04-18_phases-0-4-audit.md` (2026-04-19)
+- **HubSpot GBP currency not enabled on portal 144478060 (2026-04-23).** API rejects `deal_currency_code: "GBP"`; code falls back to portal default. Fix: HubSpot UI → Settings → Account Setup → Currency → Add GBP. After enabling, existing CLI code works as-is with `--currency GBP`. `[impact: low, status: pending]`
+- **HubSpot default pipeline stages don't match plan spec (2026-04-23).** HubSpot Free caps at 1 deal pipeline → stuck with "Sales Pipeline" default. `overdue_invoices` heartbeat scan looks for a stage labelled `Invoice` — zero matches until stages renamed in HubSpot UI to `Inbound → Discovery → Proposal → Signed → Kickoff → Delivery → Invoice → Post-delivery`. Low-stakes until `HUBSPOT_SCANS_ENABLED=true`. `[impact: low, status: pending]`
+- **HubSpot write-path cleanup pending (2026-04-23).** Step 9 of `.agent/plans/hubspot-slack-writes.md` bundles: revert `config.py` Monday shim, delete `integrations/monday_api.py` + `migrate_monday_to_hubspot.py`, Linards removes `MONDAY_*` from `.env`. Also defer-listed: CLI-level currency validation (~20 lines). `[impact: low, status: pending]`
 
 ---
 
