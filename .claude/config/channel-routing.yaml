@@ -102,16 +102,13 @@ models:
     - research-policy
     - research-materials
     - clients
-  haiku:
-    # gmail promoted to sonnet (default) on 2026-04-23 — Haiku ignored
-    # multi-rule prompts (routing drafts to Gmail, searching inbox before
-    # asking about named people). Reliability matters more than the
-    # ~$0.08/msg cost difference for a draft-assistant surface.
-    - calendar
-    - asana-board
-    - hubspot
-    - g-drive
-    - g-sheets
-    - g-docs
-    - github
+  # All integration channels promoted to sonnet (default) on 2026-04-23
+  # after #gmail showed Haiku ignored multi-rule prompts (draft routing,
+  # search-before-asking). The same failure mode would bite on the other
+  # write-capable integration channels (#hubspot mutates CRM state,
+  # #asana-board creates tasks, #g-sheets appends rows). Reliability
+  # matters more than the ~$0.08/msg delta on a small-volume surface.
+  # Re-add a channel name under `haiku` only if its cost becomes material
+  # (thousands of turns/month).
+  haiku: []
   default: sonnet
