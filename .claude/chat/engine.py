@@ -156,35 +156,6 @@ class ConversationEngine:
                 paths.append(candidate)
         return paths
 
-    # Mention patterns stripped from user text before deriving a topic label.
-    # `<@U…>` is Slack's user-mention token; bare `@Fredis` appears if Slack
-    # didn't resolve the mention. Keep this small — aggressive stripping
-    # loses meaningful words.
-    _TOPIC_MENTION_RE = re.compile(r"<@[A-Z0-9]+>|@Fredis\b", re.IGNORECASE)
-    _TOPIC_MAX_CHARS = 60
-
-    @staticmethod
-    def _derive_topic(user_text: str) -> str:
-        """Derive a short topic label from the user's message.
-
-        Deterministic — no LLM call. Strips mentions, collapses whitespace,
-        truncates at a word boundary under _TOPIC_MAX_CHARS. Falls back to
-        "New thread" for empty or mention-only messages so the header is
-        never blank (Slack renders empty bold as literal `**`).
-        """
-        cleaned = ConversationEngine._TOPIC_MENTION_RE.sub("", user_text or "")
-        cleaned = re.sub(r"\s+", " ", cleaned).strip().rstrip("?!.,")
-        if not cleaned:
-            return "New thread"
-        if len(cleaned) <= ConversationEngine._TOPIC_MAX_CHARS:
-            return cleaned
-        # Truncate at last whitespace under the limit — avoids mid-word cuts.
-        truncated = cleaned[: ConversationEngine._TOPIC_MAX_CHARS]
-        last_space = truncated.rfind(" ")
-        if last_space > ConversationEngine._TOPIC_MAX_CHARS // 2:
-            truncated = truncated[:last_space]
-        return truncated + "…"
-
     def _get_heartbeat_context(self, channel_id: str, thread_id: str) -> HeartbeatThread | None:
         """Check if a thread originated from a heartbeat notification."""
         try:
@@ -344,14 +315,18 @@ class ConversationEngine:
         else:
             selected_model = "claude-sonnet-4-6"
 
-        # First reply in a channel thread gets a deterministic topic header
-        # prepended by the engine (not by the model — Haiku routinely skips
-        # format rules). Surfaces the thread's subject in Slack's "last
-        # reply" preview so threads are scannable even when the opener is
-        # terse like "@Fredis".
+        # First reply in a channel thread must open with a topic header so
+        # threads are scannable in Slack's "last reply" preview. Model writes
+        # it (it sees the whole exchange, so the topic reflects actual
+        # context rather than just the opener). Enforced by the system-append
+        # rule below.
         is_first_turn = existing is None and not message.channel.is_dm
-        topic_prefix = (
-            f"*Topic: {self._derive_topic(message.text)}*\n\n"
+        topic_rule = (
+            "\n# Thread topic header (first reply only)\n"
+            "Start this reply with exactly `*Topic: <≤60-char summary>*` on "
+            "its own line, then a blank line, then your answer. The summary "
+            "should capture what the thread is actually about — not just "
+            "echo the user's opener. Keep it short and specific.\n"
             if is_first_turn
             else ""
         )
@@ -362,7 +337,8 @@ class ConversationEngine:
             "turns are invisible. Do all research first, then write one "
             "complete, self-contained answer. Never end with just sources or "
             "a summary.\n"
-            "\n# Advisor mode\n"
+            + topic_rule
+            + "\n# Advisor mode\n"
             "Never send externally — always draft. Routing by destination:\n"
             "- **Email drafts (any kind, new or reply)** → Gmail Drafts "
             "folder via `mcp__fredis__gmail_create_draft`. Do NOT write "
@@ -625,7 +601,7 @@ class ConversationEngine:
                     # Yield response updates
                     if response_text.strip():
                         yield OutgoingMessage(
-                            text=topic_prefix + response_text,
+                            text=response_text,
                             channel=message.channel,
                             thread=message.thread,
                             is_update=not first_yield,
@@ -657,7 +633,7 @@ class ConversationEngine:
                             f"image(s) to send back"
                         )
                         yield OutgoingMessage(
-                            text=topic_prefix + response_text,
+                            text=response_text,
                             channel=message.channel,
                             thread=message.thread,
                             is_update=not first_yield,
