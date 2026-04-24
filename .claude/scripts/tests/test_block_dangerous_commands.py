@@ -32,7 +32,7 @@ def _run(tool_name: str, tool_input: dict[str, object]) -> subprocess.CompletedP
 
 
 # ---------------------------------------------------------------------------
-# Outbound mutation (Slack / Gmail / Asana / Monday / Linear / Discord)
+# Outbound mutation (Slack / Gmail / Monday / Linear / Discord)
 # ---------------------------------------------------------------------------
 
 

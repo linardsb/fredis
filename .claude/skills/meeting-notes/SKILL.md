@@ -137,8 +137,8 @@ not a summary of the summary. Include disagreements where they happened.>
 - No calendar integration in Phase 12. Future work: pull attendees from the
   corresponding Google Calendar event if we pass an event ID.
 - No auto-transcription. Linards types or dictates; Fredis structures.
-- No action-item dispatch to Asana. Action items are recorded in the markdown;
-  Linards creates Asana tasks himself from the file if needed.
+- No action-item dispatch to HubSpot. Action items are recorded in the markdown;
+  Linards creates HubSpot tasks / tickets himself from the file if needed.
 - Never writes to `drafts/`, `MEMORY.md`, `USER.md`, or other vault top-level
   files. `meetings/` only.
 

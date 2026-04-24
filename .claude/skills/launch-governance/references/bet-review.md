@@ -19,8 +19,7 @@ Monthly (or on-demand) portfolio review. Per lane: evidence + verdict + next act
 
 `bet-review` is data-heavy. Before writing a verdict, call `query.py` to gather per-lane state:
 
-- `asana overdue` + `asana due-soon --days 30` — task evidence per lane.
-- `monday overdue` + `monday my-items` — Monday-tracked work.
+- `hubspot stale-deals` + `hubspot overdue-invoices` — lane progress + revenue signals.
 - `github recent --hours 720` — commits per lane repo.
 - `gmail search "lane-keyword"` — threads touched this month.
 - Read `Fredis/Memory/gates/*.yaml` — gate status per lane.

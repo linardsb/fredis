@@ -131,8 +131,8 @@ manually when the engagement changes significantly.
 
 ## Boundary — what this skill does not do
 
-- Never creates Asana tasks from `**Open items:**`. Those stay as markdown
-  checkboxes; Linards creates tasks himself.
+- Never creates HubSpot tasks or tickets from `**Open items:**`. Those stay as
+  markdown checkboxes; Linards creates tasks himself.
 - Never posts to Slack beyond the short confirmation note:
   > Logged to `Fredis/Memory/retainers/ana-suarez.md`.
 - Never writes to `drafts/`, `MEMORY.md`, `USER.md`, or other vault top-level

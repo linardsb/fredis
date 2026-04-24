@@ -1,6 +1,6 @@
 ---
 name: integrations
-description: Query external platforms from Fredis — Gmail / Google Calendar / Asana / Slack / Google Sheets / Google Docs / Google Drive / HubSpot CRM / GitHub (direct Python APIs) plus any MCP server (Zapier, Sequential Thinking, filesystem, etc.) via a universal MCP client. Use when user says "check email", "show calendar", "list asana tasks", "check slack", "read this spreadsheet", "open this google doc", "find files in drive", "create hubspot contact", "move deal to signed", "my PR reviews on github", "connect to MCP server", "list MCP tools", "use sequential thinking", "call Zapier action", or any cross-platform query.
+description: Query external platforms from Fredis — Gmail / Google Calendar / Slack / Google Sheets / Google Docs / Google Drive / HubSpot CRM / GitHub (direct Python APIs) plus any MCP server (Zapier, Sequential Thinking, filesystem, etc.) via a universal MCP client. Use when user says "check email", "show calendar", "check slack", "read this spreadsheet", "open this google doc", "find files in drive", "create hubspot contact", "move deal to signed", "my PR reviews on github", "connect to MCP server", "list MCP tools", "use sequential thinking", "call Zapier action", or any cross-platform query.
 ---
 
 # integrations
@@ -13,7 +13,6 @@ TL;DR — all Fredis's external platform surfaces live here. Prefer direct Pytho
 |---|---|
 | "check email", "show gmail", "unread", "urgent emails", "search email", "create gmail draft", "download attachment" | `references/direct-integrations.md` — Gmail section |
 | "show calendar", "today's events", "upcoming events", "next meeting" | `references/direct-integrations.md` — Calendar section |
-| "list asana tasks", "my tasks", "overdue", "due soon", "create task", "complete task", "move task" | `references/direct-integrations.md` — Asana section |
 | "check slack", "slack messages", "slack channels", "update slack message" | `references/direct-integrations.md` — Slack section |
 | "read spreadsheet", "sheets", "google sheet", "append row" | `references/direct-integrations.md` — Sheets section |
 | "google doc", "read doc", "open doc" | `references/direct-integrations.md` — Docs section |
@@ -26,7 +25,7 @@ TL;DR — all Fredis's external platform surfaces live here. Prefer direct Pytho
 
 ## CLI wrapper
 
-All direct-API commands run via `python .claude/scripts/query.py <platform> <command>`. See the Gmail / Calendar / Asana / Slack / Sheets / Docs / Drive / HubSpot / GitHub sections in `references/direct-integrations.md` for the full command surface and authentication setup.
+All direct-API commands run via `python .claude/scripts/query.py <platform> <command>`. See the Gmail / Calendar / Slack / Sheets / Docs / Drive / HubSpot / GitHub sections in `references/direct-integrations.md` for the full command surface and authentication setup.
 
 ## Advisor Mode
 
@@ -38,7 +37,7 @@ Output drafts only. Write to `Fredis/Memory/drafts/active/integrations/YYYY-MM-D
 
 Linards reviews and sends manually from the draft file.
 
-**Read-first bias.** Integrations are primarily read surfaces. Write operations (`gmail create-draft`, `asana create`, `sheets write`, `sheets append`, `asana comment`, `asana complete`, `asana move`, `slack update`, all `hubspot create-*`/`update-*`/`archive-*`/`add-note`/`create-task`/`log-*`/`associate`/`unassociate`) modify state on Linards's accounts — only run when explicitly asked and after surfacing intent.
+**Read-first bias.** Integrations are primarily read surfaces. Write operations (`gmail create-draft`, `sheets write`, `sheets append`, `slack update`, all `hubspot create-*`/`update-*`/`archive-*`/`add-note`/`create-task`/`log-*`/`associate`/`unassociate`) modify state on Linards's accounts — only run when explicitly asked and after surfacing intent.
 
 **HubSpot write boundary.** Internal CRM mutations (contacts/companies/deals/notes/tasks/logged engagements, ticket create/move/close) write directly. Outbound email through HubSpot's email tool, quotes, and invoices still route through `Fredis/Memory/drafts/active/` — **logging ≠ sending**.
 
@@ -48,7 +47,7 @@ Linards reviews and sends manually from the draft file.
 
 | File | Load when |
 |---|---|
-| `references/direct-integrations.md` | Querying Gmail, Calendar, Asana, Slack, Sheets, Docs, Drive, HubSpot, GitHub, GitHub Projects v2 directly |
+| `references/direct-integrations.md` | Querying Gmail, Calendar, Slack, Sheets, Docs, Drive, HubSpot, GitHub, GitHub Projects v2 directly |
 | `references/mcp-client.md` | Connecting to an MCP server (Zapier, Sequential Thinking, filesystem, etc.) for a platform without a direct integration |
 | `references/mcp-client/*` | MCP deep-reference (server catalog, example configs, Python MCP SDK guide) |
 | `scripts/mcp_client.py` | Python MCP client implementation (called by `mcp-client.md` reference) |

@@ -17,7 +17,7 @@ First-run personalisation is a TUI + skill pair that converts the 103-question i
 
 ## Heartbeat System (Proactive Second Brain)
 
-The heartbeat is a scheduled script that proactively checks the user's draft inbox, overdue tasks (Asana), HubSpot CRM scans (overdue invoices, silent contacts, stale deals), GitHub Projects lane kill-gate breaches, calendar, email, Slack, market/policy/AI research signals, and habit pillars using the Claude Agent SDK. It runs every 120 minutes during active hours (Europe/London, 05:00–20:00) and sends a Slack DM + native macOS notification when something needs attention.
+The heartbeat is a scheduled script that proactively checks the user's draft inbox, HubSpot CRM scans (overdue invoices, silent contacts, stale deals), GitHub Projects lane kill-gate breaches, calendar, email, Slack, market/policy/AI research signals, and habit pillars using the Claude Agent SDK. It runs every 120 minutes during active hours (Europe/London, 05:00–20:00) and sends a Slack DM + native macOS notification when something needs attention.
 
 **Location:** `.claude/scripts/`
 
@@ -34,7 +34,7 @@ The heartbeat is a scheduled script that proactively checks the user's draft inb
 
 1. OS scheduler runs the wrapper script every 120 minutes
 2. Wrapper runs `uv run python heartbeat.py` in `.claude/scripts/`
-3. `heartbeat.py` gathers data from Gmail, Calendar, Asana, Slack, HubSpot CRM, GitHub Projects (lanes), and GitHub (commits/PRs) via direct Python API calls
+3. `heartbeat.py` gathers data from Gmail, Calendar, Slack, HubSpot CRM, GitHub Projects (lanes), and GitHub (commits/PRs) via direct Python API calls
 4. State diffing compares current data against the previous snapshot — only new/changed items get full context
 5. Guardrail pre-filter (deterministic pattern matching + Haiku LLM) checks for prompt injection in external data
 6. Pre-fetched, diff-annotated data is injected into Claude's prompt; Claude reasons over it and decides what needs attention
@@ -314,7 +314,7 @@ A scheduled script that uses Claude Agent SDK to review yesterday's daily log an
 
 ## Direct Platform Integrations
 
-The `direct-integrations` skill provides direct API access to Gmail, Calendar, Asana, Slack, Google Sheets, Google Docs, and Google Drive without going through Zapier MCP. **Always prefer direct integrations over Zapier.** The CLI wrapper lives at `.claude/scripts/query.py` (moved from the skill directory in Phase 4 so it sits sibling to `integrations/`).
+The `direct-integrations` skill provides direct API access to Gmail, Calendar, Slack, Google Sheets, Google Docs, and Google Drive without going through Zapier MCP. **Always prefer direct integrations over Zapier.** The CLI wrapper lives at `.claude/scripts/query.py` (moved from the skill directory in Phase 4 so it sits sibling to `integrations/`).
 
 ### Usage
 
@@ -335,17 +335,6 @@ python .claude/scripts/query.py gmail create-draft --to "Name <email>" --subject
 python .claude/scripts/query.py calendar today
 python .claude/scripts/query.py calendar upcoming --hours 48
 python .claude/scripts/query.py calendar soon
-
-# Asana
-python .claude/scripts/query.py asana my-tasks --max 10
-python .claude/scripts/query.py asana my-tasks --assignee <name> --max 10
-python .claude/scripts/query.py asana project <project_id>
-python .claude/scripts/query.py asana overdue
-python .claude/scripts/query.py asana due-soon --days 3
-python .claude/scripts/query.py asana create --name "Task name" --due 2026-03-01 --project <project_id> --notes "Details"
-python .claude/scripts/query.py asana comment <task_gid> --comment "Comment text"
-python .claude/scripts/query.py asana complete <task_gid>
-python .claude/scripts/query.py asana move <task_gid> --to-project <project_id> --from-project <project_id>
 
 # Slack (`send` gated behind --i-confirm-send — advisor mode refuses otherwise)
 python .claude/scripts/query.py slack channels
@@ -425,7 +414,6 @@ python .claude/scripts/query.py github ship
 ### Authentication
 
 - **Gmail + Calendar + Sheets + Docs + Drive:** Google OAuth2 (shared token, `gmail.readonly` + `gmail.compose` + `calendar.readonly` + `spreadsheets` + `documents.readonly` + `drive.readonly` scopes)
-- **Asana:** Personal Access Token in `.env` (`ASANA_ACCESS_TOKEN`)
 - **Slack:** Bot Token in `.env` (`SLACK_BOT_TOKEN`)
 - **HubSpot CRM:** Private App token in `.env` (`HUBSPOT_API_TOKEN`) — header is `Authorization: Bearer <token>`. Rate limit: 110 req/10s + 250k/day. Hub ID in `HUBSPOT_HUB_ID`. Heartbeat scans gated on `HUBSPOT_SCANS_ENABLED=true`.
 - **GitHub Projects v2:** Reuses `GITHUB_TOKEN` (GraphQL only — REST doesn't cover v2 Projects). Set `GITHUB_PROJECT_LANES_ID` to the project's node id.
@@ -472,7 +460,7 @@ The process needs to stay running — it connects via Socket Mode (outbound WebS
 3. **Persistent sessions** — `chat.db` stores the mapping of `platform:channel:thread` → Agent SDK `session_id`, so conversations survive bot restarts and long gaps. The engine passes `resume=agent_session_id` into `ClaudeAgentOptions` on the next message and the SDK rehydrates full history.
 4. **Bot capabilities** — anything the second brain can do today:
    - Memory search ("What did we decide about X?")
-   - Integration queries ("Any overdue Asana tasks?", "Check my email")
+   - Integration queries ("Any overdue HubSpot invoices?", "Check my email")
    - Draft review ("Show active drafts", "Approve the draft for John")
    - Habit check-ins ("Mark God as done", "How are my habits?")
 
@@ -516,7 +504,7 @@ Per-agent threat models colocated with code at `.claude/scripts/threat-models/` 
 
 ## Secrets Management
 
-Token rotation procedures for every secret in `.env.example` live at `.claude/scripts/schedule/rotation-runbooks.md`. Rotate on a 90-day cadence or immediately on suspected leak. The runbook covers Slack bot / app tokens, Anthropic / GitHub / Asana / HubSpot PATs, Google OAuth (refresh token + client secret rotation paths), Postgres password, and SSH keys (VPS + vault git remote).
+Token rotation procedures for every secret in `.env.example` live at `.claude/scripts/schedule/rotation-runbooks.md`. Rotate on a 90-day cadence or immediately on suspected leak. The runbook covers Slack bot / app tokens, Anthropic / GitHub / HubSpot PATs, Google OAuth (refresh token + client secret rotation paths), Postgres password, and SSH keys (VPS + vault git remote).
 
 ---
 
@@ -535,5 +523,5 @@ Non-zero exit on any HIGH/CRITICAL finding so the scheduler surfaces the alert.
 
 MCP servers available through the mcp-client skill (use only if direct integrations are unavailable):
 
-- Zapier (Gmail, Asana, Google Calendar, Slack) — higher latency, uses Zapier quota
+- Zapier (Gmail, Google Calendar, Slack) — higher latency, uses Zapier quota
 - Sequential Thinking (think deeply about something) - **Only use when explicitly requested**

@@ -200,8 +200,8 @@ Focus on these high-leverage deltas:
 - **Pillar names:** PRD lists default proposals (Ship-client-work,
   Grow-community, Market-learning, AI-frontier-learning, Health/Relationships).
   If I1 names different pillars, capture the override.
-- **Integration priority order:** PRD assumes Gmail → Asana → Slack. If F1–F13
-  reorder this (e.g., Discord before Slack), record it.
+- **Integration priority order:** PRD assumes Gmail → Slack → HubSpot. If F1–F13
+  reorder this, record it.
 - **Active-hours window:** PRD assumes 08:00–22:00; B4 may narrow.
 - **Proactivity level:** PRD assumes "moderate, ask-before-act"; H1, H7, AA1
   may push toward more autonomous or more cautious.

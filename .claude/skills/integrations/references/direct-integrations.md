@@ -1,9 +1,9 @@
-# Direct Platform Integrations (Gmail / Calendar / Asana / Slack / HubSpot / GitHub / Sheets / Docs / Drive)
+# Direct Platform Integrations (Gmail / Calendar / Slack / HubSpot / GitHub / Sheets / Docs / Drive)
 
 
 # Direct Platform Integrations
 
-Query Gmail, Calendar, Asana, Slack, HubSpot, GitHub, Sheets, Docs, and Drive directly — no Zapier/MCP needed.
+Query Gmail, Calendar, Slack, HubSpot, GitHub, Sheets, Docs, and Drive directly — no Zapier/MCP needed.
 
 ## Script Path
 
@@ -26,12 +26,6 @@ python .claude/scripts/query.py gmail download-attachment <message_id> --attachm
 python .claude/scripts/query.py calendar today
 python .claude/scripts/query.py calendar upcoming [--hours N]
 python .claude/scripts/query.py calendar soon
-
-# Asana
-python .claude/scripts/query.py asana my-tasks [--max N]
-python .claude/scripts/query.py asana project [project_id] [--max N]
-python .claude/scripts/query.py asana overdue
-python .claude/scripts/query.py asana due-soon [--days N]
 
 # Slack
 python .claude/scripts/query.py slack channels
@@ -138,7 +132,6 @@ cd .claude/scripts && uv run python setup_auth.py --check
 
 - Gmail + Calendar + Sheets + Docs + Drive share a single Google OAuth token
 - Sheets has read/write access; Docs and Drive are read-only
-- Asana uses Personal Access Token from .env
 - Slack uses Bot Token from .env
 - Use `drive find` to locate file IDs by name, then pass to `sheets read` or `docs read`
 - Gmail attachments: use `gmail attachments` to list, then `gmail download-attachment` to save to disk. Once downloaded, use the Read tool (images) or pdf skill (PDFs) to process the file content.

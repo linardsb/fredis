@@ -88,7 +88,7 @@ Drives the proactive second-brain loop locally. The heartbeat polls integrations
 ## Prerequisites
 
 - `uv` installed at `~/.local/bin/uv` (check with `which uv`).
-- `.env` configured in `.claude/scripts/` (Gmail/Calendar/Asana/Slack/Monday/GitHub tokens).
+- `.env` configured in `.claude/scripts/` (Gmail/Calendar/Slack/GitHub/HubSpot tokens).
 - Both smoke tests pass first:
   ```bash
   cd .claude/scripts

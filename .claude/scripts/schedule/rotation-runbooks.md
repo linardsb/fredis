@@ -63,15 +63,6 @@ Only set if overriding the Claude Code CLI credentials
 4. Verify: `uv run python query.py github recent --hours 24`.
 5. Revoke old: **Delete** the old token on the settings page.
 
-### `ASANA_ACCESS_TOKEN` — 1/123456789:abc…
-
-1. Generate: https://app.asana.com/0/developer-console → **New access
-   token**.
-2. Update `ASANA_ACCESS_TOKEN` in both `.env` files.
-3. Restart: same as GitHub.
-4. Verify: `uv run python query.py asana my-tasks --max 5`.
-5. Revoke old: developer console → **Revoke**.
-
 ### `HUBSPOT_API_TOKEN` — Private App token
 
 1. Generate: HubSpot → **Settings** → **Integrations** → **Private Apps** →
@@ -167,7 +158,6 @@ Same shape as VPS key, but the public key lives on the git-remote host
 | `SLACK_APP_TOKEN` | Slack app → Basic Information → App-Level Tokens | chat service | `Slack adapter connected` log |
 | `ANTHROPIC_API_KEY` | console.anthropic.com/settings/keys | heartbeat + chat | `heartbeat.py --test` |
 | `GITHUB_TOKEN` | github.com/settings/tokens | heartbeat + chat | `query.py github recent` |
-| `ASANA_ACCESS_TOKEN` | app.asana.com/0/developer-console | heartbeat + chat | `query.py asana my-tasks` |
 | `HUBSPOT_API_TOKEN` | HubSpot → Settings → Integrations → Private Apps | heartbeat + chat | `query.py hubspot contacts --max 1` |
 | Google OAuth refresh token | Delete + re-run `setup_auth.py` | heartbeat + chat | `query.py gmail list` |
 | Google OAuth client secret | Google Cloud Console → Credentials → Reset Secret | heartbeat + chat | after re-auth, `query.py gmail list` |

@@ -10,7 +10,7 @@ Advisor-mode invariants: minimal-by-construction (no writes via tools).
 - **Transcript excerpt** (`flush-context-*.md` temp file) — **untrusted**.
   The excerpt is captured by Claude Code during compaction and may contain
   raw tool_result blocks that echoed external data (email bodies, Slack
-  messages, Asana descriptions, Monday items). Phase 5 re-applies
+  messages, HubSpot records). Phase 5 re-applies
   injection re-check; Phase 6 uses the shared `scrub_secrets` helper.
 
 **Trust boundary (Phase 5):** three-step pipeline before the transcript

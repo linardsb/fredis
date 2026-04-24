@@ -1,6 +1,6 @@
 # Second Brain — Personal AI Assistant on Claude Code
 
-A proactive AI assistant built on Claude Code that monitors your email, calendar, tasks (Asana), Slack, HubSpot CRM, and GitHub activity. It runs scheduled heartbeats, maintains long-term memory across sessions, manages drafts, tracks habits, and can respond to chat via Slack DMs. Everything is configurable — use the integrations you want, skip the ones you don't.
+A proactive AI assistant built on Claude Code that monitors your email, calendar, Slack, HubSpot CRM, and GitHub activity. It runs scheduled heartbeats, maintains long-term memory across sessions, manages drafts, tracks habits, and can respond to chat via Slack DMs. Everything is configurable — use the integrations you want, skip the ones you don't.
 
 > **This is my personal system** — not a framework to install and run as-is. The skills, brand references, and workflow patterns are tuned to my content creation process. The goal is for you to see the architecture and patterns, then build something that's truly yours. Each piece (memory, hooks, heartbeat, integrations) is independently useful.
 
@@ -10,7 +10,7 @@ This repo is a reference implementation rather than a framework to install and r
 
 ## What It Does
 
-- **Proactive heartbeats** — Checks email, calendar, tasks (Asana), Slack, HubSpot CRM scans (overdue invoices, silent contacts, stale deals), and GitHub Projects lane gates on a schedule. Sends a Slack DM + native desktop notification when something needs your attention.
+- **Proactive heartbeats** — Checks email, calendar, Slack, HubSpot CRM scans (overdue invoices, silent contacts, stale deals), and GitHub Projects lane gates on a schedule. Sends a Slack DM + native desktop notification when something needs your attention.
 - **Long-term memory** — Remembers decisions, preferences, and context across sessions via markdown files in an Obsidian vault (synced via Git between machines).
 - **Hybrid memory search** — Find anything in your memory with keyword + semantic vector search. Fully local, no API calls. Scope searches to specific folders (sent drafts, daily logs, etc.) for voice-matching when drafting replies.
 - **Chat interface** — Talk to your Second Brain through Slack DMs or @mentions. Each thread is a separate persistent conversation backed by the Agent SDK.
@@ -28,10 +28,10 @@ This repo is a reference implementation rather than a framework to install and r
 | Component | Location | Purpose |
 |-----------|----------|---------|
 | **Memory files** | `Fredis/Memory/` | SOUL.md, USER.md, MEMORY.md, daily logs (synced via Git) |
-| **Heartbeat** | `.claude/scripts/heartbeat.py` | Scheduled check of email, calendar, Asana tasks, Slack, HubSpot CRM scans, GitHub Projects lanes |
+| **Heartbeat** | `.claude/scripts/heartbeat.py` | Scheduled check of email, calendar, Slack, HubSpot CRM scans, GitHub Projects lanes |
 | **Memory search** | `.claude/scripts/memory_search.py` | Hybrid keyword + vector search over memory |
 | **Chat interface** | `.claude/chat/main.py` | Slack DM/mention handler using Agent SDK |
-| **Integrations** | `.claude/scripts/integrations/` | Gmail, Calendar, Asana, Slack, Sheets, Docs, Drive wrappers |
+| **Integrations** | `.claude/scripts/integrations/` | Gmail, Calendar, Slack, HubSpot, GitHub, Sheets, Docs, Drive wrappers |
 | **Integration registry** | `.claude/scripts/integrations/registry.py` | Discovers which integrations are configured |
 | **Draft management** | `Fredis/Memory/drafts/` | Active, sent, and expired draft tracking |
 | **Habit tracking** | `Fredis/Memory/HABITS.md` | Recurring habit checklist surfaced during heartbeats |
@@ -96,7 +96,6 @@ All integrations are optional. Configure the ones you want — the system detect
 |-------------|--------------|-----------|--------------|
 | Gmail | Google OAuth credentials file | Google OAuth | Read emails, check for urgent messages |
 | Google Calendar | `GOOGLE_CALENDAR_ID` + OAuth | Google OAuth | Check today's events, upcoming meetings |
-| Asana | `ASANA_ACCESS_TOKEN` | Personal Access Token | Track tasks, create/comment/move tasks |
 | Slack | `SLACK_BOT_TOKEN` | Bot Token | Monitor channels, send notifications, chat interface |
 | Google Sheets | Google OAuth credentials file | Google OAuth | Read/write spreadsheets |
 | Google Docs | Google OAuth credentials file | Google OAuth | Read documents |
@@ -285,18 +284,6 @@ python .claude/scripts/query.py calendar today
 python .claude/scripts/query.py calendar upcoming --hours 48
 python .claude/scripts/query.py calendar soon
 
-# Asana — read and write
-python .claude/scripts/query.py asana my-tasks --max 10
-python .claude/scripts/query.py asana my-tasks --assignee <name> --max 10
-python .claude/scripts/query.py asana project <project_id>
-python .claude/scripts/query.py asana overdue
-python .claude/scripts/query.py asana overdue --assignee <name>
-python .claude/scripts/query.py asana due-soon --days 3
-python .claude/scripts/query.py asana create --name "Task name" --due 2026-03-01 --assignee <name> --project <project_id> --notes "Details"
-python .claude/scripts/query.py asana comment <task_gid> --comment "Comment text"
-python .claude/scripts/query.py asana complete <task_gid>
-python .claude/scripts/query.py asana move <task_gid> --to-project <project_id> --from-project <project_id>
-
 # Slack (read-only; `send` is gated behind --i-confirm-send — advisor mode)
 python .claude/scripts/query.py slack channels
 python .claude/scripts/query.py slack messages <channel> --hours 2
@@ -437,15 +424,6 @@ All variables go in `.claude/scripts/.env`. When using `setup_workspace.py`, set
 | `GOOGLE_CALENDAR_ID` | | Calendar ID to read events from (usually your email address) |
 
 Google OAuth also requires `google_credentials.json` in `.claude/scripts/integrations/`. Download from the Google Cloud Console (OAuth 2.0 Client ID, Desktop app type). Run `uv run python setup_auth.py` to complete the OAuth flow. Scopes: `gmail.readonly`, `gmail.compose`, `calendar.readonly`, `spreadsheets`, `documents.readonly`, `drive.readonly`.
-
-### Asana
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `ASANA_ACCESS_TOKEN` | | Personal Access Token from the Asana developer console |
-| `ASANA_WORKSPACE_ID` | | Workspace GID (from Asana URL or API) |
-| `ASANA_PROJECT_ID` | | Default project GID (used when creating tasks without specifying a project) |
-| `ASANA_USERS` | | Friendly name to GID mapping for assignees (format: `name:gid,name:gid`) |
 
 ### Slack
 

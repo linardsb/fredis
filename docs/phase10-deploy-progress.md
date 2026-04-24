@@ -140,7 +140,7 @@ sleep 90
 ssh fredis-vps "journalctl -u fredis-heartbeat.service -n 50 --no-pager"
 ```
 
-**Expected**: no errors in the journal. If anything in your inbox / Asana / calendar warrants attention, a Slack notification fires in the heartbeat channel. If everything's quiet, you see `HEARTBEAT_OK` in today's daily log.
+**Expected**: no errors in the journal. If anything in your inbox / HubSpot / calendar warrants attention, a Slack notification fires in the heartbeat channel. If everything's quiet, you see `HEARTBEAT_OK` in today's daily log.
 
 ### Step 10 — Mac-side SSH tunnel for memory search against VPS Postgres
 

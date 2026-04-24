@@ -19,7 +19,7 @@ internet. Follow the §7 checklist from
   long-lived connection carrying DMs and @mentions into the chat
   engine. Treated as untrusted external input once it crosses into the
   main agent (see `chat.md` threat model for the sanitise pipe).
-- **Outbound HTTPS** to Anthropic, Google, Asana, Monday, GitHub,
+- **Outbound HTTPS** to Anthropic, Google, HubSpot, GitHub, Slack,
   Hetzner package mirrors. Initiated by the agents, never incoming.
 
 **Not exposed:**
@@ -53,9 +53,9 @@ PreToolUse hook set.
 - SSH session (key-auth, gated by fail2ban + Hetzner firewall).
 - Slack WebSocket messages (treated as untrusted — `chat.md` applies
   the 3-layer sanitize pipe on every inbound).
-- API responses from Gmail / Calendar / Asana / Monday / Slack
-  history / GitHub during heartbeat gather (pass through
-  `sanitize.py` + Haiku guardrail before reaching the main agent).
+- API responses from Gmail / Calendar / HubSpot / Slack history /
+  GitHub during heartbeat gather (pass through `sanitize.py` +
+  Haiku guardrail before reaching the main agent).
 
 **Trust boundary:** every external field arrives via Python and passes
 through `sanitize.sanitize_external_text` + `wrap_external_data`

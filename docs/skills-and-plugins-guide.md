@@ -75,7 +75,7 @@ Post-Phase 5.2 structure (see `.agent/plans/phase5-2-skill-consolidation.md` for
 
 | Skill | Absorbs | Routing |
 |---|---|---|
-| `integrations` | direct-integrations + mcp-client | "check email", "show calendar", "list asana", "connect to MCP" |
+| `integrations` | direct-integrations + mcp-client | "check email", "show calendar", "check hubspot", "connect to MCP" |
 | `executive-leadership` | ceo-advisor + founder-coach + solo-founder + scenario-war-room | "CEO advice", "board deck", "fundraising", "burnout", "war room", "what if X and Y" |
 | `technical-leadership` | cto-advisor + startup-cto | "CTO advice", "technical strategy", "boring technology", "team scaling" |
 | `org-design` | strategic-alignment + company-os | "OKRs", "silos", "EOS", "Scaling Up", "quarterly rocks" |

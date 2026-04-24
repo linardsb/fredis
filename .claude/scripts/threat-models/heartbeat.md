@@ -10,8 +10,7 @@ never leave the sandbox.
 - **Gmail** (Python API) — read-only scopes (`gmail.readonly` +
   `gmail.compose`). Subject / snippet / sender metadata per thread.
 - **Calendar** (Python API) — read-only (`calendar.readonly`).
-- **Asana** (REST) — task titles / due dates / assignee / project.
-- **Monday.com** (GraphQL, read-only token) — item names, status, updates.
+- **HubSpot CRM** (REST) — contacts / companies / deals / tickets / scans (overdue invoices, silent contacts, stale deals).
 - **Slack** (Bot + App tokens) — channel messages in the monitored channels
   from the last 2 hours.
 - **GitHub** (PAT read-only) — commits / review-requests / mentions.
@@ -79,7 +78,7 @@ own recent state. Daily log reads happen in `memory_reflect.py` +
   `_neutralise_mentions` so broadcast triggers in Claude's response
   don't fire group notifications.
 - **Daily log** — local file, not external.
-- **PII reach:** Gmail subject+snippet, Asana/Monday task names,
+- **PII reach:** Gmail subject+snippet, HubSpot contact/deal names,
   calendar event titles — none beyond what Linards already sees.
 
 ## 6. Failure mode

@@ -86,9 +86,10 @@ def test_shared_convention_lists_client_log_carve_out() -> None:
     assert "retainers/" in text
 
 
-def test_boundary_no_asana_push(skill_text: str) -> None:
+def test_boundary_no_task_dispatch(skill_text: str) -> None:
     lowered = skill_text.lower()
-    # Explicitly not dispatching open-items to Asana is part of the advisor-mode
-    # boundary. If the skill quietly starts creating tasks, drafts escape.
-    assert "asana" in lowered
+    # Explicitly not dispatching open-items to HubSpot tasks/tickets is part
+    # of the advisor-mode boundary. If the skill quietly starts creating
+    # tasks, drafts escape.
+    assert "hubspot tasks or tickets" in lowered
     assert "never" in lowered

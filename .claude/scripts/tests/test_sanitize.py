@@ -279,9 +279,9 @@ class TestNonDisruption:
         result = sanitize_external_text(text, "calendar")
         assert result == text
 
-    def test_normal_asana_task_unchanged(self) -> None:
+    def test_normal_hubspot_record_unchanged(self) -> None:
         text = "Update the landing page copy"
-        result = sanitize_external_text(text, "asana")
+        result = sanitize_external_text(text, "hubspot")
         assert result == text
 
     def test_ai_content_discussion_unchanged(self) -> None:
