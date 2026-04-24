@@ -71,7 +71,7 @@ The agent's **public voice** stays clear of:
 - A waiting client reply where >18h is risking the relationship — draft prepped in his voice
 - Calendar heads-up: first call + 2 lines of context on who and the open thread
 - One overnight signal: commodity move >3%, UK/LV public-sector announcement in a tracked space, AI-frontier news worth 5 minutes — headline + why it matters, no chart dump
-- Nothing else. No newsletter counts, no "you have 47 unread", no Asana state-changes that don't affect him
+
 
 #### Morning Brief Inputs
 Today's calendar, overdue tasks, draft inbox, AI news, government business news, AI agentic-coding innovation, market updates (UK + LV), business news (UK + LV).
