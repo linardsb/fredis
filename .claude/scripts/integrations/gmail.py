@@ -854,6 +854,54 @@ def get_important_unreplied_emails(
     return emails
 
 
+def sent_to_domain(domains: set[str], hours: int = 24) -> list[Email]:
+    """Return sent emails in the last N hours where any recipient matches a domain.
+
+    Used by habit_signals.ship_tick per HABITS.md auto-detection (Gmail sent
+    to a client domain is one of the Ship signals).
+
+    Gmail's `to:<domain>` query matches on the domain part of recipient
+    addresses, so `to:acme.com` matches `to:anyone@acme.com`. Case-insensitive.
+    The `after:` date filter is day-precision; we post-filter with the exact
+    cutoff so "last 24h" doesn't over-match by ~24h on edge cases.
+    """
+    if not domains:
+        return []
+
+    service = get_gmail_service()
+    cutoff = now_local() - timedelta(hours=hours)
+
+    domain_clause = " OR ".join(f"to:{d}" for d in sorted(domains))
+    q = f"in:sent after:{cutoff.strftime('%Y/%m/%d')} ({domain_clause})"
+
+    try:
+        result: dict[str, Any] = with_retry(
+            lambda: (
+                service.users().messages().list(userId="me", maxResults=50, q=q).execute()
+            )
+        )
+    except Exception as e:
+        print(f"Error fetching sent emails to client domains: {e}")
+        return []
+
+    messages_list: list[dict[str, str]] = result.get("messages", [])
+    emails: list[Email] = []
+    for msg_ref in messages_list:
+        email = get_email_details(service, msg_ref["id"], include_body=False)
+        if not email:
+            continue
+        # Post-filter: `after:` is day-precision so messages from before the
+        # exact cutoff slip through. Compare timezone-aware.
+        email_date = email.date
+        if email_date.tzinfo is None:
+            email_date = email_date.replace(tzinfo=LOCAL_TZ)
+        if email_date < cutoff:
+            continue
+        emails.append(email)
+
+    return emails
+
+
 def format_emails_for_context(emails: list[Email], max_chars: int = 2000) -> str:
     """Format emails for inclusion in Claude's context prompt."""
     if not emails:

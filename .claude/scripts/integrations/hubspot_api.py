@@ -23,8 +23,9 @@ Auth gotcha:
 from __future__ import annotations
 
 import sys
+import time
 from dataclasses import dataclass, field
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -846,6 +847,164 @@ def search_tickets_by_dedupe_key(
         ],
         limit=50,
     )
+
+
+# ---------------------------------------------------------------------------
+# Habit-signal helpers — client-engagement detection for HABITS.md Ship pillar
+# ---------------------------------------------------------------------------
+
+
+# Cached (id, domain) pairs for active-client companies (engagement_type IN
+# retainer / project). Cache avoids a per-heartbeat roundtrip — the client
+# list changes rarely.
+_CLIENT_COMPANIES_CACHE: tuple[float, list[tuple[str, str]]] | None = None
+_CLIENT_COMPANIES_TTL_SECONDS = 600  # 10 minutes
+
+# Engagement object types to sweep for the Ship signal.
+_CLIENT_ENGAGEMENT_TYPES: tuple[str, ...] = ("notes", "calls", "meetings", "emails")
+
+
+def _get_client_companies(
+    ttl_seconds: int = _CLIENT_COMPANIES_TTL_SECONDS,
+) -> list[tuple[str, str]]:
+    """Return [(id, domain_lowercase), ...] for retainer + project companies.
+
+    Result is cached in-process for ttl_seconds. On API error, serves the
+    last good cache if available; otherwise returns [].
+    """
+    global _CLIENT_COMPANIES_CACHE
+
+    now = time.monotonic()
+    if _CLIENT_COMPANIES_CACHE is not None:
+        ts, cached = _CLIENT_COMPANIES_CACHE
+        if (now - ts) < ttl_seconds:
+            return cached
+
+    try:
+        companies = search_objects(
+            object_type="companies",
+            filter_groups=[
+                {
+                    "filters": [
+                        {
+                            "propertyName": "engagement_type",
+                            "operator": "IN",
+                            "values": ["retainer", "project"],
+                        }
+                    ]
+                }
+            ],
+            properties=["domain", "name", "engagement_type"],
+            limit=100,
+        )
+    except Exception as e:
+        print(f"[hubspot] error fetching client companies: {e}")
+        if _CLIENT_COMPANIES_CACHE is not None:
+            # Stale-but-last-known beats empty for habit signals.
+            return _CLIENT_COMPANIES_CACHE[1]
+        return []
+
+    result: list[tuple[str, str]] = []
+    for c in companies:
+        domain = c.properties.get("domain") or ""
+        if isinstance(domain, str):
+            domain = domain.strip().lower()
+        else:
+            domain = ""
+        result.append((c.id, domain))
+
+    _CLIENT_COMPANIES_CACHE = (now, result)
+    return result
+
+
+def get_client_domains(ttl_seconds: int = _CLIENT_COMPANIES_TTL_SECONDS) -> set[str]:
+    """Set of active-client company domains. Used by habit_signals.ship_tick
+    to filter Gmail sent-messages to client-facing ones."""
+    return {domain for _id, domain in _get_client_companies(ttl_seconds) if domain}
+
+
+@dataclass
+class ClientEngagement:
+    """A recent engagement (note / call / meeting / email) logged against a
+    client company. Surface this as a Ship pillar reason."""
+
+    engagement_type: str  # "notes" | "calls" | "meetings" | "emails"
+    engagement_id: str
+    company_id: str
+    created_at_ms: int
+
+
+def recent_client_engagements(hours: int = 24) -> list[ClientEngagement]:
+    """Engagements logged against retainer / project clients in the last N hours.
+
+    Used by habit_signals.ship_tick per HABITS.md auto-detection (logged call
+    / meeting / email / note on a client counts as "one concrete artifact
+    forward").
+
+    Approach: for each engagement object type, search by hs_createdate > cutoff,
+    then fetch associated companies per result and keep matches against the
+    client-company id set. Per-engagement association lookup keeps the query
+    simple; cost stays low because engagement volume per 24h is small.
+    """
+    client_pairs = _get_client_companies()
+    if not client_pairs:
+        return []
+    client_ids = {cid for cid, _domain in client_pairs}
+
+    cutoff_ms = int((datetime.now(UTC) - timedelta(hours=hours)).timestamp() * 1000)
+
+    hits: list[ClientEngagement] = []
+    for engagement_type in _CLIENT_ENGAGEMENT_TYPES:
+        try:
+            results = search_objects(
+                object_type=engagement_type,
+                filter_groups=[
+                    {
+                        "filters": [
+                            {
+                                "propertyName": "hs_createdate",
+                                "operator": "GTE",
+                                "value": str(cutoff_ms),
+                            }
+                        ]
+                    }
+                ],
+                properties=["hs_createdate"],
+                limit=50,
+            )
+        except Exception as e:
+            print(f"[hubspot] error fetching recent {engagement_type}: {e}")
+            continue
+
+        for eng in results:
+            try:
+                associations = list_associations(
+                    from_type=engagement_type, from_id=eng.id, to_type="companies"
+                )
+            except Exception:
+                continue
+
+            for assoc in associations:
+                assoc_id = str(assoc.get("toObjectId") or "")
+                if assoc_id and assoc_id in client_ids:
+                    created_raw = eng.properties.get("hs_createdate") or cutoff_ms
+                    try:
+                        created_ms = int(created_raw)
+                    except (TypeError, ValueError):
+                        created_ms = cutoff_ms
+                    hits.append(
+                        ClientEngagement(
+                            engagement_type=engagement_type,
+                            engagement_id=eng.id,
+                            company_id=assoc_id,
+                            created_at_ms=created_ms,
+                        )
+                    )
+                    break  # one client association per engagement is enough
+
+    # Most recent first so the Ship reason reflects the latest action.
+    hits.sort(key=lambda h: h.created_at_ms, reverse=True)
+    return hits
 
 
 # ---------------------------------------------------------------------------

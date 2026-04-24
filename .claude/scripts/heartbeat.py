@@ -58,6 +58,7 @@ from config import (
     OWNER_NAME,
     PROJECT_ROOT,
     ensure_directories,
+    get_today_log_path,
     is_within_active_hours,
     now_local,
 )
@@ -1483,7 +1484,40 @@ async def run_heartbeat(
             list(raw_data["github_commits"]) + list(raw_data["github_review_requests"])
         )
 
-    ship_tick = len(raw_data.get("github_commits", [])) > 0
+    # Pillar auto-ticks (HABITS.md spec). Ship no longer uses github_commits
+    # as a proxy — that was explicitly carved out ("internal commits don't
+    # count"). The real signals live in habit_signals.
+    from integrations.habit_signals import (
+        frontier_self_report_due,
+        frontier_tick,
+        ground_body_tick,
+        ship_tick,
+    )
+
+    # Today's daily log, filtered to the ## Sessions section only. Heartbeat-
+    # and reflection-authored blocks must not feed the Frontier keyword match
+    # (that would echo 'loop' / 'build' back as a false tick).
+    frontier_log_text = ""
+    today_log_path = get_today_log_path()
+    if today_log_path.exists():
+        raw_log = today_log_path.read_text(encoding="utf-8", errors="replace")
+        in_sessions = False
+        buf: list[str] = []
+        for log_line in raw_log.splitlines():
+            stripped = log_line.lstrip()
+            if stripped.startswith("## "):
+                in_sessions = stripped.startswith("## Sessions")
+                continue
+            if in_sessions:
+                buf.append(log_line)
+        frontier_log_text = "\n".join(buf)
+
+    ship_pillar = ship_tick(raw_data)
+    frontier_pillar = frontier_tick(raw_data, frontier_log_text)
+    ground_body_pillar = ground_body_tick(raw_data)
+    frontier_nudge_due = frontier_self_report_due(
+        now_local().hour, raw_data, frontier_log_text
+    )
 
     # Run guardrail check on external context
     print(f"[{now_local()}] Running guardrail pre-filter...")
@@ -1614,9 +1648,14 @@ The following data was gathered directly from APIs. Items are annotated as NEW o
 {github_projects_ctx or "No breached lane gates this run."}
 
 ## GitHub Activity (last 24h)
-Ship-pillar signal auto-tick: **{"YES" if ship_tick else "no"}** (commits pushed in last 24h: {len(raw_data.get("github_commits", []))}).
-
 {github_ctx or "No GitHub activity."}
+
+## Habit Pillars (HABITS.md auto-detection)
+- **Ship** auto-tick: **{"YES" if ship_pillar.tick else "no"}**{f" — {ship_pillar.reason}" if ship_pillar.reason else ""}
+- **Frontier** auto-tick: **{"YES" if frontier_pillar.tick else "no"}**{f" — {frontier_pillar.reason}" if frontier_pillar.reason else ""}
+- **Ground (Body)** auto-tick: **{"YES" if ground_body_pillar.tick else "no"}**{f" — {ground_body_pillar.reason}" if ground_body_pillar.reason else ""}
+- **Read** + **Ground (Near)**: self-report only per HABITS.md.
+{("- **Frontier nudge due** (≥18:00, no signal today) — surface one small Frontier thread in the Slack note: a half-finished experiment, a sketched idea, a 20-min build. Skip if Ship is urgent." if frontier_nudge_due else "").strip()}
 
 ## Draft Management Context
 
