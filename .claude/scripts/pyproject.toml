@@ -35,6 +35,8 @@ dev = [
     "mypy>=1.8.0",
     "ruff>=0.2.0",
     "pytest>=8.0.0",
+    "types-requests>=2.31.0",
+    "types-PyYAML>=6.0.0",
 ]
 
 [tool.ruff]

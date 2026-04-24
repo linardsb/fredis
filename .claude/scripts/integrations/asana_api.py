@@ -484,7 +484,7 @@ def move_task(
         from_project: Project GID to remove the task from (optional).
         insert_after: Task GID to insert after for ordering (optional).
     """
-    import requests as _requests  # type: ignore[import-untyped]
+    import requests as _requests
 
     headers = {"Authorization": f"Bearer {ASANA_ACCESS_TOKEN}"}
 

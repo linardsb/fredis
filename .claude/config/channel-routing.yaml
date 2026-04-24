@@ -73,7 +73,8 @@ by_id:
   C0AU9PHDPEX: Fredis/Memory/integrations/gmail/    # #gmail
   C0AUKNQ983W: Fredis/Memory/integrations/calendar/ # #calendar
   C0AUE40BW86: Fredis/Memory/integrations/asana/    # #asana-board
-  C0AUE43613Q: Fredis/Memory/integrations/hubspot/  # #hubspot (formerly #monday; ID stable)
+  C0AUNFDEHUJ: Fredis/Memory/integrations/hubspot/  # #hubspot (renamed from #hub-spot on 2026-04-23)
+  C0AUE43613Q: Fredis/Memory/daily/                 # #monday — retired channel; messages fall through to daily log
   C0AUG5Y8MT4: Fredis/Memory/integrations/drive/    # #g-drive
   C0AUKPCR3C4: Fredis/Memory/integrations/sheets/   # #g-sheets
   C0AUKPE7MT6: Fredis/Memory/integrations/docs/     # #g-docs

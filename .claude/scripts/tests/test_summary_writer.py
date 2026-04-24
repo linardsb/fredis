@@ -6,7 +6,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-import yaml  # type: ignore[import-untyped]
+import yaml
 
 _CHAT_DIR = Path(__file__).resolve().parents[2] / "chat"
 sys.path.insert(0, str(_CHAT_DIR))

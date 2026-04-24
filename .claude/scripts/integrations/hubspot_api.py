@@ -28,7 +28,7 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
-import requests  # type: ignore[import-untyped]
+import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -394,6 +394,21 @@ def create_property(object_type: str, spec: dict[str, Any]) -> dict[str, Any]:
         }
     """
     return _request("POST", f"/crm/v3/properties/{object_type}", json=spec)
+
+
+def update_property(
+    object_type: str, name: str, patch: dict[str, Any]
+) -> dict[str, Any]:
+    """PATCH /crm/v3/properties/{object_type}/{name} — mutate an existing property.
+
+    HubSpot merges `options` by full replacement (not append), so the caller
+    must pass the full desired option list. Other fields (label, description)
+    patch in place. Used for enum evolution when new skill values are added
+    after initial bootstrap.
+    """
+    return _request(
+        "PATCH", f"/crm/v3/properties/{object_type}/{name}", json=patch
+    )
 
 
 # ---------------------------------------------------------------------------

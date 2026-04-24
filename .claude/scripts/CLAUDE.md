@@ -484,12 +484,12 @@ The process needs to stay running — it connects via Socket Mode (outbound WebS
 
 Before committing changes under `.claude/scripts/`, run the lint, type, and
 test checks. The baseline is clean (0 ruff errors, 0 mypy errors,
-≥249 tests passing as of 2026-04-18) — keep it that way.
+≥770 tests passing as of 2026-04-23) — keep it that way.
 
 ```bash
 cd .claude/scripts
 uv run ruff check .                         # 0 errors expected
-uv run --with mypy mypy . --ignore-missing-imports  # 0 errors expected
+uv run --with mypy --with types-requests --with types-PyYAML mypy . --ignore-missing-imports  # 0 errors expected
 uv run pytest tests/                        # all green expected
 ```
 
@@ -497,9 +497,14 @@ Notes:
 - `heartbeat.py` has a per-file E501 ignore (see `pyproject.toml`) because
   it contains a 200-line Claude prompt template inside a triple-quoted
   string. Every other rule still applies.
-- mypy is invoked with `--with mypy` because it isn't in the project's
-  default dependency set; the dev extra (`pip install -e .[dev]`) declares
-  it for editor integrations but the CLI invocation is self-contained.
+- mypy is invoked with `--with mypy --with types-requests --with types-PyYAML` because
+  these aren't in the project's default runtime dependency set; they're declared
+  under the dev extra (`pip install -e .[dev]`) for editor integrations, but the
+  CLI invocation is self-contained so Claude / CI can run it without `uv sync --extra dev`.
+- Third-party HTTP/YAML lib stubs are required because `--ignore-missing-imports`
+  silences `[import-not-found]` but NOT `[import-untyped]` (module found, stubs
+  missing). Without the stubs, mypy flags `import requests` / `import yaml` as
+  untyped and `# type: ignore[import-untyped]` becomes a needed crutch.
 
 ---
 
