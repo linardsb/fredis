@@ -155,6 +155,7 @@ These are the day-one rules — synthesised from J5. The brain should respect th
 - **HubSpot GBP currency not enabled on portal 144478060 (2026-04-23).** API rejects `deal_currency_code: "GBP"`; code falls back to portal default. Fix: HubSpot UI → Settings → Account Setup → Currency → Add GBP. After enabling, existing CLI code works as-is with `--currency GBP`. `[impact: low, status: pending]`
 - **HubSpot default pipeline stages don't match plan spec (2026-04-23).** HubSpot Free caps at 1 deal pipeline → stuck with "Sales Pipeline" default. `overdue_invoices` heartbeat scan looks for a stage labelled `Invoice` — zero matches until stages renamed in HubSpot UI to `Inbound → Discovery → Proposal → Signed → Kickoff → Delivery → Invoice → Post-delivery`. Low-stakes until `HUBSPOT_SCANS_ENABLED=true`. `[impact: low, status: pending]`
 - **HubSpot write-path cleanup pending (2026-04-23).** Step 9 of `.agent/plans/hubspot-slack-writes.md` bundles: revert `config.py` Monday shim, delete `integrations/monday_api.py` + `migrate_monday_to_hubspot.py`, Linards removes `MONDAY_*` from `.env`. Also defer-listed: CLI-level currency validation (~20 lines). `[impact: low, status: pending]`
+- **Heartbeat guardrail fail-closed at 05:54 2026-04-24.** One-off Haiku timeout stripped external data from that tick's prompt (fail-closed path per design). Recheck 2026-04-27 — if >1 recurrence, raise `asyncio.wait_for` from 15s to 30s in `heartbeat.py` or add single-retry before failing closed. `[impact: low, status: monitoring]`
 
 ---
 
