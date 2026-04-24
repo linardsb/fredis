@@ -217,7 +217,7 @@ def test_dispatch_happy_path_creates_ticket_and_posts_slack() -> None:
     assert "Ticket: https://app.hubspot.com/contacts/1234567/ticket/new" in msg
 
 
-def test_dispatch_reports_slack_error_without_failing() -> None:
+def test_dispatch_reports_slack_error_without_failing(capsys: Any) -> None:
     td = _reload_dispatcher_with_flag(enabled=True)
     with (
         patch("integrations.hubspot_api.search_tickets_by_dedupe_key",
@@ -235,6 +235,12 @@ def test_dispatch_reports_slack_error_without_failing() -> None:
     assert result["created"] is True
     assert result["ticket_id"] == "new"
     assert "slack_error" in result
+    # Dispatcher must surface the failure on stderr so systemd journal and
+    # local stdout show it (heartbeat callers additionally aggregate into
+    # the daily log via _surface_slack_failures).
+    captured = capsys.readouterr()
+    assert "slack post failed for ticket new" in captured.err
+    assert "slack down" in captured.err
 
 
 def test_dispatch_reports_error_on_create_failure() -> None:

@@ -207,6 +207,29 @@ def _is_stale_beyond(iso_date: str | None, days: int) -> bool:
     return (datetime.now(UTC) - dt).days >= days
 
 
+def _surface_slack_failures(failures: list[str]) -> None:
+    """Render dispatcher Slack failures into today's daily log and stderr.
+
+    Dispatcher prints a per-ticket stderr line at failure time; this helper
+    writes the aggregated list to the daily log under ``## Heartbeats`` so
+    the failure is preserved in the vault instead of only living in journald.
+    """
+    if not failures:
+        return
+    from shared import append_to_daily_log
+
+    body_lines = ["Slack post failed for created ticket(s):"]
+    body_lines.extend(f"- {f}" for f in failures)
+    body = "\n".join(body_lines)
+    print(f"[{now_local()}] WARNING — {body}", file=sys.stderr)
+    append_to_daily_log(
+        body,
+        section_name="Dispatcher Warnings",
+        parent_section="Heartbeats",
+        source="ticket_dispatcher",
+    )
+
+
 def _dispatch_review_tickets(data: dict[str, Any]) -> None:
     """Dispatch Fredis Review tickets for every actionable detection in
     `data`. Flag-gated inside `ticket_dispatcher.dispatch_ticket` — no-op
@@ -221,11 +244,16 @@ def _dispatch_review_tickets(data: dict[str, Any]) -> None:
     run_id = f"hb-{now_local().strftime('%Y%m%d-%H%M')}"
     created_count = 0
     skipped_count = 0
+    slack_failures: list[str] = []
 
     def _count(result: dict[str, Any]) -> None:
         nonlocal created_count, skipped_count
         if result.get("created"):
             created_count += 1
+            if result.get("slack_error"):
+                slack_failures.append(
+                    f"ticket {result.get('ticket_id', '?')}: {result['slack_error']}"
+                )
         else:
             skipped_count += 1
 
@@ -337,6 +365,7 @@ def _dispatch_review_tickets(data: dict[str, Any]) -> None:
             f"[{now_local()}] Ticket dispatch: {created_count} created, "
             f"{skipped_count} skipped"
         )
+    _surface_slack_failures(slack_failures)
 
 
 def _fetch_raw_data() -> dict[str, Any]:
@@ -918,6 +947,7 @@ def surface_gate_breaches() -> list[str]:
     GATE_BREACH_DRAFTS_DIR.mkdir(parents=True, exist_ok=True)
     today = now_local().strftime("%Y-%m-%d")
     surfaced: list[str] = []
+    slack_failures: list[str] = []
     run_id = f"hb-{now_local().strftime('%Y%m%d-%H%M')}"
     for breach in breaches:
         gate = breach.gate
@@ -935,7 +965,7 @@ def surface_gate_breaches() -> list[str]:
             from config import HUBSPOT_TICKETS_ENABLED, PROJECT_ROOT
             if HUBSPOT_TICKETS_ENABLED:
                 from ticket_dispatcher import dispatch_ticket
-                dispatch_ticket(
+                result = dispatch_ticket(
                     subject=f"Breached gate: {gate.lane}/{gate.metric}",
                     content=(
                         f"Gate: {gate.lane}/{gate.metric}\n"
@@ -950,8 +980,14 @@ def surface_gate_breaches() -> list[str]:
                     dedupe_anchor=f"gate:{gate.lane}/{gate.metric}",
                     heartbeat_run_id=run_id,
                 )
+                if result.get("created") and result.get("slack_error"):
+                    slack_failures.append(
+                        f"ticket {result.get('ticket_id', '?')}: "
+                        f"{result['slack_error']}"
+                    )
         except Exception as exc:
             print(f"[{now_local()}] Gate ticket dispatch error (non-fatal): {exc}")
+    _surface_slack_failures(slack_failures)
     return surfaced
 
 

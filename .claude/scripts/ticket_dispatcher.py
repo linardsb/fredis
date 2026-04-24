@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import sys
 from datetime import UTC, datetime
 from typing import Any
 
@@ -201,6 +202,13 @@ def dispatch_ticket(
         send_notification(HUBSPOT_TICKETS_SLACK_CHANNEL, msg)
     except Exception as e:
         slack_error = str(e)
+        # Surface immediately so systemd journal + local stdout show the
+        # failure. Heartbeat callers aggregate these into the daily log via
+        # `_surface_slack_failures`; direct callers still get the warning.
+        print(
+            f"[warn] dispatcher: slack post failed for ticket {created.id}: {e}",
+            file=sys.stderr,
+        )
 
     result: dict[str, Any] = {"created": True, "ticket_id": created.id}
     if slack_error is not None:

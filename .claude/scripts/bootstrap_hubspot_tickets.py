@@ -267,26 +267,36 @@ def ensure_properties(
     for spec in specs:
         name = spec["name"]
         if name in existing_by_name:
-            # Enum options evolve (new skill values added). Diff and patch if needed.
+            # Enum options evolve (new values added, stale values removed).
+            # Diff in both directions and patch if the desired set doesn't
+            # match current.
             desired = spec.get("options") or []
             if desired:
                 current = existing_by_name[name].get("options") or []
-                desired_values = {o["value"] for o in desired}
-                current_values = {o.get("value") for o in current if isinstance(o, dict)}
+                desired_values: set[str] = {o["value"] for o in desired}
+                current_values: set[str] = {
+                    o["value"] for o in current
+                    if isinstance(o, dict) and o.get("value") is not None
+                }
                 missing = desired_values - current_values
-                if missing:
+                extra = current_values - desired_values
+                if missing or extra:
+                    detail = (
+                        f"+{len(missing)} / -{len(extra)} "
+                        f"(add: {sorted(missing)}, remove: {sorted(extra)})"
+                    )
                     if dry_run:
                         print(
-                            f"  [dry] would patch {object_type} property '{name}' — "
-                            f"add {len(missing)} option(s): {sorted(missing)}"
+                            f"  [dry] would sync {object_type} property '{name}' — "
+                            f"{detail}"
                         )
                     else:
                         hubspot_api.update_property(
                             object_type, name, {"options": desired}
                         )
                         print(
-                            f"  [ok] patched {object_type} property '{name}' — "
-                            f"added {len(missing)} option(s): {sorted(missing)}"
+                            f"  [ok] synced {object_type} property '{name}' — "
+                            f"{detail}"
                         )
                     skipped += 1
                     continue
