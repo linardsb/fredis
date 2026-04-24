@@ -1,6 +1,6 @@
 # Second Brain — Personal AI Assistant on Claude Code
 
-A proactive AI assistant built on Claude Code that monitors your email, calendar, tasks (Asana + Monday.com), Slack, and GitHub activity. It runs scheduled heartbeats, maintains long-term memory across sessions, manages drafts, tracks habits, and can respond to chat via Slack DMs. Everything is configurable — use the integrations you want, skip the ones you don't.
+A proactive AI assistant built on Claude Code that monitors your email, calendar, tasks (Asana), Slack, HubSpot CRM, and GitHub activity. It runs scheduled heartbeats, maintains long-term memory across sessions, manages drafts, tracks habits, and can respond to chat via Slack DMs. Everything is configurable — use the integrations you want, skip the ones you don't.
 
 > **This is my personal system** — not a framework to install and run as-is. The skills, brand references, and workflow patterns are tuned to my content creation process. The goal is for you to see the architecture and patterns, then build something that's truly yours. Each piece (memory, hooks, heartbeat, integrations) is independently useful.
 
@@ -10,7 +10,7 @@ This repo is a reference implementation rather than a framework to install and r
 
 ## What It Does
 
-- **Proactive heartbeats** — Checks email, calendar, tasks (Asana + Monday.com), and Slack on a schedule. Sends a Slack DM + native desktop notification when something needs your attention.
+- **Proactive heartbeats** — Checks email, calendar, tasks (Asana), Slack, HubSpot CRM scans (overdue invoices, silent contacts, stale deals), and GitHub Projects lane gates on a schedule. Sends a Slack DM + native desktop notification when something needs your attention.
 - **Long-term memory** — Remembers decisions, preferences, and context across sessions via markdown files in an Obsidian vault (synced via Git between machines).
 - **Hybrid memory search** — Find anything in your memory with keyword + semantic vector search. Fully local, no API calls. Scope searches to specific folders (sent drafts, daily logs, etc.) for voice-matching when drafting replies.
 - **Chat interface** — Talk to your Second Brain through Slack DMs or @mentions. Each thread is a separate persistent conversation backed by the Agent SDK.
@@ -28,7 +28,7 @@ This repo is a reference implementation rather than a framework to install and r
 | Component | Location | Purpose |
 |-----------|----------|---------|
 | **Memory files** | `Fredis/Memory/` | SOUL.md, USER.md, MEMORY.md, daily logs (synced via Git) |
-| **Heartbeat** | `.claude/scripts/heartbeat.py` | Scheduled check of email, calendar, Asana + Monday.com tasks, Slack |
+| **Heartbeat** | `.claude/scripts/heartbeat.py` | Scheduled check of email, calendar, Asana tasks, Slack, HubSpot CRM scans, GitHub Projects lanes |
 | **Memory search** | `.claude/scripts/memory_search.py` | Hybrid keyword + vector search over memory |
 | **Chat interface** | `.claude/chat/main.py` | Slack DM/mention handler using Agent SDK |
 | **Integrations** | `.claude/scripts/integrations/` | Gmail, Calendar, Asana, Slack, Sheets, Docs, Drive wrappers |
@@ -319,12 +319,17 @@ python .claude/scripts/query.py drive find "search term" --type spreadsheet
 python .claude/scripts/query.py drive list --type document --max 10
 python .claude/scripts/query.py drive get <file_id>
 
-# Monday.com (read-only — GraphQL)
-python .claude/scripts/query.py monday boards
-python .claude/scripts/query.py monday board <board_id> --max 25
-python .claude/scripts/query.py monday my-items --max 25
-python .claude/scripts/query.py monday overdue
-python .claude/scripts/query.py monday search --query "invoice"
+# HubSpot CRM — reads (REST)
+python .claude/scripts/query.py hubspot contacts --max 10
+python .claude/scripts/query.py hubspot deals --max 10
+python .claude/scripts/query.py hubspot overdue-invoices
+python .claude/scripts/query.py hubspot silent-contacts
+python .claude/scripts/query.py hubspot stale-deals
+
+# HubSpot Review tickets — Fredis's review queue (flag-gated on HUBSPOT_TICKETS_ENABLED)
+python .claude/scripts/query.py hubspot queue              # open tickets grouped by urgency
+python .claude/scripts/query.py hubspot list-tickets --max 10
+python .claude/scripts/query.py hubspot close-ticket <id> --as actioned
 
 # GitHub (read-only — REST)
 python .claude/scripts/query.py github recent --hours 24

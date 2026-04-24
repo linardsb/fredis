@@ -87,6 +87,11 @@ SKILL_SOURCE_VALUES: list[str] = [
     "obsidian-vault-structure",
     "phase1-ready",
     "skill-creator",
+    # Phase 12 starter-pack skills (2026-04-23)
+    "draft-reply",
+    "meeting-notes",
+    "client-log",
+    "uk-latvia-context",
 ]
 
 SKILL_SOURCE_OPTIONS: list[dict[str, Any]] = [
@@ -255,11 +260,36 @@ def ensure_properties(
 
     Returns (created_count, skipped_count).
     """
-    existing_names = {p.get("name") for p in hubspot_api.list_properties(object_type)}
+    existing_by_name: dict[str, dict[str, Any]] = {
+        p["name"]: p for p in hubspot_api.list_properties(object_type) if p.get("name")
+    }
     created = skipped = 0
     for spec in specs:
         name = spec["name"]
-        if name in existing_names:
+        if name in existing_by_name:
+            # Enum options evolve (new skill values added). Diff and patch if needed.
+            desired = spec.get("options") or []
+            if desired:
+                current = existing_by_name[name].get("options") or []
+                desired_values = {o["value"] for o in desired}
+                current_values = {o.get("value") for o in current if isinstance(o, dict)}
+                missing = desired_values - current_values
+                if missing:
+                    if dry_run:
+                        print(
+                            f"  [dry] would patch {object_type} property '{name}' — "
+                            f"add {len(missing)} option(s): {sorted(missing)}"
+                        )
+                    else:
+                        hubspot_api.update_property(
+                            object_type, name, {"options": desired}
+                        )
+                        print(
+                            f"  [ok] patched {object_type} property '{name}' — "
+                            f"added {len(missing)} option(s): {sorted(missing)}"
+                        )
+                    skipped += 1
+                    continue
             print(f"  [skip] {object_type} property '{name}' already exists")
             skipped += 1
             continue

@@ -219,6 +219,23 @@ def test_create_property_posts_spec() -> None:
     assert captured["json"] == spec
 
 
+def test_update_property_patches_options() -> None:
+    """PATCH to /crm/v3/properties/{type}/{name} with the patch payload."""
+    captured, fake = _capture()
+    captured["_response"] = {"name": "skill_source"}
+    patch_body = {
+        "options": [
+            {"label": "heartbeat", "value": "heartbeat", "displayOrder": 0},
+            {"label": "draft-reply", "value": "draft-reply", "displayOrder": 1},
+        ]
+    }
+    with patch("integrations.hubspot_api.requests.request", side_effect=fake):
+        hubspot_api.update_property("tickets", "skill_source", patch_body)
+    assert captured["method"] == "PATCH"
+    assert captured["url"].endswith("/crm/v3/properties/tickets/skill_source")
+    assert captured["json"] == patch_body
+
+
 def test_list_properties_filters_to_dicts() -> None:
     captured, fake = _capture()
     captured["_response"] = {

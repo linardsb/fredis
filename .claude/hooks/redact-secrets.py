@@ -53,6 +53,18 @@ NON_SECRET_KEYS = {
     "ASANA_PROJECT_ID",
     "ASANA_USERS",
     "DATABASE_URL",
+    # HubSpot config — display labels and identifiers that appear in user-visible
+    # output (pipeline names, channel names, numeric portal IDs). Redacting them
+    # mangles every legitimate mention of the pipeline / channel in tool results.
+    "HUBSPOT_TICKETS_PIPELINE_NAME",
+    "HUBSPOT_TICKETS_SLACK_CHANNEL",
+    "HUBSPOT_TICKETS_REOPEN_DAYS",
+    "HUBSPOT_HUB_ID",
+    "HUBSPOT_SCANS_ENABLED",
+    "HUBSPOT_TICKETS_ENABLED",
+    # GitHub public handle / project ID
+    "GITHUB_USERNAME",
+    "GITHUB_PROJECT_LANES_ID",
 }
 
 REPLACEMENT = "***REDACTED***"

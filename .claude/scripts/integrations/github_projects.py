@@ -24,7 +24,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-import requests  # type: ignore[import-untyped]
+import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 

@@ -14,12 +14,27 @@ Usage:
 from __future__ import annotations
 
 import base64
+import re
 import sys
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from email.utils import parsedate_to_datetime
 from pathlib import Path
 from typing import Any
+
+# Automated / marketing sender prefixes — never flagged as urgent regardless
+# of subject keywords. Catches SaaS "[Important]" announcements, CI alerts,
+# job-board digests, and newsletters.
+_NOREPLY_SENDER_RE = re.compile(
+    r"^(no-?reply|donotreply|do-not-reply|notifications?|mailer-?daemon|newsletter|jobalert|digest|marketing)@",
+    re.IGNORECASE,
+)
+
+# SaaS marketing convention wraps importance signals in brackets or parens
+# (e.g. "[Important]", "(urgent)"). Real humans don't. Strip bracketed
+# content before keyword matching so these never flag as urgent, even when
+# the sender address isn't in the no-reply list.
+_BRACKETED_CONTENT_RE = re.compile(r"[\[(][^\[\]()]*[\])]")
 
 # Add parent dir for config imports
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -222,6 +237,9 @@ def check_for_urgent_emails(
     urgent: list[Email] = []
 
     for email in recent:
+        if _NOREPLY_SENDER_RE.match(email.sender_email):
+            continue
+
         reason = ""
 
         # Check important senders
@@ -231,9 +249,10 @@ def check_for_urgent_emails(
                     reason = f"From important sender: {email.sender}"
                     break
 
-        # Check urgent keywords in subject
+        # Check urgent keywords in subject — but strip bracketed content
+        # first so SaaS "[Important]" / "(urgent)" conventions don't fire.
         if not reason:
-            subject_lower = email.subject.lower()
+            subject_lower = _BRACKETED_CONTENT_RE.sub("", email.subject).lower()
             for keyword in urgent_keywords:
                 if keyword in subject_lower:
                     reason = f"Urgent keyword: {keyword}"
