@@ -38,7 +38,7 @@ _Deliberately left out: a standalone "Learn" pillar (folded into Frontier + Read
 The heartbeat can auto-check a pillar ONLY when these criteria are met. Routine maintenance does NOT count — it must be a genuine improvement.
 
 **Ship:**
-- Auto-check when: Gmail sent to a client domain, Asana task completion, Drive external share
+- Auto-check when: Gmail sent to a client domain, HubSpot engagement/ticket closed on a client, Drive external share
 - Does NOT count: internal commits, config changes, routine maintenance
 
 **Frontier:**

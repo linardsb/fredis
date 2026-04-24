@@ -2,7 +2,7 @@ lane: cab
 metric: vtv_b2g_traction
 threshold: "VTV has at least one real B2G conversation logged (warm intro with two-way scoping, paid-pilot discussion, or LOI in motion — cold outreach does not count)"
 deadline: 2026-08-19
-observable_source: 'Fredis/Memory/MEMORY.md §Active Projects (VTV entry) + Asana VTV project tasks + Monday.com VTV board + launch-governance bet-review outputs'
+observable_source: 'Fredis/Memory/MEMORY.md §Active Projects (VTV entry) + HubSpot VTV deal-stage history + launch-governance bet-review outputs'
 pre_committed_at: 2026-04-19
 status: open
 rationale: "Cab month-4 dependency gate agreed 2026-04-19 (lanes.md:47). Cab rides on VTV's operator + government relationships — without a VTV B2G foothold, Cab lacks a distribution base and becomes a cold two-sided-marketplace fight against Bolt. Pausing Cab protects the cash/attention bundle for VTV."

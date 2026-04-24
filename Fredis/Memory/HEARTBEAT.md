@@ -16,8 +16,8 @@ Data is pre-fetched via direct API integrations and included in the prompt conte
 
 - [ ] Any urgent emails in the last 2 hours? (via Gmail API)
 - [ ] Any calendar events in the next 4 hours? (via Calendar API)
-- [ ] Any overdue tasks? (via Asana API — once integration ID lands; TBD)
-- [ ] Any important Slack DMs / @mentions? (via Slack API — TBD)
+- [ ] Any HubSpot signals? (via hubspot_scans — overdue invoices, silent contacts, stale deals)
+- [ ] Any important Slack DMs / @mentions? (via Slack API)
 - [ ] Any WhatsApp signal worth surfacing? (manual / future integration)
 - [ ] **Gate-breach check** — `gate_loader.evaluate_gates` reads `Fredis/Memory/gates/*.yaml` and writes a breach draft to `drafts/active/launch-governance/metrics-gate/` when a pre-committed kill criterion fires. Surface breaches with Slack priority over everything else — a fired kill trigger means a lane decision is due.
 
@@ -152,7 +152,7 @@ The habits tracker lives at `Fredis/Memory/HABITS.md`. Pillars: Ship · Frontier
 - [ ] **Late-day nudge: OFF** (per I7). Don't ping at 18:00 about unchecked pillars
 - [ ] Frontier 18:00 self-report fallback (per HABITS.md) is allowed — single ask, not a nudge cycle
 - [ ] If Linards reports completing a pillar (via chat/conversation): check it off with description
-- [ ] Auto-detection: only check off a pillar if it meets the criteria in HABITS.md (Ship via Gmail-to-client + Asana + Drive shares; Frontier via build-repo activity + daily-log keyword; Ground both halves; Read self-report only)
+- [ ] Auto-detection: only check off a pillar if it meets the criteria in HABITS.md (Ship via Gmail-to-client + HubSpot activity; Frontier via build-repo activity + daily-log keyword; Ground both halves; Read self-report only)
 - [ ] When in doubt, do NOT auto-check — let Linards report it himself
 
 ## Research Pulls (Morning Brief)

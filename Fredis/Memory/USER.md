@@ -60,9 +60,7 @@ _Secrets and account IDs live in `.claude/scripts/.env`. This section documents 
 - Google Calendar ID: configured in `.env` (`GOOGLE_CALENDAR_ID`)
 
 ### Task Management
-- Asana: PAT configured in `.env`; no projects tracked yet — wire up when first client project lands
-- HubSpot Free: Private App token + hub ID configured in `.env` (`HUBSPOT_API_TOKEN`, `HUBSPOT_HUB_ID`). **Primary CRM** as of 2026-04-23 (replaced Monday.com). Schema bootstrapped with custom properties for urgent-alert contacts, engagement-type companies, service-line + source deals. Free-tier constraints: 1 deal pipeline max; GBP not yet enabled on portal. Engineering work stays in GitHub Projects, not HubSpot.
-- Monday.com: removed 2026-04-23. `MONDAY_*` env vars to be cleaned up in next commit.
+- HubSpot Free: Private App token + hub ID configured in `.env` (`HUBSPOT_API_TOKEN`, `HUBSPOT_HUB_ID`). **Primary CRM + task layer** as of 2026-04-23. Schema bootstrapped with custom properties for urgent-alert contacts, engagement-type companies, service-line + source deals. Free-tier constraints: 1 deal pipeline max. Engineering work stays in GitHub Projects, not HubSpot. Asana fully removed 2026-04-24.
 
 ### Slack
 - User ID: configured in `.env` (`SLACK_USER_ID`)
