@@ -40,6 +40,14 @@ _(Pre-revenue stage — formal locked-in decisions still to be made. Likely firs
 
 - **HubSpot tickets = Fredis Review Queue (2026-04-23).** Un-deferred the tickets-v1 skip. Pipeline `Fredis Review` (repurposed the default "Support Pipeline" — HubSpot Free caps tickets at 1 pipeline) with 5 stages: Drafted → In review → Needs send → Actioned / Rejected. 7 custom properties: lane, skill_source, draft_path, urgency, slack_thread_url, heartbeat_run_id, dedupe_key. Every actionable heartbeat detection (overdue invoice, silent urgent contact, stale deal >30d, breached kill-gate) creates a ticket + posts `[DRAFT] ...` to `#hubspot` in Slack. DM Fredis "what's in my queue" or use `hubspot queue` CLI to review. Flag-gated on `HUBSPOT_TICKETS_ENABLED`. Plan: `.agent/plans/fredis-hubspot-tickets-slack.md`. `[impact: high, status: decided]`
 
+- **All integration channels promoted to Sonnet (2026-04-23).** `#gmail`, `#calendar`, `#asana-board`, `#hubspot`, `#g-drive`, `#g-sheets`, `#g-docs`, `#github` moved from Haiku to Sonnet in `channel-routing.yaml`. Haiku tier now empty. Rationale: Haiku consistently failed multi-rule prompt adherence (ignored draft-routing, didn't search-before-asking). Cost increase (~$0.02 → ~$0.10/msg) accepted for reliability. Commit `d3b6069`. `[impact: med, status: decided]`
+
+- **Gmail drafts route to Gmail API, not the vault (2026-04-23).** Fix: new email drafts call `gmail_create_draft` so they land in Linards's Gmail Drafts folder; `drafts/active/` is reserved for non-email outbound only. Companion: Fredis now searches Gmail (`from:<name>`) before asking "who is X?" Commits `e499ccbb` + `990a0e9`. `[impact: med, status: decided]`
+
+- **Topic display in Slack threads (2026-04-23).** `_derive_topic` in chat engine prepends `*Topic: <subject>*` to Fredis's first reply in any thread, regardless of model tier. Commit `dddca87`. `[impact: low, status: decided]`
+
+- **Phase 12 starter-pack stays 4 standalone skills (2026-04-23).** `draft-reply`, `meeting-notes`, `client-log`, `uk-latvia-context` kept separate rather than consolidated. Rationale: lazy-loaded descriptions cost <1% of context; trigger-phrase discovery matters per skill; line counts (148–376) within existing precedent. Commit `e89851b`. `[impact: low, status: decided]`
+
 ## Lessons Learned
 
 These are the day-one rules — synthesised from J5. The brain should respect these without re-questioning unless explicitly revisited.
@@ -77,6 +85,10 @@ These are the day-one rules — synthesised from J5. The brain should respect th
 - **Ghost Mac processes silently steal Slack Socket Mode events (2026-04-22).** Slack load-balances across all active WebSocket connections for the same bot token — `app_mention` events fan out to every connection, but `message.channels` events go to only one. A stale local `fredis-chat` process on Mac was stealing thread-engage events meant for the VPS. Always check for duplicate bot-token consumers (`ps aux | grep fredis`) before debugging Slack event delivery. Secondary rule: `message.channels` also requires `/invite @Fredis` in the channel AND enabling the event in the Slack app's Event Subscriptions (separate from OAuth scopes). `[impact: med, status: decided]`
 
 - **`OnCalendar` embedded timezone requires systemd 246+ (2026-04-22).** VPS confirmed compatible. Worth remembering for future timer files — older systemd needs a separate `Environment=TZ=...` stanza instead. `[impact: low, status: decided]`
+
+- **Resumed SDK sessions override new system-prompt rules (2026-04-23).** When a Slack thread resumes an existing Claude Agent SDK session, earlier conversation history outweighs newly injected system-prompt changes — the model anchors to the prior turns. Always test prompt / routing / skill-invocation fixes in a **fresh thread** (new parent message), never in a thread that's been running pre-fix. Corollary to the earlier `engine.py:232-238` lesson: if the fix has to reach mid-session turns, prepend to `message.text`, don't patch `system_prompt`. `[impact: med, status: decided]`
+
+- **Measure before consolidating (2026-04-23).** Gut reaction to "4 new skills is too many, merge to 2" was wrong — actual line counts (148–376 per skill) and runtime cost (<1% of context for all 4 lazy-loaded descriptions) reversed the recommendation. General rule: check numbers before proposing structural changes. Token budget and trigger-phrase value per skill usually beat intuition about "too many." `[impact: low, status: decided]`
 
 ## Important Facts
 
