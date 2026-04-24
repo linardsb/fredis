@@ -415,6 +415,17 @@ class ConversationEngine:
             "permission_mode": "acceptEdits",
             "max_turns": self.max_turns,
             "max_budget_usd": self.max_budget_usd,
+            **(
+                {"thinking": {"type": "adaptive", "effort": "max"}}
+                if (
+                    channel_id == "C0AUE2B6BL6"
+                    or (
+                        not message.channel.is_dm
+                        and message.channel.name == "ideation"
+                    )
+                )
+                else {}
+            ),
             "hooks": {
                 "PreToolUse": [
                     HookMatcher(
