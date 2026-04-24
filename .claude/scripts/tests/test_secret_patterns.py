@@ -30,14 +30,6 @@ from secret_patterns import REPLACEMENT_TEMPLATE, SECRET_PATTERNS, scrub_secrets
             "jwt",
             "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
         ),
-        (
-            "asana_pat",
-            "1/1234567890:abcdef0123456789abcdef0123456789",
-        ),
-        (
-            "asana_pat_legacy",
-            "2/12345/67890:abcdef0123456789abcd",
-        ),
     ],
 )
 def test_pattern_positive_match(kind: str, example: str) -> None:

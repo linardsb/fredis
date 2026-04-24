@@ -1,7 +1,7 @@
 """
 One-time auth setup for all direct platform integrations.
 
-Walks through Google OAuth, Asana PAT validation, and Slack bot token validation.
+Walks through Google OAuth and Slack bot token validation.
 
 Usage:
     uv run python setup_auth.py          # Full interactive setup
@@ -15,8 +15,6 @@ import sys
 from datetime import datetime
 
 from config import (
-    ASANA_ACCESS_TOKEN,
-    ASANA_WORKSPACE_ID,
     GOOGLE_CREDENTIALS_FILE,
     SLACK_BOT_TOKEN,
     ensure_directories,
@@ -130,50 +128,6 @@ def check_google(check_only: bool = False, headless: bool = False) -> bool:
         return False
 
 
-def check_asana(check_only: bool = False) -> bool:
-    """Check/validate Asana Personal Access Token."""
-    print_header("Asana (Personal Access Token)")
-
-    if not ASANA_ACCESS_TOKEN:
-        print_status("Asana", False, "ASANA_ACCESS_TOKEN not set in .env")
-        print()
-        print("  To set up Asana:")
-        print("    1. Go to https://app.asana.com/0/developer-console")
-        print("    2. Create Personal Access Token")
-        print("    3. Add to .claude/scripts/.env:")
-        print("       ASANA_ACCESS_TOKEN=your_token_here")
-        return False
-
-    # Validate token
-    try:
-        import asana
-        from asana.rest import ApiException
-
-        configuration = asana.Configuration()
-        configuration.access_token = ASANA_ACCESS_TOKEN
-        api_client = asana.ApiClient(configuration)
-        users_api = asana.UsersApi(api_client)
-
-        me = users_api.get_user("me", opts={"opt_fields": "name,email"})
-        name = me.get("name", "?") if isinstance(me, dict) else getattr(me, "name", "?")
-        email = me.get("email", "") if isinstance(me, dict) else getattr(me, "email", "")
-        print_status("Asana", True, f"Connected as {name} ({email})")
-
-        # Validate workspace access
-        workspaces_api = asana.WorkspacesApi(api_client)
-        ws = workspaces_api.get_workspace(ASANA_WORKSPACE_ID, opts={"opt_fields": "name"})
-        ws_name = ws.get("name", "?") if isinstance(ws, dict) else getattr(ws, "name", "?")
-        print_status("Workspace", True, f"{ws_name} ({ASANA_WORKSPACE_ID})")
-
-        return True
-    except ApiException as e:
-        print_status("Asana", False, f"API error: {e}")
-        return False
-    except Exception as e:
-        print_status("Asana", False, str(e))
-        return False
-
-
 def check_slack(check_only: bool = False) -> bool:
     """Check/validate Slack bot token."""
     print_header("Slack (Bot Token)")
@@ -236,7 +190,6 @@ def main() -> None:
 
     results = {
         "Google": check_google(check_only=args.check, headless=args.headless),
-        "Asana": check_asana(check_only=args.check),
         "Slack": check_slack(check_only=args.check),
     }
 

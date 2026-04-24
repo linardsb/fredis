@@ -42,12 +42,6 @@ SECRET_PATTERNS: dict[str, re.Pattern[str]] = {
     ),
     # JWT — also covers Monday.com API tokens (JWT-shaped).
     "jwt": re.compile(r"eyJ[A-Za-z0-9_=-]+\.eyJ[A-Za-z0-9_=-]+\.[A-Za-z0-9_=-]+"),
-    # Asana PAT — require the `1/<numeric>:` prefix. Standalone 32+ hex is
-    # too noisy (matches MD5, git SHAs, UUIDs without dashes).
-    "asana_pat": re.compile(r"1/[0-9]+:[a-f0-9]{32,}"),
-    # Legacy Asana PAT shape (pre-2024) — kept for transcripts that may still
-    # echo older tokens.
-    "asana_pat_legacy": re.compile(r"\b2/\d+/\d+:[0-9a-f]{20,}"),
 }
 
 REPLACEMENT_TEMPLATE = "[REDACTED:{kind}]"

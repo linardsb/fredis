@@ -5,7 +5,7 @@ the tool allowlist passed to the Agent SDK.
 
 Families blocked:
   1. Outbound mutations on messaging / task platforms (Slack postMessage,
-     Gmail drafts.send, Asana/Linear/Monday write mutations, Discord webhook
+     Gmail drafts.send, Linear/Monday write mutations, Discord webhook
      posts).
   2. Social-media posting (Twitter/X, LinkedIn, Facebook Graph).
   3. Writes targeting paths OUTSIDE the repo or the Fredis vault.
@@ -48,9 +48,7 @@ OUTBOUND_MUTATION_PATTERNS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"gmail[./].*messages[/.]send", re.IGNORECASE), "Gmail messages.send / /messages/send"),
     (re.compile(r"\.users\(\)\.drafts\(\)\.send", re.IGNORECASE), "Gmail drafts().send()"),
     (re.compile(r"\.users\(\)\.messages\(\)\.send", re.IGNORECASE), "Gmail messages().send()"),
-    # Asana / Linear / Monday write mutations via curl
-    (re.compile(r"curl[^\n]*\bapp\.asana\.com/api/1\.0/[^\s]*\s+-X\s+(POST|PUT|PATCH|DELETE)", re.IGNORECASE),
-     "Asana write API via curl"),
+    # Linear / Monday write mutations via curl
     (re.compile(r"curl[^\n]*api\.linear\.app[^\s]*\s+-X\s+(POST|PUT|PATCH|DELETE)", re.IGNORECASE),
      "Linear write API via curl"),
     (re.compile(r"curl[^\n]*api\.monday\.com[^\s]*mutation", re.IGNORECASE),

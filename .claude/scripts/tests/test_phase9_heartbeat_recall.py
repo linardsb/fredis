@@ -8,7 +8,6 @@ min-query-length filter, and the aggregate cap.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
 from typing import Any
 
 import pytest
@@ -20,14 +19,6 @@ class _FakeEmail:
     subject: str
     sender: str = "someone@example.com"
     sender_email: str = "someone@example.com"
-
-
-@dataclass
-class _FakeTask:
-    gid: str
-    name: str
-    due_on: datetime | None = None
-    completed: bool = False
 
 
 @dataclass
@@ -54,14 +45,12 @@ def _make_hit(path: str, chunk_id: int, text: str = "fixture body text") -> Any:
 
 
 def _fake_raw_data() -> dict[str, Any]:
-    """Raw data with three NEW items — one per source."""
+    """Raw data with two NEW items — one email, one slack."""
     return {
         "urgent_emails": [_FakeEmail(id="e1", subject="VTV-first sequencing call agenda")],
         "recent_emails": [],
         "today_events": [],
         "upcoming_events": [],
-        "overdue_tasks": [_FakeTask(gid="t1", name="Follow up on Šlesers email")],
-        "due_soon_tasks": [],
         "slack_important": [
             _FakeSlackMsg(channel="C1", ts="1700.001", text="Kick off the Cab pilot this week")
         ],
@@ -80,9 +69,6 @@ def _fake_diff_all_new() -> dict[str, Any]:
         "new_emails": {"e1"},
         "changed_emails": set(),
         "removed_emails": set(),
-        "new_tasks": {"t1"},
-        "changed_tasks": set(),
-        "removed_tasks": set(),
         "new_slack": {"C1:1700.001"},
         "changed_slack": set(),
         "removed_slack": set(),
@@ -95,13 +81,12 @@ def _fake_diff_all_new() -> dict[str, Any]:
     }
 
 
-def test_extract_signals_pulls_subject_task_name_slack_text() -> None:
+def test_extract_signals_pulls_subject_and_slack_text() -> None:
     import heartbeat
 
     signals = heartbeat._extract_signals(_fake_raw_data(), _fake_diff_all_new())
     # Order is not contractual; presence is.
     assert "VTV-first sequencing call agenda" in signals
-    assert "Follow up on Šlesers email" in signals
     assert "Kick off the Cab pilot this week" in signals
 
 
@@ -113,8 +98,6 @@ def test_extract_signals_drops_empties_and_short_strings() -> None:
         "recent_emails": [_FakeEmail(id="e2", subject="hi")],  # too short
         "today_events": [],
         "upcoming_events": [],
-        "overdue_tasks": [_FakeTask(gid="t1", name="yo")],
-        "due_soon_tasks": [],
         "slack_important": [],
         "hubspot_overdue_invoices": [],
         "hubspot_silent_contacts": [],
@@ -126,7 +109,6 @@ def test_extract_signals_drops_empties_and_short_strings() -> None:
     }
     diff: dict[str, Any] = {
         "new_emails": {"e1", "e2"},
-        "new_tasks": {"t1"},
         "new_slack": set(),
     }
     assert heartbeat._extract_signals(raw, diff) == []
@@ -137,21 +119,19 @@ def test_extract_signals_first_run_treats_all_as_new() -> None:
     import heartbeat
 
     signals = heartbeat._extract_signals(_fake_raw_data(), diff=None)
-    assert len(signals) == 3
+    assert len(signals) == 2
 
 
-def test_gather_relevant_memories_aggregates_three_signals(
+def test_gather_relevant_memories_aggregates_two_signals(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Three signals → three searches → aggregated wrapped block with all hits."""
+    """Two signals → two searches → aggregated wrapped block with all hits."""
     import heartbeat
 
     def _hits_for(q: str, **kw: Any) -> list[Any]:
         # Return one unique hit per signal so we can check aggregation
         if "VTV" in q:
             return [_make_hit("daily/2026-04-19.md", chunk_id=1)]
-        if "Šlesers" in q:
-            return [_make_hit("research/lpv-landscape.md", chunk_id=2)]
         if "Cab" in q:
             return [_make_hit("MEMORY.md", chunk_id=3)]
         return []
@@ -164,9 +144,8 @@ def test_gather_relevant_memories_aggregates_three_signals(
 
     assert '<external_data source="memory_recall"' in block
     assert "daily/2026-04-19.md" in block
-    assert "research/lpv-landscape.md" in block
     assert "MEMORY.md" in block
-    assert sorted(ids) == [1, 2, 3]
+    assert sorted(ids) == [1, 3]
 
 
 def test_gather_dedups_chunk_ids_across_signals(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -193,10 +172,8 @@ def test_gather_tolerates_partial_signal_failure(monkeypatch: pytest.MonkeyPatch
     import heartbeat
 
     def _hits_for(q: str, **kw: Any) -> list[Any]:
-        if "Šlesers" in q:
-            raise RuntimeError("fastembed oom")
         if "VTV" in q:
-            return [_make_hit("daily/2026-04-19.md", chunk_id=1)]
+            raise RuntimeError("fastembed oom")
         if "Cab" in q:
             return [_make_hit("MEMORY.md", chunk_id=3)]
         return []
@@ -206,8 +183,7 @@ def test_gather_tolerates_partial_signal_failure(monkeypatch: pytest.MonkeyPatch
     monkeypatch.setattr(memory_search, "search_hybrid", _hits_for)
 
     block, ids = heartbeat._gather_relevant_memories(_fake_raw_data(), _fake_diff_all_new())
-    assert sorted(ids) == [1, 3]
-    assert "daily/2026-04-19.md" in block
+    assert ids == [3]
     assert "MEMORY.md" in block
 
 
@@ -230,8 +206,6 @@ def test_gather_empty_when_no_signals(monkeypatch: pytest.MonkeyPatch) -> None:
         "recent_emails": [],
         "today_events": [],
         "upcoming_events": [],
-        "overdue_tasks": [],
-        "due_soon_tasks": [],
         "slack_important": [],
         "hubspot_overdue_invoices": [],
         "hubspot_silent_contacts": [],
@@ -243,7 +217,6 @@ def test_gather_empty_when_no_signals(monkeypatch: pytest.MonkeyPatch) -> None:
     }
     empty_diff: dict[str, Any] = {
         "new_emails": set(),
-        "new_tasks": set(),
         "new_slack": set(),
     }
     block, ids = heartbeat._gather_relevant_memories(empty_raw, empty_diff)

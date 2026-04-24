@@ -51,13 +51,6 @@ _REGISTRY: dict[str, IntegrationInfo] = {
         required_config=["GOOGLE_CALENDAR_ID"],
         module_path="integrations.calendar_api",
     ),
-    "asana": IntegrationInfo(
-        name="asana",
-        display_name="Asana",
-        auth_type="token",
-        required_config=["ASANA_ACCESS_TOKEN"],
-        module_path="integrations.asana_api",
-    ),
     "slack": IntegrationInfo(
         name="slack",
         display_name="Slack",

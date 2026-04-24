@@ -75,21 +75,6 @@ GOOGLE_SCOPES = [
     "https://www.googleapis.com/auth/drive.readonly",
 ]
 
-# Asana
-ASANA_ACCESS_TOKEN = os.getenv("ASANA_ACCESS_TOKEN", "")
-ASANA_WORKSPACE_ID = os.getenv("ASANA_WORKSPACE_ID", "")
-ASANA_PROJECT_ID = os.getenv("ASANA_PROJECT_ID", "")
-
-# Asana user mapping — friendly name to GID (format: "name:gid,name:gid")
-_asana_users_raw = os.getenv("ASANA_USERS", "")
-ASANA_USERS: dict[str, str] = {}
-if _asana_users_raw:
-    for pair in _asana_users_raw.split(","):
-        pair = pair.strip()
-        if ":" in pair:
-            name, gid = pair.split(":", 1)
-            ASANA_USERS[name.strip().lower()] = gid.strip()
-
 # Slack
 SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN", "")
 SLACK_NOTIFICATION_CHANNEL = os.getenv("SLACK_NOTIFICATION_CHANNEL", "#second-brain")

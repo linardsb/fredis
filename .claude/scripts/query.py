@@ -2,12 +2,11 @@
 Interactive CLI wrapper for direct platform integrations.
 
 Used by the direct-integrations Claude Code skill to query Gmail, Calendar,
-Asana, Slack, Google Sheets, Google Docs, and Google Drive from interactive sessions.
+Slack, Google Sheets, Google Docs, and Google Drive from interactive sessions.
 
 Usage:
     python query.py gmail list --max 5
     python query.py calendar today
-    python query.py asana overdue
     python query.py slack channels
     python query.py sheets read <spreadsheet_id> [--range "Sheet1!A1:Z100"]
     python query.py docs read <document_id>
@@ -178,142 +177,6 @@ def cmd_calendar(args: argparse.Namespace) -> None:
     elif args.action == "soon":
         events = check_for_upcoming_meetings(hours_ahead=4)
         print(format_events_for_context(events))
-
-
-def cmd_asana(args: argparse.Namespace) -> None:
-    """Handle Asana commands."""
-    from integrations.asana_api import (
-        add_comment,
-        add_task_to_section,
-        complete_task,
-        create_task,
-        format_tasks_for_context,
-        get_due_soon_tasks,
-        get_my_tasks,
-        get_overdue_tasks,
-        get_project_tasks,
-        get_section_tasks,
-        get_sections,
-        move_task,
-        search_tasks_by_text,
-    )
-
-    assignee = getattr(args, "assignee", None)
-
-    if args.action == "my-tasks":
-        tasks = get_my_tasks(max_results=args.max, assignee=assignee)
-        print(format_tasks_for_context(tasks))
-
-    elif args.action == "project":
-        tasks = get_project_tasks(project_gid=args.project_id, max_results=args.max)
-        print(format_tasks_for_context(tasks))
-
-    elif args.action == "overdue":
-        tasks = get_overdue_tasks(assignee=assignee)
-        if tasks:
-            print(f"Found {len(tasks)} overdue tasks:\n")
-            print(format_tasks_for_context(tasks))
-        else:
-            print("No overdue tasks")
-
-    elif args.action == "due-soon":
-        tasks = get_due_soon_tasks(days=args.days, assignee=assignee)
-        if tasks:
-            print(f"Found {len(tasks)} tasks due in next {args.days} days:\n")
-            print(format_tasks_for_context(tasks))
-        else:
-            print(f"No tasks due in next {args.days} days")
-
-    elif args.action == "complete":
-        if not args.project_id:
-            print("Error: task_gid required for complete command")
-            sys.exit(1)
-        task = complete_task(args.project_id)
-        print(f"Completed: {task.name}")
-
-    elif args.action == "sections":
-        project_gid = args.project_id
-        sections = get_sections(project_gid)
-        if sections:
-            for s in sections:
-                print(f"- **{s['name']}** (GID: {s['gid']})")
-        else:
-            print("No sections found.")
-
-    elif args.action == "section-tasks":
-        section_gid = args.project_id
-        if not section_gid:
-            print("Error: section_gid required (positional argument)")
-            sys.exit(1)
-        tasks = get_section_tasks(section_gid, max_results=args.max)
-        print(format_tasks_for_context(tasks))
-
-    elif args.action == "move-to-section":
-        task_gid = args.project_id
-        section_gid = getattr(args, "section", None)
-        insert_after = getattr(args, "insert_after", None)
-        insert_before = getattr(args, "insert_before", None)
-        due_str = getattr(args, "due", None)
-        if not task_gid or not section_gid:
-            print("Error: task_gid (positional) and --section required")
-            sys.exit(1)
-        auto_date = None
-        if not insert_after and not insert_before and due_str:
-            from datetime import datetime as _dt
-            auto_date = _dt.strptime(due_str, "%Y-%m-%d").date()
-        add_task_to_section(task_gid, section_gid, insert_after=insert_after, insert_before=insert_before, auto_order_date=auto_date)
-        print(f"Moved task {task_gid} to section {section_gid}")
-
-    elif args.action == "search":
-        query_text = getattr(args, "query", None)
-        if not query_text:
-            print("Error: --query required for search command")
-            sys.exit(1)
-        tasks = search_tasks_by_text(query_text, max_results=args.max, assignee=assignee)
-        if tasks:
-            print(f"Found {len(tasks)} matching tasks:\n")
-            print(format_tasks_for_context(tasks))
-        else:
-            print("No matching tasks found.")
-
-    elif args.action == "create":
-        name = getattr(args, "name", None)
-        if not name:
-            print("Error: --name required for create command")
-            sys.exit(1)
-        task = create_task(
-            name=name,
-            due_on=getattr(args, "due", None),
-            assignee=assignee,
-            project=getattr(args, "project", None),
-            notes=getattr(args, "notes", None),
-            section=getattr(args, "section", None),
-            parent=getattr(args, "parent", None),
-        )
-        due_str = task.due_on.strftime("%Y-%m-%d") if task.due_on else "No due date"
-        print(f"Created: **{task.name}** (GID: {task.gid})")
-        print(f"  Assignee: {task.assignee or 'me'} | Due: {due_str}")
-        if task.project:
-            print(f"  Project: {task.project}")
-
-    elif args.action == "comment":
-        task_gid = args.project_id
-        comment_text = getattr(args, "comment", None)
-        if not task_gid or not comment_text:
-            print("Error: task_gid (positional) and --comment required")
-            sys.exit(1)
-        story_gid = add_comment(task_gid, comment_text)
-        print(f"Comment added to task {task_gid} (story GID: {story_gid})")
-
-    elif args.action == "move":
-        task_gid = args.project_id
-        to_proj = getattr(args, "to_project", None)
-        from_proj = getattr(args, "from_project", None)
-        if not task_gid or not to_proj:
-            print("Error: task_gid (positional) and --to-project required")
-            sys.exit(1)
-        move_task(task_gid, to_project=to_proj, from_project=from_proj)
-        print(f"Moved task {task_gid} to project {to_proj}")
 
 
 def cmd_slack(args: argparse.Namespace) -> None:
@@ -1183,26 +1046,6 @@ def main() -> None:
     cal_parser.add_argument("action", choices=["today", "upcoming", "soon"])
     cal_parser.add_argument("--hours", type=int, default=24)
 
-    # Asana
-    asana_parser = subparsers.add_parser("asana", help="Asana operations")
-    asana_parser.add_argument("action", choices=["my-tasks", "project", "overdue", "due-soon", "complete", "sections", "section-tasks", "move-to-section", "search", "create", "comment", "move"])
-    asana_parser.add_argument("project_id", nargs="?", default=None)
-    asana_parser.add_argument("--max", type=int, default=20)
-    asana_parser.add_argument("--days", type=int, default=3)
-    asana_parser.add_argument("--assignee", type=str, default=None, help="User name or GID to filter by assignee")
-    asana_parser.add_argument("--name", type=str, default=None, help="Task name for create")
-    asana_parser.add_argument("--due", type=str, default=None, help="Due date YYYY-MM-DD for create")
-    asana_parser.add_argument("--project", type=str, default=None, help="Project GID for create")
-    asana_parser.add_argument("--notes", type=str, default=None, help="Description/notes for create")
-    asana_parser.add_argument("--section", type=str, default=None, help="Section GID for create or move-to-section")
-    asana_parser.add_argument("--parent", type=str, default=None, help="Parent task GID for creating subtasks")
-    asana_parser.add_argument("--comment", type=str, default=None, help="Comment text for comment action")
-    asana_parser.add_argument("--to-project", type=str, default=None, help="Destination project GID for move")
-    asana_parser.add_argument("--from-project", type=str, default=None, help="Source project GID for move (optional)")
-    asana_parser.add_argument("--insert-after", type=str, default=None, help="Task GID to insert after (for ordering in section)")
-    asana_parser.add_argument("--insert-before", type=str, default=None, help="Task GID to insert before (for ordering in section)")
-    asana_parser.add_argument("--query", type=str, default=None, help="Search query text for search action")
-
     # Slack
     slack_parser = subparsers.add_parser("slack", help="Slack operations")
     # `send` stays in choices so programmatic callers can invoke it, but it's
@@ -1424,8 +1267,6 @@ def main() -> None:
             cmd_gmail(args)
         elif args.service == "calendar":
             cmd_calendar(args)
-        elif args.service == "asana":
-            cmd_asana(args)
         elif args.service == "slack":
             cmd_slack(args)
         elif args.service == "sheets":

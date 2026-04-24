@@ -19,7 +19,6 @@ dependencies = [
     "google-api-python-client>=2.100.0",
     "google-auth-oauthlib>=1.2.0",
     "google-auth-httplib2>=0.2.0",
-    "asana>=5.0.0",
     "slack-sdk>=3.27.0",
     # Phase 6: Chat Interface
     "slack-bolt>=1.20.0",

@@ -49,9 +49,6 @@ NON_SECRET_KEYS = {
     "SLACK_NOTIFICATION_CHANNEL",
     "SLACK_MONITORED_CHANNELS",
     "SLACK_OWNER_USER_ID",
-    "ASANA_WORKSPACE_ID",
-    "ASANA_PROJECT_ID",
-    "ASANA_USERS",
     "DATABASE_URL",
     # HubSpot config — display labels and identifiers that appear in user-visible
     # output (pipeline names, channel names, numeric portal IDs). Redacting them

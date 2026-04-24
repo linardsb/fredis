@@ -209,7 +209,7 @@ def append_to_daily_log(
 
     ``source`` (Phase 5 provenance) — when set, a markdown blockquote line is
     emitted above the content identifying where the entry originated. Use
-    ``"gmail" | "slack" | "asana" | "hubspot" | "calendar" | "github" |
+    ``"gmail" | "slack" | "hubspot" | "calendar" | "github" |
     "guardrail" | "claude-reasoning"`` for machine-readable consumers
     (``memory_reflect.py``, ``memory_flush.py``) to treat external-data-sourced
     entries with the injection pipeline.
