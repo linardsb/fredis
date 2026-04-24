@@ -20,6 +20,9 @@ workspace/
 .claude/memory/
 .agent/plans/
 
+# Claude Code harness runtime
+.claude/scheduled_tasks.lock
+
 # Heartbeat scripts
 .claude/scripts/.env
 .claude/scripts/*.lock
