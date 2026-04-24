@@ -26,5 +26,6 @@ jobs:
           script_stop: true
           script: |
             set -euo pipefail
+            export PATH="$HOME/.local/bin:$PATH"
             cd /root/claude-code-second-brain
             bash .claude/scripts/deploy.sh

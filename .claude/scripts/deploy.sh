@@ -12,6 +12,12 @@
 
 set -euo pipefail
 
+# Non-interactive SSH sessions (e.g. GitHub Actions via appleboy/ssh-action)
+# don't inherit login-shell PATH, so uv installed under $HOME/.local/bin is
+# invisible. Prepend it here so every invocation path (systemd timer, manual
+# ssh, CI) resolves uv consistently.
+export PATH="$HOME/.local/bin:$PATH"
+
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 SCRIPTS_DIR="$REPO_ROOT/.claude/scripts"
 SCHEDULE_DIR="$SCRIPTS_DIR/schedule"
