@@ -182,6 +182,67 @@ def get_recent_messages(
         return []
 
 
+def check_owner_reply_in_thread(source_id: str, after_unix_ts: float) -> str | None:
+    """
+    Detect if the Slack owner (SLACK_OWNER_USER_ID) has replied in a thread
+    after a given unix timestamp.
+
+    Used by heartbeat.reconcile_active_drafts to move `type: slack` drafts from
+    drafts/active/ → drafts/sent/ when Linards has posted his actual reply in
+    the source thread.
+
+    Args:
+        source_id: "<channel_id>:<thread_ts>" — from slack draft frontmatter.
+        after_unix_ts: Only count messages with ts strictly greater than this.
+
+    Returns:
+        The owner's first reply text after after_unix_ts, or None when:
+        SLACK_OWNER_USER_ID unset, source_id malformed, no matching reply,
+        or a non-channel-membership error occurred.
+
+    Raises:
+        SlackChannelNotJoinedError: Bot isn't in the channel (provisioning issue;
+        caller should surface as operator-visible warning, not silent skip).
+    """
+    if not SLACK_OWNER_USER_ID:
+        return None
+    if ":" not in source_id:
+        return None
+
+    channel_id, thread_ts = source_id.split(":", 1)
+    client = get_slack_client()
+
+    try:
+        result = with_retry(
+            lambda: client.conversations_replies(
+                channel=channel_id, ts=thread_ts, limit=200
+            )
+        )
+    except Exception as e:
+        response = getattr(e, "response", None)
+        err = response.get("error") if response is not None else None
+        if err == "not_in_channel":
+            raise SlackChannelNotJoinedError(channel_id) from e
+        print(f"Error fetching thread replies: {e}")
+        return None
+
+    for msg in result.get("messages", []) or []:
+        if msg.get("subtype") in ("bot_message", "channel_join", "channel_leave"):
+            continue
+        if msg.get("user") != SLACK_OWNER_USER_ID:
+            continue
+        try:
+            msg_ts = float(msg.get("ts", "0"))
+        except (TypeError, ValueError):
+            continue
+        if msg_ts <= after_unix_ts:
+            continue
+        text = (msg.get("text") or "").strip()
+        if text:
+            return text
+    return None
+
+
 def send_notification(
     channel: str, text: str, thread_ts: str | None = None
 ) -> dict[str, Any] | None:

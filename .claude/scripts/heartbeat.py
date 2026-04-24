@@ -1105,6 +1105,20 @@ def _parse_draft_frontmatter(filepath: Path) -> dict[str, str]:
     return meta
 
 
+def _iso_date_to_unix(iso_date: str) -> float:
+    """Convert 'YYYY-MM-DD' (treated as UTC midnight) to a unix timestamp.
+
+    Used by reconcile_active_drafts to threshold Slack thread replies against
+    the draft's `created` frontmatter date. Returns 0.0 on malformed input so
+    any owner reply qualifies as "after" (safe default — worst case is an
+    early false-positive reconcile, not a missed one).
+    """
+    try:
+        return datetime.fromisoformat(iso_date).replace(tzinfo=UTC).timestamp()
+    except (ValueError, TypeError):
+        return 0.0
+
+
 def _delete_gmail_draft_if_exists(filepath: Path) -> None:
     """If the draft file has a gmail_draft_id in frontmatter, delete the Gmail draft."""
     meta = _parse_draft_frontmatter(filepath)
@@ -1161,6 +1175,7 @@ def reconcile_active_drafts() -> str:
         return "No active drafts to reconcile."
 
     moved_email = 0
+    moved_slack = 0
     moved_details: list[str] = []
 
     for filepath in draft_files:
@@ -1193,14 +1208,35 @@ def reconcile_active_drafts() -> str:
                     moved_details.append(f"  - Email: {meta.get('recipient', source_id)}")
                     print(f"[{now_local()}] Reconciled email draft: {filepath.name}")
 
+            elif draft_type == "slack":
+                # source_id is "<channel_id>:<thread_ts>". Anchor the "after"
+                # threshold to the draft's UTC-midnight creation date so
+                # pre-draft replies in the same thread don't falsely mark
+                # the draft as reconciled.
+                from integrations.slack_api import check_owner_reply_in_thread
+
+                after_unix = _iso_date_to_unix(created)
+                reply_text = check_owner_reply_in_thread(source_id, after_unix)
+                if reply_text:
+                    _update_draft_and_move_to_sent(filepath, reply_text)
+                    moved_slack += 1
+                    channel_id = source_id.split(":", 1)[0]
+                    moved_details.append(f"  - Slack: {channel_id}")
+                    print(f"[{now_local()}] Reconciled slack draft: {filepath.name}")
+
         except Exception as e:
             print(f"[{now_local()}] Error reconciling {filepath.name} (non-fatal): {e}")
             continue
 
-    if moved_email == 0:
+    if moved_email == 0 and moved_slack == 0:
         return "No drafts reconciled — no replies detected for any active drafts yet."
 
-    summary = f"Auto-reconciled {moved_email} email draft{'s' if moved_email != 1 else ''}:"
+    parts: list[str] = []
+    if moved_email:
+        parts.append(f"{moved_email} email draft{'s' if moved_email != 1 else ''}")
+    if moved_slack:
+        parts.append(f"{moved_slack} slack draft{'s' if moved_slack != 1 else ''}")
+    summary = f"Auto-reconciled {' + '.join(parts)}:"
     if moved_details:
         summary += "\n" + "\n".join(moved_details)
     return summary
