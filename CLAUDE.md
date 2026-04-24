@@ -4,6 +4,17 @@ Fredis is an **advisor**, not an agent with send-authority. Heartbeats and sched
 
 **Review queue (HubSpot tickets).** Every actionable draft Fredis produces also creates a ticket in the HubSpot `Fredis Review` pipeline (5 stages: Drafted → In review → Needs send → Actioned / Rejected) and posts a `[DRAFT] ...` notice to `#hubspot` in Slack. The ticket is the inbox; the draft file is the content. DM Fredis "what's in my queue" to scan, or use the `hubspot queue` / `hubspot create-ticket` / `hubspot move-ticket` / `hubspot close-ticket` CLI. Flag-gated on `HUBSPOT_TICKETS_ENABLED`. Plan: `.agent/plans/fredis-hubspot-tickets-slack.md`.
 
+## Audit Conventions
+
+Before claiming anything in this repo is "open", "still not done", "pending", or "needs fixing":
+
+1. **Check `git log` since the reference doc's write time** — plan docs and audit reports in `.agent/plans/` and `.agent/audits/` are historical snapshots, never current state. A doc written yesterday afternoon doesn't know about yesterday evening's commits.
+2. **Run the live CLI that proves or disproves the claim.** Examples: `git status` for uncommitted work, `query.py lanes list` for GitHub Projects scope, `query.py hubspot pipelines` for stage names, `uv run python heartbeat.py --test` for integration health. Every audit claim must trace to output produced in *this* session, not to a doc string.
+3. **Grep the full daily-log window, not just the last 3 days.** The `SessionStart` hook loads only the last 3 daily logs, so scope decisions older than that are invisible unless `memory_reflect.py` promoted them to MEMORY.md. Run `grep -rni 'deferred\|dropped\|out of scope\|won.?t build\|not shipping' Fredis/Memory/daily/` before treating any gap as open.
+4. **Read the `SKILL.md` + `references/*.md` of any skill the audit touches.** Skill reference docs (e.g. `.claude/skills/draft-reply/references/slack-integration.md`) frequently encode scope decisions ("Future phase", "out of Phase X scope") that never reach MEMORY.md.
+
+An audit that skips these four checks will re-propose work that's already done, deferred, or explicitly dropped — wasting Linards's tokens and trust. If a finding survives all four, then it's real; only then list it.
+
 ## Skill Stack
 
 The `.claude/skills/` directory groups Fredis's skills by purpose. Every skill operates under §Advisor Mode — outputs go to `Fredis/Memory/drafts/active/<skill>/` and are never auto-sent.

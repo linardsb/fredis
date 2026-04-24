@@ -133,3 +133,23 @@ def test_reflection_aborts_on_injected_daily_log(
 
     state = json.loads(state_file.read_text(encoding="utf-8"))
     assert state["result"] == "aborted_on_memory_injection"
+
+
+def test_reflection_prompt_promotes_scope_decisions() -> None:
+    """The reflection prompt MUST instruct Claude to promote scope decisions
+    (dropped / deferred / out-of-scope items) from daily logs to MEMORY.md.
+
+    Why: the SessionStart hook only auto-loads the last 3 daily logs, so scope
+    decisions older than that become invisible unless memory_reflect.py promoted
+    them. This is the root-cause fix for future-auditor re-proposing decided
+    work. Locks the behaviour so a future prompt refactor doesn't silently
+    drop it.
+    """
+    reflect_src = Path(__file__).resolve().parent.parent / "memory_reflect.py"
+    text = reflect_src.read_text(encoding="utf-8").lower()
+    assert "scope decisions" in text, "scope decisions bullet missing from reflection prompt"
+    for keyword in ("dropped", "deferred", "out of scope", "won't build"):
+        assert keyword in text, f"scope-decision keyword '{keyword}' missing from prompt"
+    # Tag guidance must be present so promoted items land with the right status.
+    assert "status: killed" in text, "tag guidance for dropped items missing"
+    assert "status: decided" in text, "tag guidance for deferred items missing"

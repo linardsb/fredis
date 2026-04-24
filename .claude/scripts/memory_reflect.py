@@ -385,6 +385,13 @@ Review the daily logs carefully and update THREE files as needed:
 ### 1. MEMORY.md ({MEMORY_FILE})
 Promote important items:
 - Key decisions and their rationale
+- **Scope decisions** — items explicitly dropped, deferred, marked out of scope, \
+  declared won't-build, or killed. Scan for language like: "dropped", "deferred", \
+  "out of scope", "not shipping", "won't build", "skip", "postpone", "defer to". \
+  These MUST be promoted even when they look trivial — they are the class of \
+  decision most likely to be re-proposed by a future auditor who can't see the \
+  original daily log. Tag `[status: killed]` for dropped items, `[status: decided]` \
+  for deferred-to-future items.
 - Lessons learned or mistakes
 - Important facts or configurations
 - Project status updates
