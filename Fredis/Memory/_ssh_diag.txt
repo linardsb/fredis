@@ -1,4 +1,4 @@
-=== 2026-04-26T19:32:57Z sshd ban recovery ===
+=== 2026-04-26T19:35:07Z sshd ban recovery ===
 --- fail2ban status (overall) ---
 Status
 |- Number of jail:	1
@@ -6,15 +6,15 @@ Status
 --- fail2ban status sshd jail ---
 Status for the jail: sshd
 |- Filter
-|  |- Currently failed:	8
-|  |- Total failed:	15449
+|  |- Currently failed:	7
+|  |- Total failed:	15462
 |  `- Journal matches:	_SYSTEMD_UNIT=sshd.service + _COMM=sshd
 `- Actions
    |- Currently banned:	4
-   |- Total banned:	2706
-   `- Banned IP list:	213.209.159.159 89.241.201.32 195.178.110.30 186.96.145.241
+   |- Total banned:	2708
+   `- Banned IP list:	195.178.110.30 186.96.145.241 118.219.64.66 72.10.32.138
 --- unban 89.241.201.32 (all jails) ---
-1
+0
 --- iptables filter (lines mentioning 89.241.201.32 or DROP/REJECT) ---
 (no matching lines)
 --- /etc/ssh/sshd_config restrictions ---
@@ -41,3 +41,4 @@ Apr 26 20:25:46 ubuntu-4gb-hel1-1 sshd[1129789]: Failed password for root from 8
 Apr 26 20:25:46 ubuntu-4gb-hel1-1 sshd[1129789]: Failed password for root from 89.241.201.32 port 17196 ssh2
 Apr 26 20:25:47 ubuntu-4gb-hel1-1 sshd[1129789]: Connection closed by authenticating user root 89.241.201.32 port 17196 [preauth]
 Apr 26 20:30:28 ubuntu-4gb-hel1-1 sshd[1130505]: Accepted publickey for root from 20.49.14.179 port 47128 ssh2: ED25519 SHA256:tfhYSEdcYv6Qolkm+obsOilrKIW4J2kjgJC/lMubGCI
+Apr 26 20:35:07 ubuntu-4gb-hel1-1 sshd[1131309]: Accepted publickey for root from 89.241.201.32 port 17399 ssh2: ED25519 SHA256:XFJfLjdyJVu2PZuJaDz6pNcEEVks4A5LMor3ICsFsU4
