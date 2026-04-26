@@ -1,0 +1,10 @@
+- Consultancy (id: default)
+    · Inbound — closed=false
+    · Discovery — closed=false
+    · Proposal — closed=false
+    · Signed — closed=false
+    · Kickoff — closed=false
+    · Delivery — closed=false
+    · Invoice — closed=false
+    · Post-delivery — closed=true
+    · Closed Lost — closed=true

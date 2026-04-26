@@ -1,0 +1,42 @@
+Found 10 result(s):
+
+1. builds/email-hub/2026-04-26_1777193736.763959_hey-whats-the-later-on-the-email-hub-pro.md:1-32 [Turn 1 · 09:56 · $0.4340]
+   Score: 0.547 (hybrid)
+   --- channel: email-hub channel_id: C0AVACS6CSC thread_ts: '1777193736.763959' created_at: '2026-04-26T09:56:30.238856' updated_at: '2026-04-26T09:58:11.759615' turns: 2 total_cost_usd: 1.133947 ---...
+
+2. collaborators/gavin-hughes.md:1-25 [Gavin Hughes — Ometria]
+   Score: 0.503 (hybrid)
+   \# Gavin Hughes — Ometria  **Role:** Principal Creative Developer at Ometria **Channel:** WhatsApp **Relationship:** ex-Merkle colleague — Linards's pitch to Tim Jackson already leaned on Ometria cr...
+
+3. MEMORY.md:1-15 [Key Decisions]
+   Score: 0.455 (hybrid)
+   \# MEMORY.md - Long-Term Memory  _Curated, important memories that persist across sessions. Daily logs capture everything; this file captures what matters._  ## Key Decisions  _(Pre-revenue stage — ...
+
+4. daily/2026-04-19.md:102-124 [Sessions]
+   Score: 0.426 (hybrid)
+   - **Sequencing decision:** VTV ships first, then Cab rides on VTV's distribution (government relationships, operator network). Cab only viable if VTV lands real conversations. Email Hub blocked by ...
+
+5. daily/2026-04-24.md:184-239 [Memory Maintenance]
+   Score: 0.403 (hybrid)
+   - Scanned: 201 unread emails (5 new), 1 calendar event, ~40 GitHub push events, 0 Slack/HubSpot signals, 0 gate breaches - Alerted: none - Silenced: `PAI-OpenCode v5`, Sackville School Bulletin, CI...
+
+6. MEMORY.md:73-79 [Lessons Learned]
+   Score: 0.389 (hybrid)
+   - **Email Hub has a UK IP overhang — "free time" isn't a complete defence.** It was built outside Merkle hours (factual point in his favour), but UK law (CDPA 1988 s.11(2), Patents Act 1977 s.39) t...
+
+7. USER.md:114-131 [Geography & Dual Operations]
+   Score: 0.387 (hybrid)
+   - **Active selling right now:** none formally — pre-revenue. Generating leads and potential clients is the K7 high-touch priority - **Service lines on the menu (in development):**   - AI-agentic bu...
+
+8. USER.md:63-92 [Proactivity Preferences]
+   Score: 0.353 (hybrid)
+   - HubSpot Free: Private App token + hub ID configured in `.env` (`HUBSPOT_API_TOKEN`, `HUBSPOT_HUB_ID`). **Primary CRM + task layer** as of 2026-04-23. Schema bootstrapped with custom properties fo...
+
+9. MEMORY.md:55-59 [Key Decisions]
+   Score: 0.347 (hybrid)
+   - **Ship-pillar second source = Option C (2026-04-24).** Gmail-to-client-domain OR HubSpot engagement logged against a client company. Chosen over B (ticket actioned — too narrow), D (deal stage — ...
+
+10. MEMORY.md:37-41 [Key Decisions]
+   Score: 0.345 (hybrid)
+   - **CRM switch: Monday.com → HubSpot Free + GitHub Projects (2026-04-23).** Linards cut Monday.com entirely — no data migration, fresh HubSpot workspace. Commit `bb38524` shipped the migration; Hub...
+

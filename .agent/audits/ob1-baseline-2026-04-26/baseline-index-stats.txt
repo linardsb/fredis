@@ -1,0 +1,5 @@
+Backend: postgres
+Model: sentence-transformers/all-MiniLM-L6-v2
+Files indexed: 106
+Chunks: 345
+Vectors: 345

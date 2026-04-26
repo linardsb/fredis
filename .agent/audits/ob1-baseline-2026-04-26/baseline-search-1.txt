@@ -1,0 +1,42 @@
+Found 10 result(s):
+
+1. drafts/sent/lv-seed/2025-02-22_no-subject.md:1-12
+   Score: 0.538 (hybrid)
+   --- type: email recipient: atis.ozolins13@gmail.com, atis_ozolins@inbox.lv, atisvikisozolins@gmail.com subject: (no subject) date: 2025-02-22T19:50:19+00:00 source: gmail-seed ---  The official You...
+
+2. daily/2026-04-22.md:40-49 [Sessions]
+   Score: 0.397 (hybrid)
+   - **Atis reference updated in USER.md** — all three "Atis Vīķis" → "Atis"; role softened to "partner on Cab (setup in progress, not formalised)"; "Board member" dropped. Memory note saved to `user_...
+
+3. integrations/gmail/2026-04-23_1776930222.811549_can-you-see-what-was-last-email-from-ati.md:30-36 [Turn 2 · 08:45 · $0.0372]
+   Score: 0.375 (hybrid)
+   1. There are no recent emails directly from Atis — they may have stopped emailing 2. Atis might be using a different email address that I haven't searched yet 3. Recent emails from Atis might be ar...
+
+4. investors/juris-nefedovs.md:1-19 [Juris Ņefedovs — LV Business Advisor]
+   Score: 0.367 (hybrid)
+   \# Juris Ņefedovs — LV Business Advisor  **Role:** Business consultant + potential investor on the Cab application (Bolt-replacement, LV) **Channel:** WhatsApp — responds quickly **Relationship:** A...
+
+5. integrations/gmail/2026-04-23_1776930222.811549_can-you-see-what-was-last-email-from-ati.md:1-34 [Turn 2 · 08:45 · $0.0372]
+   Score: 0.361 (hybrid)
+   --- channel: gmail channel_id: C0AU9PHDPEX thread_ts: '1776930222.811549' created_at: '2026-04-23T08:44:00.300634' updated_at: '2026-04-23T08:45:08.771343' turns: 2 total_cost_usd: 0.06051 --- # ca...
+
+6. USER.md:126-143 [Key Contacts]
+   Score: 0.356 (hybrid)
+   - **Drafts tagged by service line in frontmatter:** yes — e.g., `service: bookkeeping`, `service: ai-build` (RAG filtering enabler)  ## Geography & Dual Operations  - **Bridge angle (UK ↔ LV):** pe...
+
+7. collaborators/atis-vikis.md:1-20 [Atis Vīķis — LV Partner]
+   Score: 0.355 (hybrid)
+   \# Atis Vīķis — LV Partner  **Role:** Board member of planned Cab application (Bolt-replacement, LV) **Relationship:** cousin **Channel:** WhatsApp — responds quickly  **Domain:** product developmen...
+
+8. collaborators/_network.md:1-17 [Notes]
+   Score: 0.350 (hybrid)
+   \# Strategic Network  | Name | Domain | Status | Last contact | Next action | |---|---|---|---|---| | [[atis-vikis\|Atis Vīķis]] | LV Cab application — partner / board, features + product dev + mark...
+
+9. USER.md:114-131 [Geography & Dual Operations]
+   Score: 0.342 (hybrid)
+   - **Active selling right now:** none formally — pre-revenue. Generating leads and potential clients is the K7 high-touch priority - **Service lines on the menu (in development):**   - AI-agentic bu...
+
+10. research/agriculture/latvia-landscape.md:23-48 [Institutions — distribution & credibility partners (not competitors)]
+   Score: 0.325 (hybrid)
+   - **Classification:** Competitor in narrow sense; **potential partner in wider sense** (they own local-data relationships; I own cross-jurisdiction methodology and UK/EU delivery credibility). - **...
+
