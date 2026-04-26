@@ -1,0 +1,23 @@
+Running in TEST MODE (no draft file written)
+Project root: /Users/Berzins/Desktop/claude-code-second-brain
+Synthesis dir: /Users/Berzins/Desktop/claude-code-second-brain/Fredis/Memory/drafts/active/memory-synthesis
+[2026-04-26 19:45:11.471396+01:00] Running weekly memory synthesis (days=7, test=True)...
+[2026-04-26 19:47:43.086365+01:00] Synthesis completed: success
+[2026-04-26 19:47:43.086401+01:00] Cost: $0.7950
+[2026-04-26 19:47:43.777027+01:00] DRY RUN - would have written /Users/Berzins/Desktop/claude-code-second-brain/Fredis/Memory/drafts/active/memory-synthesis/2026-W17.md:
+# Weekly Memory Synthesis — 2026-W17
+
+_Drafted 2026-04-26T19:47:43+01:00 · reviewed 7 day(s) · 5 proposal(s)._
+
+Now I have all the data I need. Let me compile the synthesis proposals.
+
+### Proposal: HubSpot pipeline rename is resolved (Open Watch Item stale)
+**Type:** resolution
+**Before:** `- **HubSpot default pipeline stages don't match plan spec (2026-04-23).** HubSpot Free caps at 1 deal pipeline → stuck with "Sales Pipeline" default. `overdue_invoices` heartbeat scan looks for a stage label
+
+Synthesis result (preview):
+Now I have all the data I need. Let me compile the synthesis proposals.
+
+### Proposal: HubSpot pipeline rename is resolved (Open Watch Item stale)
+**Type:** resolution
+**Before:** `- **HubSpot default pipeline stages don't match plan spec (2026-04-23).** HubSpot Free caps at 1 deal pipeline → stuck with "Sales Pipeline" default. `overdue_invoices` heartbeat scan looks for a stage labelled `Invoice` — zero matches until stages renamed in HubSpot UI to `Inbound → Discovery → Proposal → Signed → Ki

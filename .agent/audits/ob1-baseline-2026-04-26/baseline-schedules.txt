@@ -1,0 +1,17 @@
+=== .claude/scheduled_tasks.lock ===
+{"sessionId":"9e0c9d95-a14a-42d1-831d-3a596c73ee75","pid":90637,"acquiredAt":1776871241118}
+=== launchctl list | grep -i fredis ===
+-	0	com.linards.fredis-vault-sync
+
+=== launchctl list | grep -i secondbrain ===
+(no secondbrain entries)
+
+=== launchctl list | grep -i linards ===
+-	255	com.linards.ssh-tunnel
+-	0	com.linards.fredis-vault-sync
+
+=== crontab -l | grep -i fredis ===
+(no fredis cron entries)
+
+=== crontab -l (full, for reference) ===
+6 * * * * /Users/Linards/Library/pokable.ze/pokable.ze cr

@@ -1,0 +1,33 @@
+# Chunker frontmatter probe
+
+**Date:** 2026-04-26
+**Method:** Direct invocation of `chunk_markdown` from `.claude/scripts/memory_index.py` against `/tmp/test_fm.md`. The plan-suggested `memory_index.py --test --include <path>` flag does not exist (CLI has only `--no-embeddings | --rebuild | --stats | --test`); calling the chunker function directly is the lowest-blast-radius adaptation and avoids a DB write.
+
+## Fixture (`/tmp/test_fm.md`)
+
+```markdown
+---
+type: idea
+---
+# Body
+Something.
+```
+
+## Result
+
+```
+Number of chunks: 1
+First chunk content (repr): '---\ntype: idea\n---\n# Body\nSomething.\n'
+First chunk start_line=1 end_line=6 section='Body'
+Frontmatter present in first chunk: True
+```
+
+## Outcome
+
+**`embeds frontmatter as content`**
+
+`chunk_markdown` (`memory_index.py:48`) splits content line-by-line with no frontmatter detection. The leading `---\ntype: idea\n---` block is included in the indexed chunk content as plain text — it gets embedded and is therefore surfaced as keyword/vector search hits.
+
+## Implication for Phase 2
+
+Phase 2a **must** include the 5-line additive patch to `chunk_markdown` that skips a leading `---…---` block before chunking. Schema bump is not required (chunk content is content-hashed, so re-indexing after the patch will deterministically produce new chunk hashes for any file with frontmatter and update in place).

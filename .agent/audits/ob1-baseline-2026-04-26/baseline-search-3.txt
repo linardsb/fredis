@@ -1,0 +1,42 @@
+Found 10 result(s):
+
+1. drafts/sent/lv-seed/2025-07-31_vienreizejie-apmeklejumi-2.md:1-15
+   Score: 0.470 (hybrid)
+   --- type: email recipient: info@occesis.lv subject: vienreizejie apmeklejumi date: 2025-07-31T09:27:32+01:00 source: gmail-seed ---  Sveiki,  Esmu ciemos pie radiem Cēsīs. Vai jums ir pieejami vien...
+
+2. drafts/sent/lv-seed/2025-07-31_vienreizejie-apmeklejumi.md:1-15
+   Score: 0.468 (hybrid)
+   --- type: email recipient: sporta.nams@salaspils.lv subject: vienreizejie apmeklejumi date: 2025-07-31T09:35:13+01:00 source: gmail-seed ---  Sveiki,  Vai jums ir pieejami vienreizējie trenažieru z...
+
+3. drafts/active/memory-synthesis/2026-W17.md:1-15 [Weekly Memory Synthesis — 2026-W17]
+   Score: 0.378 (hybrid)
+   \# Weekly Memory Synthesis — 2026-W17  _Drafted 2026-04-26T08:01:35+01:00 · reviewed 7 day(s) · 4 proposal(s)._  ### Proposal: VTV-first sequencing already decided — remove watch item **Type:** reso...
+
+4. MEMORY.md:172-180 [Open Watch Items]
+   Score: 0.372 (hybrid)
+   - **VTV-first sequencing — needs explicit confirmation.** Linards hasn't confirmed whether VTV ships first with Cab after, or whether Cab runs in parallel. Product plan assumes sequential (2026-04-...
+
+5. USER.md:153-164 [Notes]
+   Score: 0.370 (hybrid)
+   - **IndyDevDan** — AI expert (research / signal source) - **Vilis Krištopans** — LPV co-founder, former LV Transport Minister, businessman. Facebook DM; replies seldom. Potential VTV / Riga public-...
+
+6. daily/2026-04-19.md:102-124 [Sessions]
+   Score: 0.368 (hybrid)
+   - **Sequencing decision:** VTV ships first, then Cab rides on VTV's distribution (government relationships, operator network). Cab only viable if VTV lands real conversations. Email Hub blocked by ...
+
+7. MEMORY.md:138-158 [Preferences Confirmed]
+   Score: 0.364 (hybrid)
+   **Sequencing decided (2026-04-19):** product-builder path. VTV first → Cab rides VTV distribution → Email Hub after IP clearance. UGOKI + GERBONI paused. See Key Decisions above for kill triggers. ...
+
+8. MEMORY.md:79-87 [Lessons Learned]
+   Score: 0.359 (hybrid)
+   - **LPV channel is an accelerator, not a foundation.** Šlesers and Krištopans replied because Linards is an LPV member writing sharp Latvian. If LPV isn't in government after the next election, tho...
+
+9. MEMORY.md:15-23 [Key Decisions]
+   Score: 0.359 (hybrid)
+   - **Strategic pivot: product-builder, not consultant-closer (2026-04-19).** Linards chose to build a portfolio of products using Fredis + Archon as tooling spine, rather than positioning as a consu...
+
+10. daily/2026-04-16.md:75-86 [phase1-ready — Memory Layer Personalised (17:5x)]
+   Score: 0.352 (hybrid)
+   - `USER.md` — basic info + role at Dentsu/Merkle + 5 active projects (Email Hub, VTV, UGOKI, GERBONI, Cab); UK + LV bridge; F-section integrations all `TBD`; Service Lines, Geography, Key Contacts ...
+
