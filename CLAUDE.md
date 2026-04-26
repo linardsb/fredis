@@ -113,5 +113,6 @@ Subsystem implementation detail is split out of this file so every SDK caller (h
 - **`docs/phases.md`** — completed-phase history (Phases 1 through 10.5).
 - **`docs/vps-deployment-and-vault-sync.md`** — VPS deployment + vault-sync operational detail.
 - **`docs/phase10-deploy-progress.md`** — Phase 10 deployment log.
+- **`docs/llm-and-vps-swapping.md`** — how to swap front-end clients (easy, post-OB1-Phase-1) vs swapping the autonomous-services LLM (hard, full SDK rewrite). Read first before changing which LLM talks to Fredis.
 
 Before looking up anything with a date, check the current date first.
