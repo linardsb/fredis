@@ -48,6 +48,33 @@ if [ ! -d "$REPO_ROOT/Fredis" ]; then
     exit 0
 fi
 
+# 0.5. SSHD self-heal (REMOVE AFTER RECOVERY — added 2026-04-26).
+# sshd refused connections from the Mac side; this block runs from systemd as
+# root, restarts sshd if down, and writes a diagnostic into Fredis/ so the
+# round-trip vault-sync surfaces it locally. Idempotent: skip if sshd already
+# active. Wrapped to never fail the parent script (set -e safe).
+if command -v systemctl >/dev/null 2>&1; then
+    DIAG="$REPO_ROOT/Fredis/Memory/_ssh_diag.txt"
+    {
+        echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ) sshd self-heal probe ==="
+        echo "--- is-active before ---"
+        systemctl is-active ssh 2>&1 || true
+        if ! systemctl is-active --quiet ssh 2>/dev/null; then
+            echo "--- restart attempt ---"
+            systemctl restart ssh 2>&1 || echo "restart failed"
+            echo "--- is-active after ---"
+            systemctl is-active ssh 2>&1 || true
+        else
+            echo "(sshd already active — no restart needed)"
+        fi
+        echo "--- listen check (port 22) ---"
+        ss -tlnp 2>/dev/null | grep -E ':22\b' || echo "(nothing listening on :22)"
+        echo "--- recent journal ---"
+        journalctl -u ssh -n 20 --no-pager 2>&1 || echo "(journal unavailable)"
+    } > "$DIAG" 2>&1 || true
+    log "sshd self-heal probe → $DIAG"
+fi
+
 # 1. Stage only Fredis/ changes (new/mod/del).
 git add -A -- Fredis/ 2>&1 | tee -a "$LOG" >/dev/null || true
 
