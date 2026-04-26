@@ -27,6 +27,10 @@ dependencies = [
     "textual>=0.85.0",
     # Phase 5.2: Gate-breach heartbeat wiring (YAML gate files)
     "pyyaml>=6.0.0",
+    # OB1 Phase 1.1: Fredis MCP server (FastMCP). Currently transitive via
+    # claude-agent-sdk; declared explicitly so the server doesn't break silently
+    # if a future SDK version drops it.
+    "mcp>=1.0",
 ]
 
 [project.optional-dependencies]
