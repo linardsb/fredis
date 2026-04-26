@@ -48,38 +48,6 @@ if [ ! -d "$REPO_ROOT/Fredis" ]; then
     exit 0
 fi
 
-# 0.5. SSHD ban recovery (REMOVE AFTER RECOVERY — added 2026-04-26 v2).
-# sshd is fine; fail2ban banned the Mac's IP (89.241.201.32) after the
-# launchd ssh-tunnel kept failing auth. Unban the Mac and dump auth config
-# to a diag file so we can fix the underlying key/auth mismatch.
-if command -v systemctl >/dev/null 2>&1; then
-    DIAG="$REPO_ROOT/Fredis/Memory/_ssh_diag.txt"
-    MAC_IP="89.241.201.32"
-    {
-        echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ) sshd ban recovery ==="
-        echo "--- fail2ban status (overall) ---"
-        fail2ban-client status 2>&1 || echo "(fail2ban-client unavailable)"
-        echo "--- fail2ban status sshd jail ---"
-        fail2ban-client status sshd 2>&1 || echo "(no sshd jail)"
-        echo "--- unban $MAC_IP (all jails) ---"
-        fail2ban-client unban "$MAC_IP" 2>&1 || echo "(unban failed)"
-        echo "--- iptables filter (lines mentioning $MAC_IP or DROP/REJECT) ---"
-        iptables -L -n 2>&1 | grep -E "$MAC_IP|DROP|REJECT|Chain " || echo "(no matching lines)"
-        echo "--- /etc/ssh/sshd_config restrictions ---"
-        grep -E "^[[:space:]]*(PermitRootLogin|PasswordAuthentication|PubkeyAuthentication|AllowUsers|AllowGroups|DenyUsers|MaxAuthTries|AuthorizedKeysFile)" /etc/ssh/sshd_config 2>&1 || echo "(unreadable)"
-        echo "--- /root/.ssh/authorized_keys (key types + comments only, no key bodies) ---"
-        if [ -f /root/.ssh/authorized_keys ]; then
-            awk '{ comment=""; for(i=3;i<=NF;i++) comment=comment" "$i; printf "%-20s%s\n", $1, comment }' /root/.ssh/authorized_keys 2>&1
-            echo "(total lines: $(wc -l < /root/.ssh/authorized_keys))"
-        else
-            echo "(/root/.ssh/authorized_keys does not exist)"
-        fi
-        echo "--- recent sshd journal lines for $MAC_IP ---"
-        journalctl -u ssh -n 200 --no-pager 2>&1 | grep -E "$MAC_IP|Accepted|fail2ban" | tail -20 || echo "(no relevant lines)"
-    } > "$DIAG" 2>&1 || true
-    log "sshd ban recovery probe → $DIAG"
-fi
-
 # 1. Stage only Fredis/ changes (new/mod/del).
 git add -A -- Fredis/ 2>&1 | tee -a "$LOG" >/dev/null || true
 
