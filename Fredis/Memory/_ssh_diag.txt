@@ -1,4 +1,4 @@
-=== 2026-04-26T19:25:57Z sshd self-heal probe ===
+=== 2026-04-26T19:28:03Z sshd self-heal probe ===
 --- is-active before ---
 active
 (sshd already active — no restart needed)
@@ -6,15 +6,6 @@ active
 LISTEN 0      4096         0.0.0.0:22         0.0.0.0:*    users:(("sshd",pid=383181,fd=3),("systemd",pid=1,fd=227))
 LISTEN 0      4096            [::]:22            [::]:*    users:(("sshd",pid=383181,fd=4),("systemd",pid=1,fd=228))
 --- recent journal ---
-Apr 26 20:24:14 ubuntu-4gb-hel1-1 sshd[1129536]: pam_unix(sshd:auth): check pass; user unknown
-Apr 26 20:24:16 ubuntu-4gb-hel1-1 sshd[1129536]: Failed password for invalid user linnea from 213.209.159.159 port 17977 ssh2
-Apr 26 20:24:23 ubuntu-4gb-hel1-1 sshd[1129585]: Invalid user tacacs13 from 186.96.145.241 port 50176
-Apr 26 20:24:23 ubuntu-4gb-hel1-1 sshd[1129585]: pam_unix(sshd:auth): check pass; user unknown
-Apr 26 20:24:23 ubuntu-4gb-hel1-1 sshd[1129585]: pam_unix(sshd:auth): authentication failure; logname= uid=0 euid=0 tty=ssh ruser= rhost=186.96.145.241
-Apr 26 20:24:25 ubuntu-4gb-hel1-1 sshd[1129585]: Failed password for invalid user tacacs13 from 186.96.145.241 port 50176 ssh2
-Apr 26 20:24:25 ubuntu-4gb-hel1-1 sshd[1129585]: Connection closed by invalid user tacacs13 186.96.145.241 port 50176 [preauth]
-Apr 26 20:24:45 ubuntu-4gb-hel1-1 sshd[1129652]: Failed password for root from 89.241.201.32 port 17175 ssh2
-Apr 26 20:24:45 ubuntu-4gb-hel1-1 sshd[1129652]: Failed password for root from 89.241.201.32 port 17175 ssh2
 Apr 26 20:24:45 ubuntu-4gb-hel1-1 sshd[1129652]: Connection closed by authenticating user root 89.241.201.32 port 17175 [preauth]
 Apr 26 20:25:07 ubuntu-4gb-hel1-1 sshd[1129699]: pam_unix(sshd:auth): authentication failure; logname= uid=0 euid=0 tty=ssh ruser= rhost=88.147.30.59  user=root
 Apr 26 20:25:09 ubuntu-4gb-hel1-1 sshd[1129699]: Failed password for root from 88.147.30.59 port 52736 ssh2
@@ -26,3 +17,12 @@ Apr 26 20:25:16 ubuntu-4gb-hel1-1 sshd[1129724]: Connection closed by authentica
 Apr 26 20:25:46 ubuntu-4gb-hel1-1 sshd[1129789]: Failed password for root from 89.241.201.32 port 17196 ssh2
 Apr 26 20:25:46 ubuntu-4gb-hel1-1 sshd[1129789]: Failed password for root from 89.241.201.32 port 17196 ssh2
 Apr 26 20:25:47 ubuntu-4gb-hel1-1 sshd[1129789]: Connection closed by authenticating user root 89.241.201.32 port 17196 [preauth]
+Apr 26 20:25:58 ubuntu-4gb-hel1-1 sshd[1129840]: Invalid user ubuntu from 195.178.110.30 port 48498
+Apr 26 20:25:58 ubuntu-4gb-hel1-1 sshd[1129840]: pam_unix(sshd:auth): check pass; user unknown
+Apr 26 20:25:58 ubuntu-4gb-hel1-1 sshd[1129840]: pam_unix(sshd:auth): authentication failure; logname= uid=0 euid=0 tty=ssh ruser= rhost=195.178.110.30
+Apr 26 20:26:00 ubuntu-4gb-hel1-1 sshd[1129840]: Failed password for invalid user ubuntu from 195.178.110.30 port 48498 ssh2
+Apr 26 20:26:00 ubuntu-4gb-hel1-1 sshd[1129840]: Connection closed by invalid user ubuntu 195.178.110.30 port 48498 [preauth]
+Apr 26 20:28:00 ubuntu-4gb-hel1-1 sshd[1130112]: pam_unix(sshd:auth): authentication failure; logname= uid=0 euid=0 tty=ssh ruser= rhost=88.147.30.59  user=root
+Apr 26 20:28:02 ubuntu-4gb-hel1-1 sshd[1130112]: Failed password for root from 88.147.30.59 port 52628 ssh2
+Apr 26 20:28:03 ubuntu-4gb-hel1-1 sshd[1130112]: Received disconnect from 88.147.30.59 port 52628:11: Bye Bye [preauth]
+Apr 26 20:28:03 ubuntu-4gb-hel1-1 sshd[1130112]: Disconnected from authenticating user root 88.147.30.59 port 52628 [preauth]
