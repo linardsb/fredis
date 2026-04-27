@@ -1,9 +1,11 @@
 """
-Fredis MCP server (OB1 Phase 1.1).
+Fredis MCP server (OB1 Phase 1).
 
-FastMCP entry point exposing 7 read-only tools over stdio. Refuses to start
-unless ``FREDIS_MCP_ENABLED=1``. The other ``FREDIS_MCP_*`` env vars are
-placeholders for slices 02–04 (auth, denylist, remote transport).
+FastMCP entry point exposing 7 read-only tools and 1 write tool
+(``propose_draft``) over stdio. Refuses to start unless
+``FREDIS_MCP_ENABLED=1``. ``FREDIS_MCP_DENYLIST`` is honoured by the read
+tools as of slice 1.2; ``FREDIS_MCP_BIND`` / ``_PORT`` / ``_AUTH_TOKEN``
+remain placeholders for the optional HTTP+SSE remote transport (slice 1B).
 
 Run via wrapper:
 
@@ -18,7 +20,7 @@ from __future__ import annotations
 import logging
 import os
 import sys
-from typing import Any
+from typing import Any, Literal
 
 from mcp.server.fastmcp import FastMCP
 
@@ -43,7 +45,8 @@ def _configure_logging() -> logging.Logger:
 
 
 def build_server() -> FastMCP:
-    """Construct a FastMCP instance with the 7 read-only tools registered."""
+    """Construct a FastMCP instance with all tools registered (7 read +
+    ``propose_draft`` write)."""
     mcp: FastMCP = FastMCP(name="fredis")
 
     @mcp.tool(
@@ -107,6 +110,47 @@ def build_server() -> FastMCP:
     @mcp.tool(description="Return memory_index --stats shape.")
     def index_status() -> dict[str, Any]:
         return tools.index_status()
+
+    @mcp.tool(
+        description=(
+            "Propose a draft from an external AI client. The draft is written "
+            "to Fredis/Memory/drafts/active/<source>/<YYYY-MM-DD>_<slug>.md "
+            "with YAML frontmatter. This is the ONLY write surface; it cannot "
+            "create files outside drafts/active/<source>/. `source` must be "
+            "one of the listed clients; `type` is the frontmatter type "
+            "(decision, idea, task, insight, reply, meeting, client-log, "
+            "research, draft). Returns {ok, path} on success, {ok: false, "
+            "error} on rejection."
+        )
+    )
+    def propose_draft(
+        source: Literal[
+            "chatgpt", "cursor", "gemini", "claude-desktop", "web-claude"
+        ],
+        title: str,
+        body: str,
+        type: Literal[
+            "decision",
+            "idea",
+            "task",
+            "insight",
+            "reply",
+            "meeting",
+            "client-log",
+            "research",
+            "draft",
+        ] = "draft",
+        people: list[str] | None = None,
+        projects: list[str] | None = None,
+    ) -> dict[str, Any]:
+        return tools.propose_draft(
+            source=source,
+            title=title,
+            body=body,
+            type=type,
+            people=people,
+            projects=projects,
+        )
 
     return mcp
 

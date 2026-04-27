@@ -1,5 +1,5 @@
 """
-Fredis MCP read-only tool implementations (OB1 Phase 1.1).
+Fredis MCP tool implementations (OB1 Phase 1).
 
 Pure functions — no MCP server state. Each function accepts typed arguments and
 returns a JSON-serialisable dict. The MCP server (`fredis_mcp_server.py`) wraps
@@ -13,12 +13,13 @@ Tools shipped in this slice:
 - get_soul_summary    — returns SOUL.md
 - get_user_profile    — USER.md filtered through secret_patterns
 - index_status        — same shape as memory_index.py --stats
+- propose_draft       — only write surface; lands in drafts/active/<source>/
 """
 
 from __future__ import annotations
 
 import re
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -38,6 +39,34 @@ from secret_patterns import SECRET_PATTERNS
 
 USER_PROFILE_MIN_CHARS = 200
 ALLOWED_DRAFT_STATUSES = {"active", "sent", "expired"}
+
+# Strict allowlist for the `source` field on propose_draft. External AIs that
+# don't appear here cannot write — adding a new client requires a code change,
+# which is the point: the source name becomes the on-disk directory.
+DRAFT_SOURCES: frozenset[str] = frozenset(
+    {"chatgpt", "cursor", "gemini", "claude-desktop", "web-claude"}
+)
+
+# Frontmatter `type` field — mirrors the Phase 2a schema (decision/idea/...)
+# so this slice writes future-compatible files without depending on 2a.
+DRAFT_TYPES: frozenset[str] = frozenset(
+    {
+        "decision",
+        "idea",
+        "task",
+        "insight",
+        "reply",
+        "meeting",
+        "client-log",
+        "research",
+        "draft",
+    }
+)
+
+_SLUG_MAX = 60
+_COLLISION_MAX = 1000
+_NON_SLUG_RE = re.compile(r"[^a-z0-9-]")
+_DASH_REPEAT_RE = re.compile(r"-+")
 
 # Cap on the over-fetch used to compensate for denylist drops, so a hostile
 # query can't trigger an unbounded engine call.
@@ -284,3 +313,115 @@ def index_status() -> dict[str, Any]:
     stats = db.get_stats()
     db.close()
     return dict(stats)
+
+
+def _slugify_title(title: str) -> str:
+    """Slugify a free-form title for use in a filename.
+
+    Lowercase, ASCII-only, replace any non-``[a-z0-9-]`` with ``-``, collapse
+    runs of dashes, trim, truncate to 60 chars (re-trimming any trailing dash
+    left by truncation). Returns ``"untitled"`` when nothing survives — a
+    title made entirely of slashes / dots / non-ASCII collapses to that.
+
+    The point of this function is the security boundary: no slash, no dot,
+    no path separator can survive into the filename. Path traversal via the
+    title field is impossible by construction.
+    """
+    s = title.lower()
+    s = _NON_SLUG_RE.sub("-", s)
+    s = _DASH_REPEAT_RE.sub("-", s).strip("-")
+    s = s[:_SLUG_MAX].strip("-")
+    return s or "untitled"
+
+
+def _yaml_inline_list(items: list[str]) -> str:
+    """Render a list of strings as a YAML inline list with double-quoted
+    items, escaping ``\\`` and ``"`` so values containing commas / quotes /
+    brackets cannot break out of the field."""
+    parts: list[str] = []
+    for item in items:
+        escaped = item.replace("\\", "\\\\").replace('"', '\\"')
+        parts.append(f'"{escaped}"')
+    return "[" + ", ".join(parts) + "]"
+
+
+def propose_draft(
+    source: str,
+    title: str,
+    body: str,
+    type: str = "draft",
+    people: list[str] | None = None,
+    projects: list[str] | None = None,
+) -> dict[str, Any]:
+    """Write a candidate draft from an external AI into ``drafts/active/<source>/``.
+
+    The ONLY write surface on the MCP server. Security perimeter:
+
+    1. ``source`` is matched against the literal ``DRAFT_SOURCES`` allowlist
+       before any filesystem call — bad sources cause a structured error and
+       leave the vault untouched.
+    2. ``title`` is slugified (no ``/``, no ``..``, no ``.``) before it ever
+       reaches the filesystem.
+    3. The destination dir is resolved (``Path.resolve``) and asserted to live
+       under ``drafts/active/`` — an attacker who pre-creates a symlink at
+       ``drafts/active/<source>/`` pointing elsewhere is rejected here.
+    4. Files are written with ``open(path, "x")`` (``O_CREAT | O_EXCL``) so a
+       collision never overwrites — a numeric suffix is appended on the next
+       loop iteration.
+
+    Returns ``{"ok": True, "path": "<vault-relative path>"}`` on success;
+    ``{"ok": False, "error": "<reason>"}`` on any rejection.
+    """
+    if source not in DRAFT_SOURCES:
+        return {"ok": False, "error": "invalid source"}
+    if type not in DRAFT_TYPES:
+        return {"ok": False, "error": "invalid type"}
+
+    people_list = list(people) if people else []
+    projects_list = list(projects) if projects else []
+
+    base_dir = DRAFTS_DIR / "active"
+    target_dir = base_dir / source
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    base_real = base_dir.resolve()
+    target_real = target_dir.resolve()
+    try:
+        target_real.relative_to(base_real)
+    except ValueError:
+        return {"ok": False, "error": "destination outside drafts/active"}
+
+    slug = _slugify_title(title)
+    today = date.today().isoformat()
+    created = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    frontmatter = (
+        "---\n"
+        f"type: {type}\n"
+        f"source: mcp:{source}\n"
+        f"people: {_yaml_inline_list(people_list)}\n"
+        f"projects: {_yaml_inline_list(projects_list)}\n"
+        f"created: {created}\n"
+        "---\n"
+        f"# {title}\n"
+        "\n"
+        f"{body}\n"
+    )
+
+    written: Path | None = None
+    for n in range(1, _COLLISION_MAX):
+        suffix = "" if n == 1 else f"_{n}"
+        candidate = target_real / f"{today}_{slug}{suffix}.md"
+        try:
+            with candidate.open("x", encoding="utf-8") as fh:
+                fh.write(frontmatter)
+            written = candidate
+            break
+        except FileExistsError:
+            continue
+
+    if written is None:
+        return {"ok": False, "error": "filename collision exhausted"}
+
+    rel = written.resolve().relative_to(MEMORY_DIR.resolve()).as_posix()
+    return {"ok": True, "path": rel}

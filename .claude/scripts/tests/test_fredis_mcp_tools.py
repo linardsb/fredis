@@ -7,6 +7,7 @@ model load.
 
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
@@ -476,3 +477,209 @@ def test_get_file_traversal_still_rejected_with_denylist(
     out = tools.get_file("../../etc/passwd")
     assert out["content"] is None
     assert out["reason"] == "path not accessible"
+
+
+# --------------------------------------------------------------------------- #
+# Slice 1.3 — propose_draft (the only write surface)
+# --------------------------------------------------------------------------- #
+
+
+def _vault_snapshot(vault: Path) -> set[Path]:
+    """Return the set of every path under the vault — used to assert that a
+    rejected call made no filesystem mutation."""
+    return set(vault.rglob("*"))
+
+
+def _read_frontmatter_block(text: str) -> dict[str, str]:
+    """Naive YAML-frontmatter parser — splits on ``---`` markers and parses
+    each ``key: value`` line. Avoids adding a python-frontmatter dep just for
+    these assertions."""
+    if not text.startswith("---\n"):
+        raise AssertionError("expected file to start with frontmatter marker")
+    rest = text[4:]
+    end = rest.find("\n---\n")
+    if end == -1:
+        raise AssertionError("expected closing frontmatter marker")
+    block = rest[:end]
+    out: dict[str, str] = {}
+    for line in block.splitlines():
+        if ":" not in line:
+            continue
+        key, _, value = line.partition(":")
+        out[key.strip()] = value.strip()
+    return out
+
+
+def test_propose_draft_happy_path(fake_vault: Path) -> None:
+    out = tools.propose_draft(
+        source="chatgpt",
+        title="Atis Q2 plan",
+        body="Two paragraphs about VTV pilot timing.",
+        type="idea",
+        people=["Atis"],
+        projects=["vtv"],
+    )
+    assert out["ok"] is True
+    assert out["path"].startswith("drafts/active/chatgpt/")
+    assert out["path"].endswith("_atis-q2-plan.md")
+
+    written = fake_vault / out["path"]
+    assert written.is_file(), "draft file must exist on disk"
+    text = written.read_text(encoding="utf-8")
+
+    fm = _read_frontmatter_block(text)
+    assert fm["type"] == "idea"
+    assert fm["source"] == "mcp:chatgpt"
+    assert fm["people"] == '["Atis"]'
+    assert fm["projects"] == '["vtv"]'
+    # ISO-8601 with Z suffix.
+    assert re.fullmatch(
+        r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", fm["created"]
+    ), f"unexpected created stamp: {fm['created']!r}"
+
+    # Body section after the frontmatter.
+    assert "# Atis Q2 plan" in text
+    assert "Two paragraphs about VTV pilot timing." in text
+
+
+def test_propose_draft_invalid_source_makes_no_fs_call(fake_vault: Path) -> None:
+    before = _vault_snapshot(fake_vault)
+    out = tools.propose_draft(
+        source="../../etc",  # type: ignore[arg-type]
+        title="malicious",
+        body="x",
+    )
+    assert out == {"ok": False, "error": "invalid source"}
+    after = _vault_snapshot(fake_vault)
+    assert before == after, (
+        "rejected source must not touch the filesystem — "
+        f"diff: {(after - before) | (before - after)}"
+    )
+
+
+def test_propose_draft_invalid_type_rejected(fake_vault: Path) -> None:
+    out = tools.propose_draft(
+        source="chatgpt",
+        title="t",
+        body="b",
+        type="evil-type",  # type: ignore[arg-type]
+    )
+    assert out == {"ok": False, "error": "invalid type"}
+
+
+def test_propose_draft_traversal_via_title_lands_in_right_dir(
+    fake_vault: Path,
+) -> None:
+    out = tools.propose_draft(
+        source="chatgpt",
+        title="../../etc/passwd",
+        body="should not escape",
+    )
+    assert out["ok"] is True
+
+    rel = out["path"]
+    # No path traversal artefacts can survive into the slug.
+    assert "/.." not in rel
+    assert "/etc/" not in rel.replace("drafts/active/", "", 1)
+    # The file lands strictly under drafts/active/chatgpt/.
+    assert rel.startswith("drafts/active/chatgpt/")
+
+    written = fake_vault / rel
+    assert written.is_file()
+    # Realpath of the written file must be under realpath of drafts/active/.
+    base_real = (fake_vault / "drafts" / "active").resolve()
+    assert written.resolve().is_relative_to(base_real)
+
+
+def test_propose_draft_collision_appends_suffix(fake_vault: Path) -> None:
+    first = tools.propose_draft(
+        source="chatgpt", title="Collision Test", body="first"
+    )
+    second = tools.propose_draft(
+        source="chatgpt", title="Collision Test", body="second"
+    )
+    third = tools.propose_draft(
+        source="chatgpt", title="Collision Test", body="third"
+    )
+    assert first["ok"] is True
+    assert second["ok"] is True
+    assert third["ok"] is True
+    assert first["path"] != second["path"]
+    assert second["path"] != third["path"]
+    assert second["path"].endswith("_2.md")
+    assert third["path"].endswith("_3.md")
+
+    # Original is untouched.
+    first_text = (fake_vault / first["path"]).read_text(encoding="utf-8")
+    assert "first" in first_text
+    assert "second" not in first_text
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="symlink creation requires elevated privileges on Windows",
+)
+def test_propose_draft_rejects_symlinked_destination(
+    fake_vault: Path, tmp_path: Path
+) -> None:
+    """If ``drafts/active/chatgpt/`` is a symlink whose realpath escapes
+    drafts/active, the write must fail. The realpath assertion catches this
+    before any file is written."""
+    evil = tmp_path / "evil"
+    evil.mkdir()
+    alias = fake_vault / "drafts" / "active" / "chatgpt"
+    # The fixture didn't create chatgpt/, so we make the symlink fresh.
+    assert not alias.exists()
+    alias.symlink_to(evil, target_is_directory=True)
+
+    before_evil = set(evil.iterdir())
+    before_drafts = _vault_snapshot(fake_vault / "drafts")
+
+    out = tools.propose_draft(
+        source="chatgpt",
+        title="symlink probe",
+        body="should not land",
+    )
+
+    assert out["ok"] is False, (
+        "symlinked destination must be rejected — got " + repr(out)
+    )
+    assert "drafts/active" in out["error"]
+
+    # Nothing landed in the evil dir.
+    assert set(evil.iterdir()) == before_evil
+    # The drafts subtree change is limited to the symlink itself (already
+    # there before the call), no new file under it.
+    assert _vault_snapshot(fake_vault / "drafts") == before_drafts
+
+
+def test_propose_draft_yaml_inline_list_escapes_quotes(fake_vault: Path) -> None:
+    out = tools.propose_draft(
+        source="cursor",
+        title="quote escape",
+        body="x",
+        people=['Alice "the boss"', "Bob, the famous"],
+    )
+    assert out["ok"] is True
+    text = (fake_vault / out["path"]).read_text(encoding="utf-8")
+    fm = _read_frontmatter_block(text)
+    # The `people:` line stays a single line with both items intact —
+    # commas / quotes inside names did not break the YAML field.
+    assert "Alice" in fm["people"]
+    assert "Bob" in fm["people"]
+    # Embedded double quotes are backslash-escaped, not raw.
+    assert '\\"the boss\\"' in fm["people"]
+
+
+def test_propose_draft_empty_optional_fields(fake_vault: Path) -> None:
+    out = tools.propose_draft(
+        source="claude-desktop",
+        title="t",
+        body="b",
+    )
+    assert out["ok"] is True
+    text = (fake_vault / out["path"]).read_text(encoding="utf-8")
+    fm = _read_frontmatter_block(text)
+    assert fm["people"] == "[]"
+    assert fm["projects"] == "[]"
+    assert fm["type"] == "draft"
