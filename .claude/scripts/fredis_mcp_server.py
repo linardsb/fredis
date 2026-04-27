@@ -2,10 +2,20 @@
 Fredis MCP server (OB1 Phase 1).
 
 FastMCP entry point exposing 7 read-only tools and 1 write tool
-(``propose_draft``) over stdio. Refuses to start unless
-``FREDIS_MCP_ENABLED=1``. ``FREDIS_MCP_DENYLIST`` is honoured by the read
-tools as of slice 1.2; ``FREDIS_MCP_BIND`` / ``_PORT`` / ``_AUTH_TOKEN``
-remain placeholders for the optional HTTP+SSE remote transport (slice 1B).
+(``propose_draft``). Two transports are supported, selected by env:
+
+- ``FREDIS_MCP_TRANSPORT`` unset or ``stdio`` (default): runs over stdio for
+  per-client subprocess use (Mac wrapper, Claude Desktop, Cursor, etc.).
+  ``FREDIS_MCP_DENYLIST`` is honoured; no network surface, no auth needed.
+
+- ``FREDIS_MCP_TRANSPORT=streamable-http`` (Phase 1B, VPS only): builds the
+  FastMCP streamable-http ASGI app, wraps it in
+  ``fredis_mcp_auth.bearer_auth_app``, and serves it via uvicorn on
+  ``FREDIS_MCP_BIND:FREDIS_MCP_PORT``. ``FREDIS_MCP_AUTH_TOKEN`` is required
+  — the server refuses to start without it. Bind defaults to ``127.0.0.1``;
+  on the VPS it stays loopback and Tailscale Serve fronts it on HTTPS.
+
+Refuses to start unless ``FREDIS_MCP_ENABLED=1``.
 
 Run via wrapper:
 
@@ -156,7 +166,12 @@ def build_server() -> FastMCP:
 
 
 def main() -> int:
-    """Server entry point. Refuses unless ``FREDIS_MCP_ENABLED=1``."""
+    """Server entry point. Refuses unless ``FREDIS_MCP_ENABLED=1``.
+
+    Selects transport from ``FREDIS_MCP_TRANSPORT`` (default ``stdio``).
+    Stdio path is unchanged from Phase 1.1; streamable-http branch is the
+    Phase 1B addition for VPS-side remote use.
+    """
     if os.getenv("FREDIS_MCP_ENABLED") != "1":
         print(
             "fredis-mcp: refusing to start — FREDIS_MCP_ENABLED is not set "
@@ -166,10 +181,71 @@ def main() -> int:
         return 1
 
     logger = _configure_logging()
-    logger.info("starting fredis-mcp server (stdio transport)")
+
+    transport = (os.getenv("FREDIS_MCP_TRANSPORT", "stdio") or "stdio").strip().lower()
+
+    if transport == "stdio":
+        logger.info("starting fredis-mcp server (stdio transport)")
+        mcp = build_server()
+        mcp.run("stdio")
+        return 0
+
+    if transport == "streamable-http":
+        return _run_streamable_http(logger)
+
+    print(
+        f"fredis-mcp: unknown FREDIS_MCP_TRANSPORT value: {transport!r}. "
+        "Supported: 'stdio' (default), 'streamable-http'.",
+        file=sys.stderr,
+    )
+    return 1
+
+
+def _run_streamable_http(logger: logging.Logger) -> int:
+    """Build and serve the streamable-http transport with bearer auth.
+
+    Refuses to start without ``FREDIS_MCP_AUTH_TOKEN`` — silent open access
+    is the worst failure mode for a network-exposed MCP. Bind defaults to
+    ``127.0.0.1`` so the deploy targets Tailscale Serve fronting loopback,
+    not direct exposure on the Tailscale interface.
+    """
+    bind = (os.getenv("FREDIS_MCP_BIND", "127.0.0.1") or "127.0.0.1").strip()
+    port_raw = (os.getenv("FREDIS_MCP_PORT", "4747") or "4747").strip()
+    try:
+        port = int(port_raw)
+    except ValueError:
+        print(
+            f"fredis-mcp: FREDIS_MCP_PORT must be an integer, got {port_raw!r}.",
+            file=sys.stderr,
+        )
+        return 1
+
+    token = (os.getenv("FREDIS_MCP_AUTH_TOKEN", "") or "").strip()
+    if not token:
+        print(
+            "fredis-mcp: refusing to start — FREDIS_MCP_TRANSPORT=streamable-http "
+            "requires FREDIS_MCP_AUTH_TOKEN. Set it in /etc/secondbrain.env (VPS) "
+            "or .claude/scripts/.env (local).",
+            file=sys.stderr,
+        )
+        return 1
+
+    # Lazy imports — only the remote path needs uvicorn / Starlette / the auth
+    # middleware. Stdio sessions never load these modules.
+    import uvicorn
+
+    from fredis_mcp_auth import bearer_auth_app
 
     mcp = build_server()
-    mcp.run("stdio")
+    app = mcp.streamable_http_app()
+    wrapped = bearer_auth_app(app, expected_token=token, logger=logger)
+
+    logger.info(
+        "starting fredis-mcp server (streamable-http transport on %s:%d)",
+        bind,
+        port,
+    )
+    uvicorn.run(wrapped, host=bind, port=port, log_config=None, access_log=False)
     return 0
 
 

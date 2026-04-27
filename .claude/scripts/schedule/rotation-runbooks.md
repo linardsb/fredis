@@ -136,6 +136,39 @@ manual `ssh`.
 6. Revoke old: SSH into VPS → edit `~/.ssh/authorized_keys` → remove the
    old public key line.
 
+### `FREDIS_MCP_AUTH_TOKEN` — VPS bearer credential (Phase 1B)
+
+Only relevant when `FREDIS_MCP_TRANSPORT=streamable-http` is set on the VPS
+(Phase 1B remote MCP). The Mac stdio MCP has no network surface and no
+bearer credential to rotate.
+
+**Cadence:** monthly (vs event-driven for the Mac because remote exposure
+broadens the blast radius of a leak).
+
+1. Generate a new value on the VPS — do **not** reuse anything from the
+   Mac:
+   ```bash
+   ssh fredis-vps
+   openssl rand -base64 32
+   ```
+2. Update `FREDIS_MCP_AUTH_TOKEN` in
+   `/root/claude-code-second-brain/.claude/scripts/.env` (mode 600).
+3. Restart the MCP service:
+   ```bash
+   systemctl restart secondbrain-mcp-server.service
+   systemctl status secondbrain-mcp-server.service --no-pager
+   ```
+4. Update each MCP client's stored value (Claude Desktop config / Cursor
+   secrets / Gemini settings — see `docs/mcp-server-vps.md` §Client
+   wiring).
+5. Verify: an HTTPS probe to `https://<vps-tailscale-name>/mcp` with the
+   old value returns 401; with the new value returns 200. The
+   `journalctl -u secondbrain-mcp-server` line for the failed probe
+   should read `auth: invalid` (never the value itself).
+
+The old value auto-revokes on restart — there is no provider to log into,
+the credential is just a string compared in process memory.
+
 ### SSH key (Fredis vault git remote)
 
 Same shape as VPS key, but the public key lives on the git-remote host
@@ -162,5 +195,6 @@ Same shape as VPS key, but the public key lives on the git-remote host
 | Google OAuth refresh token | Delete + re-run `setup_auth.py` | heartbeat + chat | `query.py gmail list` |
 | Google OAuth client secret | Google Cloud Console → Credentials → Reset Secret | heartbeat + chat | after re-auth, `query.py gmail list` |
 | Postgres password | `ALTER USER` on DB | chat service | `systemctl status secondbrain-chat` |
+| `FREDIS_MCP_AUTH_TOKEN` | `openssl rand -base64 32` on VPS | secondbrain-mcp-server | HTTPS probe with new value returns 200; old returns 401 |
 | SSH key (VPS) | `ssh-keygen` + `ssh-copy-id` | ssh-tunnel launchd | `nc -z localhost 5432` |
 | SSH key (vault git) | `ssh-keygen` + add deploy key | vault-sync | `git -C Fredis fetch` |

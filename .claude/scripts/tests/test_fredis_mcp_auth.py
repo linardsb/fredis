@@ -138,3 +138,312 @@ def test_canonical_denylist_allows_drafts_and_daily_logs() -> None:
     assert is_path_denied("daily/2026-04-26.md", CANONICAL_DENYLIST) is False
     assert is_path_denied("drafts/active/draft-reply/foo.md", CANONICAL_DENYLIST) is False
     assert is_path_denied("MEMORY.md", CANONICAL_DENYLIST) is False
+
+
+# =========================================================================== #
+# Phase 1B — bearer-token middleware (streamable-http remote transport)
+# =========================================================================== #
+
+
+import asyncio  # noqa: E402
+import inspect  # noqa: E402
+import io  # noqa: E402
+import logging  # noqa: E402
+from collections.abc import MutableMapping  # noqa: E402
+from typing import Any  # noqa: E402
+
+import fredis_mcp_auth  # noqa: E402
+from fredis_mcp_auth import (  # noqa: E402
+    AUTH_INVALID,
+    AUTH_MALFORMED,
+    AUTH_MISSING,
+    AUTH_OK,
+    _verify_bearer,
+    bearer_auth_app,
+)
+
+# --------------------------------------------------------------------------- #
+# CRITICAL — load-bearing security test goes first.
+# Silent open access is the worst failure mode, so the middleware refuses to
+# mount with an empty expected_token. Fail fast at construction, not at the
+# first unauthenticated request.
+# --------------------------------------------------------------------------- #
+
+
+def test_bearer_middleware_refuses_empty_expected_token() -> None:
+    """Mounting with an empty token is the silent-open-access bug."""
+    with pytest.raises(ValueError, match="expected_token"):
+        bearer_auth_app(_dummy_ok_app, expected_token="")
+
+
+def test_bearer_middleware_refuses_none_expected_token() -> None:
+    with pytest.raises(ValueError, match="expected_token"):
+        bearer_auth_app(_dummy_ok_app, expected_token=None)  # type: ignore[arg-type]
+
+
+# --------------------------------------------------------------------------- #
+# _verify_bearer — pure classifier
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.parametrize(
+    "header,expected,want",
+    [
+        ("Bearer correcthorse", "correcthorse", AUTH_OK),
+        ("bearer correcthorse", "correcthorse", AUTH_OK),
+        ("BEARER correcthorse", "correcthorse", AUTH_OK),
+        ("Bearer wrong", "correcthorse", AUTH_INVALID),
+        ("Bearer ", "correcthorse", AUTH_MALFORMED),
+        ("Bearer", "correcthorse", AUTH_MALFORMED),
+        ("Basic dXNlcjpwYXNz", "correcthorse", AUTH_MALFORMED),
+        ("Token foo", "correcthorse", AUTH_MALFORMED),
+        ("", "correcthorse", AUTH_MISSING),
+    ],
+)
+def test_verify_bearer_classifies(header: str, expected: str, want: str) -> None:
+    assert _verify_bearer(header, expected) == want
+
+
+def test_verify_bearer_uses_constant_time_compare() -> None:
+    """Source-level enforcement: comparison MUST go through hmac.compare_digest.
+    A naive ``==`` would short-circuit on the first byte mismatch and leak
+    timing info. Unit tests can't reliably measure the timing — this is the
+    next-best gate."""
+    src = inspect.getsource(fredis_mcp_auth._verify_bearer)
+    assert "hmac.compare_digest" in src, (
+        "_verify_bearer must use hmac.compare_digest for constant-time compare"
+    )
+
+
+# --------------------------------------------------------------------------- #
+# bearer_auth_app — ASGI middleware behaviour
+# --------------------------------------------------------------------------- #
+
+
+async def _dummy_ok_app(
+    scope: MutableMapping[str, Any],
+    receive: Any,
+    send: Any,
+) -> None:
+    """Minimal ASGI app — always returns 200/hello. Used to assert the
+    middleware passes valid traffic through unmodified."""
+    await send(
+        {
+            "type": "http.response.start",
+            "status": 200,
+            "headers": [(b"content-type", b"text/plain")],
+        }
+    )
+    await send({"type": "http.response.body", "body": b"hello", "more_body": False})
+
+
+def _http_scope(authorization: str | None = None) -> dict[str, Any]:
+    headers: list[tuple[bytes, bytes]] = []
+    if authorization is not None:
+        headers.append((b"authorization", authorization.encode("latin-1")))
+    return {
+        "type": "http",
+        "asgi": {"version": "3.0", "spec_version": "2.3"},
+        "http_version": "1.1",
+        "method": "GET",
+        "path": "/mcp",
+        "raw_path": b"/mcp",
+        "query_string": b"",
+        "headers": headers,
+        "scheme": "http",
+        "server": ("127.0.0.1", 4747),
+        "client": ("127.0.0.1", 0),
+    }
+
+
+async def _drive(
+    app: Any,
+    scope: dict[str, Any],
+) -> tuple[int | None, dict[str, str], bytes]:
+    """Drive an ASGI app with an empty-body GET; return (status, headers, body)."""
+    sent_first = False
+
+    async def receive() -> MutableMapping[str, Any]:
+        nonlocal sent_first
+        if sent_first:
+            return {"type": "http.disconnect"}
+        sent_first = True
+        return {"type": "http.request", "body": b"", "more_body": False}
+
+    messages: list[MutableMapping[str, Any]] = []
+
+    async def send(msg: MutableMapping[str, Any]) -> None:
+        messages.append(msg)
+
+    await app(scope, receive, send)
+
+    status: int | None = None
+    raw_headers: list[tuple[bytes, bytes]] = []
+    body = b""
+    for msg in messages:
+        if msg["type"] == "http.response.start":
+            status = msg["status"]
+            raw_headers = msg.get("headers", [])
+        elif msg["type"] == "http.response.body":
+            body += msg.get("body", b"")
+    headers = {
+        k.decode("ascii").lower(): v.decode("latin-1") for k, v in raw_headers
+    }
+    return status, headers, body
+
+
+async def _drive_lifespan(
+    app: Any,
+) -> bool:
+    """Drive a lifespan handshake against a non-HTTP scope; return True if it
+    passed through to the inner app (i.e. middleware did not gate it)."""
+    received_called = False
+
+    async def receive() -> MutableMapping[str, Any]:
+        nonlocal received_called
+        if received_called:
+            return {"type": "lifespan.shutdown"}
+        received_called = True
+        return {"type": "lifespan.startup"}
+
+    sent: list[MutableMapping[str, Any]] = []
+
+    async def send(msg: MutableMapping[str, Any]) -> None:
+        sent.append(msg)
+
+    # Inner app records the call and acks startup.
+    inner_called = False
+
+    async def inner(
+        scope: MutableMapping[str, Any],
+        recv: Any,
+        snd: Any,
+    ) -> None:
+        nonlocal inner_called
+        inner_called = True
+        await recv()  # consume startup
+        await snd({"type": "lifespan.startup.complete"})
+
+    wrapped = bearer_auth_app(inner, expected_token="t")
+    await wrapped({"type": "lifespan", "asgi": {"version": "3.0"}}, receive, send)
+    return inner_called
+
+
+def test_bearer_app_passes_valid_token() -> None:
+    app = bearer_auth_app(_dummy_ok_app, expected_token="goodtoken")
+
+    async def _run() -> tuple[int | None, dict[str, str], bytes]:
+        return await _drive(app, _http_scope("Bearer goodtoken"))
+
+    status, _, body = asyncio.run(_run())
+    assert status == 200
+    assert body == b"hello"
+
+
+def test_bearer_app_rejects_missing_header() -> None:
+    app = bearer_auth_app(_dummy_ok_app, expected_token="goodtoken")
+
+    async def _run() -> tuple[int | None, dict[str, str], bytes]:
+        return await _drive(app, _http_scope(None))
+
+    status, headers, body = asyncio.run(_run())
+    assert status == 401
+    assert "bearer" in headers.get("www-authenticate", "").lower()
+    # Body never reveals the verdict — only logs do.
+    assert b"missing" not in body
+    assert b"invalid" not in body
+    assert b"malformed" not in body
+
+
+def test_bearer_app_rejects_wrong_token() -> None:
+    app = bearer_auth_app(_dummy_ok_app, expected_token="goodtoken")
+
+    async def _run() -> tuple[int | None, dict[str, str], bytes]:
+        return await _drive(app, _http_scope("Bearer not-the-right-token"))
+
+    status, _, _ = asyncio.run(_run())
+    assert status == 401
+
+
+def test_bearer_app_rejects_malformed_scheme() -> None:
+    app = bearer_auth_app(_dummy_ok_app, expected_token="goodtoken")
+
+    async def _run() -> tuple[int | None, dict[str, str], bytes]:
+        return await _drive(app, _http_scope("Basic dXNlcjpwYXNz"))
+
+    status, _, _ = asyncio.run(_run())
+    assert status == 401
+
+
+def test_bearer_app_passes_lifespan_through_unchanged() -> None:
+    """Non-HTTP scopes (lifespan, websocket) must pass through — they have no
+    Authorization header and gating them would break uvicorn startup."""
+    inner_was_called = asyncio.run(_drive_lifespan(None))
+    assert inner_was_called is True
+
+
+# --------------------------------------------------------------------------- #
+# Logging contract — token value MUST NEVER appear in the log stream.
+# --------------------------------------------------------------------------- #
+
+
+def _captured_logger(name: str) -> tuple[logging.Logger, io.StringIO]:
+    """Build an isolated logger writing to an in-memory StringIO."""
+    buf = io.StringIO()
+    handler = logging.StreamHandler(buf)
+    handler.setFormatter(logging.Formatter("%(message)s"))
+    log = logging.getLogger(name)
+    log.handlers.clear()
+    log.addHandler(handler)
+    log.setLevel(logging.INFO)
+    log.propagate = False
+    return log, buf
+
+
+def test_bearer_app_logs_only_verdict_no_token_value() -> None:
+    """The token value (correct or wrong) must NEVER appear in the log
+    stream. The middleware logs only short verdict labels."""
+    log, buf = _captured_logger("test_bearer_no_leak")
+    expected = "EXPECTED_TOKEN_SECRETSENTINEL_42"
+    wrong = "ATTACKER_GUESS_SECRETSENTINEL_99"
+    app = bearer_auth_app(_dummy_ok_app, expected_token=expected, logger=log)
+
+    async def _run() -> None:
+        # One bad request and one good request — both must log only the verdict.
+        await _drive(app, _http_scope(f"Bearer {wrong}"))
+        await _drive(app, _http_scope(f"Bearer {expected}"))
+
+    asyncio.run(_run())
+
+    output = buf.getvalue()
+    assert expected not in output, "expected token leaked into log output"
+    assert wrong not in output, "wrong-token candidate leaked into log output"
+    # Sanity — verdict labels DID land.
+    assert "auth: invalid" in output
+    assert "auth: ok" in output
+
+
+def test_bearer_app_logs_missing_verdict_for_missing_header() -> None:
+    log, buf = _captured_logger("test_bearer_missing_verdict")
+    app = bearer_auth_app(
+        _dummy_ok_app, expected_token="t", logger=log
+    )
+
+    async def _run() -> None:
+        await _drive(app, _http_scope(None))
+
+    asyncio.run(_run())
+    assert "auth: missing" in buf.getvalue()
+
+
+def test_bearer_app_logs_malformed_verdict_for_basic_scheme() -> None:
+    log, buf = _captured_logger("test_bearer_malformed_verdict")
+    app = bearer_auth_app(
+        _dummy_ok_app, expected_token="t", logger=log
+    )
+
+    async def _run() -> None:
+        await _drive(app, _http_scope("Basic dXNlcjpwYXNz"))
+
+    asyncio.run(_run())
+    assert "auth: malformed" in buf.getvalue()

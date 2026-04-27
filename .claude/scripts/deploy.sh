@@ -90,5 +90,17 @@ if matches '^(\.claude/chat/.*\.py|\.claude/scripts/chat.*)$'; then
     systemctl restart secondbrain-chat.service
 fi
 
+# Phase 1B — restart the MCP server when its code or unit file changes. Skip
+# silently if the unit isn't enabled on this host so Macs (or a VPS that
+# hasn't done the one-time install yet) don't trip on a missing unit.
+if matches '^\.claude/scripts/(fredis_mcp_server\.py|fredis_mcp_tools\.py|fredis_mcp_auth\.py|schedule/secondbrain-mcp-server\.service)$'; then
+    if systemctl is-enabled --quiet secondbrain-mcp-server.service 2>/dev/null; then
+        log "mcp server code/unit changed -> restart secondbrain-mcp-server.service"
+        systemctl restart secondbrain-mcp-server.service
+    else
+        log "mcp server code/unit changed -> skip (secondbrain-mcp-server.service not enabled on this host)"
+    fi
+fi
+
 printf '%s\n' "$NEW_HEAD" > "$LAST_HEAD_FILE"
 log "deploy complete at ${NEW_HEAD:0:10} (state: $LAST_HEAD_FILE)"

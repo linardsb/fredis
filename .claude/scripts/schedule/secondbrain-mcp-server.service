@@ -1,0 +1,20 @@
+[Unit]
+Description=Second Brain MCP Server (streamable-http, Tailscale-only)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/claude-code-second-brain/.claude/scripts
+Environment="CLAUDE_PROJECT_DIR=/root/claude-code-second-brain"
+Environment="PATH=/root/.local/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="PYTHONUNBUFFERED=1"
+ExecStart=/root/.local/bin/uv run python fredis_mcp_server.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
