@@ -7,7 +7,7 @@ these with FastMCP decorators.
 
 Tools shipped in this slice:
 - search_memory       — hybrid/keyword/semantic search via memory_search.search
-- get_file            — vault-relative read (no denylist yet — slice 02)
+- get_file            — vault-relative read with denylist gate
 - list_drafts         — listdir on Fredis/Memory/drafts/<status>/
 - list_recent_decisions — bullets from MEMORY.md + grep daily logs window
 - get_soul_summary    — returns SOUL.md
@@ -25,17 +25,23 @@ from typing import Any
 from config import (
     DAILY_DIR,
     DRAFTS_DIR,
+    MCP_DENYLIST,
     MEMORY_DIR,
     MEMORY_FILE,
     SOUL_FILE,
     USER_FILE,
 )
 from db import get_memory_db
+from fredis_mcp_auth import is_path_denied
 from memory_search import search as _search
 from secret_patterns import SECRET_PATTERNS
 
 USER_PROFILE_MIN_CHARS = 200
 ALLOWED_DRAFT_STATUSES = {"active", "sent", "expired"}
+
+# Cap on the over-fetch used to compensate for denylist drops, so a hostile
+# query can't trigger an unbounded engine call.
+_SEARCH_OVERFETCH_CAP = 60
 
 
 def search_memory(
@@ -63,12 +69,29 @@ def search_memory(
         # Forward-compatible no-op; documented in docstring.
         pass
 
+    over_fetch = max(limit * 3, 1)
     raw = _search(
         query,
         mode=mode,
-        limit=limit,
+        limit=over_fetch,
         path_prefix=filter_path or "",
     )
+    filtered = [r for r in raw if not is_path_denied(r.path, MCP_DENYLIST)]
+
+    if (
+        len(filtered) < limit
+        and len(raw) >= over_fetch
+        and over_fetch < _SEARCH_OVERFETCH_CAP
+    ):
+        retry_limit = min(limit * 6, _SEARCH_OVERFETCH_CAP)
+        raw = _search(
+            query,
+            mode=mode,
+            limit=retry_limit,
+            path_prefix=filter_path or "",
+        )
+        filtered = [r for r in raw if not is_path_denied(r.path, MCP_DENYLIST)]
+
     results = [
         {
             "file_path": r.path,
@@ -79,7 +102,7 @@ def search_memory(
             "section_title": r.section_title,
             "snippet": r.text,
         }
-        for r in raw
+        for r in filtered[:limit]
     ]
     return {"results": results}
 
@@ -107,15 +130,31 @@ def _resolve_vault_path(path: str) -> Path | None:
     return resolved
 
 
+def _denied(path: str) -> dict[str, Any]:
+    """Canonical rejection shape — byte-identical regardless of the cause."""
+    return {"path": path, "content": None, "reason": "path not accessible"}
+
+
 def get_file(path: str) -> dict[str, Any]:
     """Read a file from the vault by relative path.
 
-    Path traversal (`..`) and absolute paths are rejected. Slice 02 layers a
-    content denylist on top; this slice only enforces basic resolution safety.
+    Four rejection paths collapse into one response shape so callers cannot
+    distinguish denied / missing / escape via the error text:
+
+    - Input string is on the denylist (cheap pre-FS check).
+    - Path traverses outside the vault (absolute, ``..``, or symlink escape).
+    - Path resolves under the vault but no file exists there.
+    - Path resolves to a denylisted target (e.g. an in-vault symlink whose
+      alias name is safe but whose realpath sits under a denied prefix).
     """
+    if is_path_denied(path, MCP_DENYLIST):
+        return _denied(path)
     resolved = _resolve_vault_path(path)
     if resolved is None:
-        return {"path": path, "content": None, "reason": "path not accessible"}
+        return _denied(path)
+    rel = resolved.relative_to(MEMORY_DIR.resolve()).as_posix()
+    if is_path_denied(rel, MCP_DENYLIST):
+        return _denied(path)
     return {"path": path, "content": resolved.read_text(encoding="utf-8")}
 
 

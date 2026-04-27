@@ -66,8 +66,8 @@ def build_server() -> FastMCP:
     @mcp.tool(
         description=(
             "Read a vault file by relative path (e.g. 'SOUL.md'). Absolute "
-            "paths and `..` traversal are rejected. Slice 02 will add a "
-            "content denylist on top."
+            "paths and `..` traversal are rejected. Sensitive paths return "
+            "'path not accessible' with the same shape as a missing file."
         )
     )
     def get_file(path: str) -> dict[str, Any]:

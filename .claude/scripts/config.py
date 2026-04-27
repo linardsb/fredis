@@ -142,6 +142,17 @@ EXPIRED_DRAFT_RETENTION_DAYS = int(os.getenv("EXPIRED_DRAFT_RETENTION_DAYS", "7"
 # === Security / Guardrail ===
 GUARDRAIL_STATE_FILE = STATE_DIR / "guardrail-state.json"
 
+# === Fredis MCP server (OB1 Phase 1) ===
+# Vault-relative path prefixes denied to MCP read tools. Entries ending in
+# "/" match a directory prefix; entries without a trailing "/" match a single
+# file exactly. Empty / missing env value → empty list (no filtering). Never
+# log this list or its source env string.
+MCP_DENYLIST: list[str] = [
+    p.strip()
+    for p in os.getenv("FREDIS_MCP_DENYLIST", "").split(",")
+    if p.strip()
+]
+
 # === Search Configuration ===
 SEARCH_CHUNK_MAX_TOKENS = 400
 SEARCH_CHUNK_OVERLAP_TOKENS = 80

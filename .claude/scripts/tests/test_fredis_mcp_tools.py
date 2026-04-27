@@ -7,6 +7,7 @@ model load.
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -80,7 +81,12 @@ def seeded_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     rows = [
         ("USER.md", "Linards works with Atis on the Cab application."),
         ("daily/2026-04-26.md", "Atis call: discussed VTV pilot timing."),
-        ("retainers/example.md", "Confidential retainer billing details."),
+        # The unique sentinel lets slice-02 denylist tests assert 0 hits
+        # without false positives from the other rows.
+        (
+            "retainers/example.md",
+            "Confidential retainer billing details. DENYTOKEN_TESTSENTINEL_42.",
+        ),
     ]
     for path, text in rows:
         db.upsert_file(path, "h", 0, len(text), 0)
@@ -333,3 +339,140 @@ def test_index_status_matches_stats_shape(seeded_db: Path) -> None:
         assert key in out, f"index_status missing '{key}' (memory_index --stats shape)"
     assert out["files"] >= 1
     assert out["chunks"] >= 1
+
+
+# --------------------------------------------------------------------------- #
+# Slice 1.2 — denylist integration
+# --------------------------------------------------------------------------- #
+
+
+def test_search_memory_drops_denylisted_chunks(
+    seeded_db: Path, stub_embed: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A chunk whose ``file_path`` falls under a denied prefix must never
+    surface, even when its content is the only match for the query."""
+    monkeypatch.setattr(tools, "MCP_DENYLIST", ["retainers/"])
+    out = tools.search_memory(
+        "DENYTOKEN_TESTSENTINEL_42", mode="keyword", limit=20
+    )
+    assert out["results"] == [], (
+        "denylist must filter out chunks under retainers/, even on direct hit"
+    )
+
+
+def test_search_memory_returns_denylisted_chunk_when_unguarded(
+    seeded_db: Path, stub_embed: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Sanity: with the denylist disabled, the same query reaches the chunk —
+    proves the previous test was stopped by the filter, not by missing data."""
+    monkeypatch.setattr(tools, "MCP_DENYLIST", [])
+    out = tools.search_memory(
+        "DENYTOKEN_TESTSENTINEL_42", mode="keyword", limit=20
+    )
+    assert any(r["file_path"] == "retainers/example.md" for r in out["results"])
+
+
+def test_get_file_denylist_input_string(
+    fake_vault: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A request for a path under a denied prefix returns the canonical
+    rejection shape — even when the file genuinely exists."""
+    monkeypatch.setattr(tools, "MCP_DENYLIST", ["retainers/"])
+    retainers = fake_vault / "retainers"
+    retainers.mkdir(exist_ok=True)
+    (retainers / "billing.md").write_text("real content\n", encoding="utf-8")
+
+    out = tools.get_file("retainers/billing.md")
+    assert out == {
+        "path": "retainers/billing.md",
+        "content": None,
+        "reason": "path not accessible",
+    }
+
+
+def test_get_file_denylist_exact_file_match(
+    fake_vault: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Exact-file entry (no trailing /) blocks the file but not its
+    extension neighbours — covers the ``USER.md`` denylist semantics."""
+    monkeypatch.setattr(tools, "MCP_DENYLIST", ["USER.md"])
+
+    blocked = tools.get_file("USER.md")
+    assert blocked["content"] is None
+    assert blocked["reason"] == "path not accessible"
+
+    # Plant a sibling file the entry must NOT cover.
+    (fake_vault / "USER.md.bak").write_text("backup\n", encoding="utf-8")
+    sibling = tools.get_file("USER.md.bak")
+    assert sibling["content"] == "backup\n"
+
+
+def test_get_file_info_leak_parity(
+    fake_vault: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Denied / denied-but-missing / non-denied-missing must all return
+    byte-identical responses (modulo the requested path) so the caller
+    cannot discriminate via timing-stable response text."""
+    monkeypatch.setattr(tools, "MCP_DENYLIST", ["retainers/"])
+    retainers = fake_vault / "retainers"
+    retainers.mkdir(exist_ok=True)
+    (retainers / "real.md").write_text("x", encoding="utf-8")
+
+    denied_existing = tools.get_file("retainers/real.md")
+    denied_missing = tools.get_file("retainers/never.md")
+    missing_not_denied = tools.get_file("does/not/exist.md")
+
+    expected_keys = {"path", "content", "reason"}
+    for resp in (denied_existing, denied_missing, missing_not_denied):
+        assert set(resp.keys()) == expected_keys
+        assert resp["content"] is None
+        assert resp["reason"] == "path not accessible"
+
+
+def test_get_file_soul_md_allowed_under_canonical_denylist(
+    fake_vault: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """SOUL.md must remain readable — exposing the persona is the point of
+    the MCP server. The canonical shipped denylist must not cover it."""
+    monkeypatch.setattr(
+        tools,
+        "MCP_DENYLIST",
+        ["USER.md", "retainers/", "legal/", "investors/"],
+    )
+    out = tools.get_file("SOUL.md")
+    assert out["content"] is not None
+    assert "Fredis" in out["content"]
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="symlink creation requires elevated privileges on Windows",
+)
+def test_get_file_in_vault_symlink_to_denied_target_blocked(
+    fake_vault: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Defence-in-depth: an in-vault symlink whose alias name is *not* on
+    the denylist but whose realpath sits under a denied prefix must still
+    be rejected. The post-resolve denylist check is what catches this."""
+    monkeypatch.setattr(tools, "MCP_DENYLIST", ["retainers/"])
+    retainers = fake_vault / "retainers"
+    retainers.mkdir(exist_ok=True)
+    secret = retainers / "secret.md"
+    secret.write_text("DENYTOKEN_SECRET_LEAK\n", encoding="utf-8")
+    alias = fake_vault / "safe_alias.md"
+    alias.symlink_to(secret)
+
+    out = tools.get_file("safe_alias.md")
+    assert out["content"] is None, "in-vault symlink must not surface denied content"
+    assert out["reason"] == "path not accessible"
+
+
+def test_get_file_traversal_still_rejected_with_denylist(
+    fake_vault: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Slice-01 traversal/absolute rejection must still hold — denylist is
+    additive defence, not a replacement for ``_resolve_vault_path``."""
+    monkeypatch.setattr(tools, "MCP_DENYLIST", ["retainers/"])
+    out = tools.get_file("../../etc/passwd")
+    assert out["content"] is None
+    assert out["reason"] == "path not accessible"
