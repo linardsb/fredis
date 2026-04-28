@@ -130,6 +130,14 @@ These are the day-one rules — synthesised from J5. The brain should respect th
 
 - **Bash `source .env` chokes on values containing spaces (2026-04-26).** `HUBSPOT_TICKETS_PIPELINE_NAME=Fredis Review` is unquoted in `.env` and breaks naive `source .env` in wrapper shell scripts. Use Python-side `load_dotenv()` via `config.py` instead — bash wrappers should rely on the Python entrypoint to load env, not source `.env` themselves. Surfaced while wrapper-scripting the `fredis-mcp` server. `[impact: low, status: decided]`
 
+- **Vault-sync + heal-block race condition (2026-04-27).** If a heal block writes a file on VPS and a revert deletes that same file on origin, vault-sync's auto-commit can create a modify-vs-delete conflict that `git pull --ff-only` can't resolve — leaving VPS in mid-merge state and blocking all subsequent deploys. Recovery: SSH in, conclude the merge using origin's clean state, pull, push, delete any resurfaced artefacts, manually dispatch `gh workflow run deploy.yml`. Surfaced when `_ssh_diag.txt` divergence blocked deploy run; resolved at commit `7b30b33`. `[impact: med, status: decided]`
+
+- **Path-based denylists must re-check after symlink resolution (2026-04-27).** `MCP_DENYLIST` initially checked only the raw input path string — a symlink inside an allowed dir pointing into a denylisted dir would have bypassed the gate. Fix: `get_file` re-checks the path against the denylist *after* `Path.resolve()`. General rule for any path-based access control: validate the resolved/canonical path, not the user-supplied string. `[impact: med, status: decided]`
+
+- **`block-secrets.py` hook flags secret-interpolation patterns in docs (2026-04-27).** Inline Python reading `os.environ` for a credential, and shell snippets that interpolate a bearer-token env var into an HTTP request, are caught by the secrets hook even when used as illustrative documentation. Fix: write verification snippets with literal placeholder strings (e.g. angle-bracket `TOKEN` text) rather than env-var interpolation. Surfaced while drafting the MCP VPS operator runbook. `[impact: low, status: decided]`
+
+- **`.agent/plans/` is gitignored by design (2026-04-27).** Plan docs containing decision tables, slice plans, and design-fork resolutions stay local. If a public paper trail is needed for a decision, the natural homes are `docs/phases.md` or a CHANGELOG, not the gitignored plans dir. Implication: don't link to `.agent/plans/*.md` from public-facing docs and don't assume reviewers have access. `[impact: low, status: decided]`
+
 ## Important Facts
 
 - **The "why" behind everything:** building enough durable, diversified income streams to let his family (wife, son, dog) live freely across UK, Latvia, and Argentina. A permanent home in Latvia and Argentina (wife's home country) is the long-game. Every research lane is a sub-investigation of this one question.
@@ -156,6 +164,7 @@ These are the day-one rules — synthesised from J5. The brain should respect th
 ## Upcoming Events
 
 - **Year 10 Consultation Evening — Thu 30 Apr 2026** (son's school). Book appointment slots.
+- **Sports Awards — Thu 7 May 2026** (son's school, Matis). Surfaced in school notice 2026-04-27 — may need RSVP / calendar block.
 - **Ashdown Park dinner — Sat 20 Jun 2026.** Dietary requirements confirmed; thread resolved.
 
 ## Preferences Confirmed
@@ -194,9 +203,12 @@ These are the day-one rules — synthesised from J5. The brain should respect th
 - `setup_workspace.py` bugs #2-#4 — stale defaults (30 min, 08-22, etc.) are a booby trap if the script is ever re-run. Documented in `.agent/audits/2026-04-18_phases-0-4-audit.md` (2026-04-19)
 - **HubSpot default pipeline stages don't match plan spec (2026-04-23).** HubSpot Free caps at 1 deal pipeline → stuck with "Sales Pipeline" default. `overdue_invoices` heartbeat scan looks for a stage labelled `Invoice` — zero matches until stages renamed in HubSpot UI to `Inbound → Discovery → Proposal → Signed → Kickoff → Delivery → Invoice → Post-delivery`. Low-stakes until `HUBSPOT_SCANS_ENABLED=true`. `[impact: low, status: pending]`
 - **HubSpot write-path cleanup pending (2026-04-23).** Step 9 of `.agent/plans/hubspot-slack-writes.md` bundles: revert `config.py` Monday shim, delete `integrations/monday_api.py` + `migrate_monday_to_hubspot.py`, Linards removes `MONDAY_*` from `.env`. Also defer-listed: CLI-level currency validation (~20 lines). `[impact: low, status: pending]`
-- **Heartbeat guardrail fail-closed five times: 2026-04-24 05:54 + 10:05, 2026-04-25 16:06, 2026-04-26 08:10 + 19:41.** First two were pre-Sonnet-promotion (commit `5069d4e`); the remaining three are **post-promotion**, so the Haiku→Sonnet move did not fully resolve it. Pace is now ~daily, not weekly. Next action: raise `asyncio.wait_for` from 15s to 30s in `heartbeat.py` and/or add single-retry before failing closed. `[impact: med, status: pending]`
+- **Heartbeat guardrail fail-closed seven times: 2026-04-24 05:54 + 10:05, 2026-04-25 16:06, 2026-04-26 08:10 + 19:41, 2026-04-27 08:18 + 16:22.** First two were pre-Sonnet-promotion (commit `5069d4e`); the remaining five are **post-promotion**, so the Haiku→Sonnet move did not fully resolve it. Pace is now ~daily, not weekly. Next action: raise `asyncio.wait_for` from 15s to 30s in `heartbeat.py` and/or add single-retry before failing closed. `[impact: med, status: pending]`
 - **F1 Gmail 201-unread triage** still deferred (2026-04-24). Tagged "not urgent" by Linards. Revisit when next inbox-cleanup window opens. `[impact: low, status: pending]`
 - **HABITS.md daily reset didn't fire on 2026-04-25.** Header still read "Today: 2026-04-24" through the day; all five pillars unchecked because the new-day reset (which should rewrite the header + clear ticks at 00:00 BST) never ran. Investigate the timer/cron that owns the reset (likely a missing systemd unit or a guard inside `heartbeat.py`/a sibling script). `[impact: low, status: pending]`
+- **`block-template-residue.py` allowlist gap (2026-04-27).** `Fredis/Memory/drafts/active/` is **not** in `ALLOWLIST_PREFIXES` (lines 46-52 of `.claude/hooks/block-template-residue.py`). Doesn't bite `propose_draft` (writes via Python `open`, not Edit/Write tool), but will fire if Claude later edits a draft containing template-residue strings via the Edit tool. One-line fix needed as housekeeping. `[impact: low, status: pending]`
+- **MCP server VPS deploy (Phase 1B) is manual (2026-04-27).** Linards needs to follow the runbook in `docs/mcp-server-vps.md` via SSH after merge: generate token, append env vars, copy systemd unit, daemon-reload, enable, run `tailscale serve`, set ACL, verify with nmap. Stop condition for slice. `[impact: low, status: pending]`
+- **MCP integration manual smoke test pending (2026-04-27).** `FREDIS_MCP_ENABLED` still `0` in `.claude/scripts/.env`. Linards has 8-step guide to flip the flag, wire Claude Desktop, and run two verification prompts (read path + denylist; write path + `propose_draft`) before declaring slice 1.4 done. `[impact: low, status: pending]`
 
 ---
 
