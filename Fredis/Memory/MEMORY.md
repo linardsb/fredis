@@ -6,27 +6,9 @@ _Curated, important memories that persist across sessions. Daily logs capture ev
 
 _(Pre-revenue stage — formal locked-in decisions still to be made. Likely first entries will land as Email Hub commercial model, UK Ltd registration, and pricing per service line. See active TBDs in `USER.md → Service Lines`.)_
 
-- **Credential rotation deliberately skipped (2026-04-18).** Six live tokens (Slack bot/app, Asana PAT, GitHub PAT, Monday.com, unknown hex credential) were exposed in chat during Phase 4 scoping. Linards explicitly accepted the risk. If any are later compromised, the forensic timeline is in the 2026-04-18 daily log.
-
-- **.env access stays gated behind security hooks (2026-04-19).** Recommended `audit_env.py` companion for metadata-only reads as a future improvement (Cleanup D candidate). Direct `.env` reads remain blocked by `block-secrets.py` + `redact-secrets.py`.
-
-- **PIV execution uses Option C — reconciliation doc + PRD as dual authority (2026-04-18).** Each `plan-feature` call must reference `.agent/plans/second-brain-prd.md` (including the Addendum — Context Deltas) and `.agent/plans/reconciliation.md`. The reconciliation doc lists known template residue per phase; plans should propose deletions where current code contradicts the PRD.
-
-- **Strategic pivot: product-builder, not consultant-closer (2026-04-19).** Linards chose to build a portfolio of products using Fredis + Archon as tooling spine, rather than positioning as a consultant selling time. Three products selected: Email Hub (SaaS/MarTech), VTV (B2G public-transport optimisation for Riga), Cab App (B2C ride-hailing, shares VTV codebase). Sequencing: VTV ships first → Cab rides on VTV's distribution → Email Hub blocked until IP question resolved. Kill triggers agreed: Email Hub paused if no IP answer by month 2; Cab paused if VTV has no real conversations by month 4; VTV paused if no LOI/pilot by month 6. Full plan at `docs/product-portfolio-plan.md`. Execution gated on two open questions (see Open Watch Items).
-
-- **Research/scraping stack: free trio, no paid subscriptions (2026-04-19).** Crawl4AI (self-hosted on Colima), Jina Reader (1M tokens/mo free), Exa (1k/mo free, semantic search). Built-in WebSearch/WebFetch covers ~85% of needs. Paid Firecrawl ($16-19/mo) only as fallback for Cloudflare-walled sites. Decision doc at `docs/research-stack-decision.md`.
-
-- **No vault restructuring (2026-04-19).** Linards explicitly rejected workshop-template paths or entity/topic folders into `Fredis/`. Current flat MEMORY.md structure stays as-is.
-
-- **Port-first, not build-first (2026-04-19).** Linards directive for skills: stop authoring de novo where an existing open-source skill fits. Port, add Fredis advisor-mode wrapper + attribution, only build de novo when no upstream match exists.
-
-- **Phase renumber: Memory Loops = Phase 9, VPS Deploy = Phase 10 (2026-04-21).** Memory loops ship before deployment so VPS migrates a stable schema in one pass — no local-vs-VPS schema drift. `[impact: med, status: decided]`
-
 - **4-loop memory architecture (2026-04-21).** Capture (memory_flush) → Consolidate (memory_reflect) → Dream (weekly synthesis) → Recall (auto-retrieval in chat + heartbeat). Recall is the highest-visible win — surfaces old decisions/drafts contextually. Synthesis drafts to `drafts/active/memory-synthesis/YYYY-Www.md` for human approval; never auto-writes to MEMORY.md. `[impact: high, status: decided]`
 
 - **Fredis cut over to VPS runtime (2026-04-21).** All scheduled services now run on VPS via systemd: `secondbrain-chat`, `fredis-heartbeat.timer` (2h), `fredis-reflect.timer` (daily 08:00), `fredis-synthesis.timer` (Sun 08:00), `deps-audit.timer` (Mon 09:00), `fredis-vault-sync.timer` (2 min). Mac heartbeat + reflect plists unloaded. Code flow: Mac push → GitHub Action → `deploy.sh` on VPS (workflow `paths-ignore`s `Fredis/**` + `docs/**` + `**/*.md`). Memory search via SSH tunnel: local 5433 → remote 5432 (Mac's local Postgres owns 5432). `[impact: high, status: decided]`
-
-- **Phase 10.5 single-repo vault sync (2026-04-21).** `Fredis/` tracked inside `linardsb/fredis` (not a separate vault repo). `vault-sync-repo.sh` uses mkdir-lock + subtree-only `git add -A Fredis/` + `commit --only -- Fredis/`, runs every 2 min on both sides. `concat-both` merge driver registered via `.gitattributes` for daily logs + drafts. WIP code outside `Fredis/` stays unstaged. `[impact: med, status: decided]`
 
 - **Heartbeat priority-1 whitelist + daily summary timer (2026-04-22).** Priority-1 prompt rewritten: real-person emails, GitHub @mentions, Slack DMs, calendar conflicts, overdue CRM tasks always surface; marketing/newsletters/dependabot/digests silenced. Motivated by the 09:38 customer-email miss that day. New `--summary` CLI flag bypasses HEARTBEAT_OK + active-hours gate; `fredis-summary.timer` fires 17:00 BST daily on VPS for end-of-day wrap. Commit `2c66101`. `[impact: med, status: decided]`
 
@@ -213,3 +195,5 @@ These are the day-one rules — synthesised from J5. The brain should respect th
 ---
 
 _This file is curated from daily logs. During heartbeats, recent daily logs are reviewed and important items are promoted here._
+
+_Older entries archived: [2026-04](archive/2026-04.md) — searchable via memory_search._
