@@ -43,29 +43,144 @@ service: brand
 
 ---
 
-## 2. Logo — Concept #1: Red Disc + Wordmark
+## 2. Logo — Concept #1: Red Disc + Wordmark (full construction spec)
 
-**Construction:**
-- Saule Red disc (`#FF6B5C`) of diameter `X`
-- Wordmark `saulera` in Josefin Sans 700 lowercase, cap-height = `0.7X`
-- Disc sits left of wordmark; rightmost edge of the disc aligned to start of "s", minus one optical-correction unit so the disc visually overlaps slightly
+### 2.1 Construction grid
 
-**The Saulera asymmetric rule (the twist that prevents generic Bauhaus revival):**
-- Disc is *never* centred on the cap-line. Sits offset upward by 8-12% of disc diameter
-- References Latvian folk-weaving's off-grid weight, not German Bauhaus orthodoxy
-- This single rule is what differentiates the mark
+Set up a 1000-unit square canvas. All measurements relative — scale to any output size.
 
-**Variants to ship day one:**
-- Horizontal lockup: disc + wordmark (default)
-- Stacked lockup: disc above wordmark (square / social)
-- Mark only: disc (favicon, app icon)
-- Wordmark only: saulera in Bauhaus Black (footer, fine print)
+| Element | Value | Notes |
+|---------|-------|-------|
+| Disc diameter (X) | `280u` | Saule Red `#FF6B5C` fill, no stroke |
+| Disc left edge | `100u` from canvas left | Left padding |
+| Disc vertical position | offset `28u` (10% of X) **upward** from canvas optical centre | The asymmetric rule — never centred |
+| Wordmark cap-height | `196u` (= 0.7X) | Josefin Sans 700, lowercase `saulera` |
+| Wordmark baseline | disc-bottom-line + 4u optical adjust | Use optical alignment, not pure mathematical |
+| Disc → wordmark gap | `32u` minus `4u` optical overlap | Disc visually nudges into the "s" |
+| Right padding | `60u` after wordmark | Breathing room |
+| Clear-space (all sides) | min `40u` | Never crowd to canvas edge |
 
-**What to reject during sketching:**
-- Centred / symmetric disc → reads corporate
-- Sun rays → reads childish
-- Gradient on disc → kills the Bauhaus discipline
-- Yellow anywhere → kills the concept
+### 2.2 The Saulera asymmetric rule (concrete spec)
+
+The single most important rule — without this, you have a generic Bauhaus revival.
+
+- Disc offset **upward** by `8-12%` of disc diameter relative to wordmark optical centre
+- For `X = 280u`, that's `22u-34u` upward
+- Default to `28u` (10%)
+- Never offset downward, never centre, never exceed 12%
+- Reference: Latvian folk-weaving weights upward toward the warp — the disc inherits this composition without literal folk imagery
+
+### 2.3 Forbidden elements (AI negative prompt list)
+
+These MUST NOT appear in any generated variant:
+
+- Yellow, gold, orange, mustard, ochre — anything in the yellow/orange family
+- Sun rays, sunbursts, light beams, halos, radial lines
+- Gradients, glows, drop shadows, glassmorphism, 3D bevels, embosses
+- Centred or symmetric disc placement (kills the asymmetric rule)
+- Sans-serif typefaces other than Josefin Sans for the wordmark
+- Decorative flourishes, ornaments, swooshes, ligature curls
+- Initial caps, title case, ALL CAPS, mixed case — lowercase only
+- Multiple discs, broken discs, partial discs, disc segments — single solid filled circle only
+- Any text other than `saulera`
+- Backgrounds other than `#EAE6DE` Warm Stone or `#0A0A0A` Bauhaus Black
+- Patterns, textures, noise, paper-grain effects
+
+### 2.4 Required uniqueness signatures (what makes it *Saulera*)
+
+These five visual moves separate the logo from "another Bauhaus revival". An AI tool needs to be told these explicitly — it won't infer them.
+
+1. **Off-axis disc placement** — disc above optical centre, never centred (§2.2)
+2. **Lowercase Josefin Sans 700** wordmark — not Helvetica, not Futura, not Inter, not generic geometric sans
+3. **Coral disc** (`#FF6B5C`), not pure Bauhaus red, not yellow, not orange
+4. **Optical disc-into-"s" nudge** — disc visually overlaps the start of the wordmark by `4u`, breaking pure mathematical alignment
+5. **One design move per variant** — never combine the disc with halo, inner ring, secondary mark, or companion glyph. Pure single solid filled circle, always.
+
+### 2.5 Variants to generate (priority order)
+
+| Priority | Variant | Canvas | Use |
+|----------|---------|--------|-----|
+| P0 | Horizontal lockup | `1000×400` | Site header, signature, deck title |
+| P0 | Mark only (disc) | `256×256` | Favicon, app icon, social avatar |
+| P1 | Stacked lockup | `600×600` | Square — Instagram, app store, business card |
+| P1 | Wordmark only | `800×200` | Footer, fine print, partner-logo bars |
+| P2 | Mono Black | `1000×400` | Single-colour print, dark backgrounds |
+| P2 | Mono Stone | `1000×400` | Single-colour print on Saule Red backgrounds |
+
+### 2.6 SVG output requirements
+
+- `viewBox="0 0 1000 400"` for horizontal lockup (scales to all sizes via CSS)
+- Disc as a single `<circle>` element, not a `<path>` — cleaner future edits
+- Wordmark **converted to outlines** (not live text) — not every viewer will have Josefin licensed
+- Named layers / IDs: `<circle id="disc">`, `<g id="wordmark">`
+- No `<style>` blocks — inline `fill` and `transform` only
+- No `<image>` raster embeds
+- No `<filter>` (drop shadow / blur) elements
+- One file per variant; do not bundle lockups inside a single SVG
+
+### 2.7 AI image-generator prompt (copy-paste)
+
+```
+Minimal Bauhaus-modernist logo for "saulera". Single solid coral-red 
+filled circle (hex #FF6B5C) sitting LEFT of lowercase wordmark "saulera" 
+set in Josefin Sans bold (700 weight). Background: warm stone beige 
+(hex #EAE6DE). The circle is offset UPWARD by 10% above the wordmark's 
+optical centre — NEVER centred, never below. Wordmark cap-height equals 
+70% of disc diameter. Style reference: Otl Aicher 1972 Munich Olympics 
+signage — geometric, disciplined, lowercase, no decoration. Flat colour, 
+hard edges, no gradients. 
+
+Negative: NO yellow, NO orange, NO gold, NO sun rays, NO gradients, 
+NO glow, NO 3D, NO shadows, NO patterns, NO texture, NO other text, 
+NO decorative elements. Single solid circle + wordmark only.
+
+Output: clean SVG-ready flat vector, transparent or stone background, 
+1000×400 horizontal lockup.
+```
+
+### 2.8 AI SVG-generator prompt (Recraft / Vectorise / Claude SVG)
+
+**Prompt A — mark only (256×256):**
+```
+Single solid filled circle, fill="#FF6B5C", no stroke, no gradient, 
+on transparent background. Diameter 200px centred horizontally on a 
+256×256 canvas, but vertically offset 20px UPWARD from the canvas centre 
+(asymmetric rule). Output: minimal SVG with one <circle> element, 
+viewBox="0 0 256 256".
+```
+
+**Prompt B — horizontal lockup (1000×400):**
+```
+Horizontal logo lockup. 
+
+Left element: solid filled circle, fill="#FF6B5C", no stroke, 
+diameter 280px, cx=240px, cy=172px (28px upward from canvas centre).
+
+Right element: text "saulera" in Josefin Sans 700, lowercase, 
+fill="#0A0A0A", font-size sized so cap-height equals 196px, 
+baseline at y=300px, left edge of "s" at x=408px (28px right of 
+disc rightmost edge minus 4px optical overlap).
+
+Background: rect fill="#EAE6DE" covering full viewBox.
+viewBox="0 0 1000 400". Text converted to outlined paths.
+```
+
+### 2.9 Iteration plan (40 variants in 4 rounds)
+
+- **Round 1 — 10 horizontal lockups.** Vary only the asymmetric offset (8% / 10% / 12%) and disc-to-wordmark gap (24u / 32u / 40u). Pick best 3.
+- **Round 2 — 10 mark-only.** Test pure filled circle vs hairline-stroked-only vs filled-with-2u-inset-light-tone. Pick best 1.
+- **Round 3 — 10 stacked lockups.** Vary stack alignment (left-aligned to disc, centred on disc, centred on wordmark). Pick best 1.
+- **Round 4 — 10 mono.** Black and Stone versions of chosen P0. Pick best 1.
+
+Final output: 6 SVG files (horizontal, stacked, mark-only, wordmark-only, mono-black, mono-stone) reconciled into one Figma file with shared components.
+
+### 2.10 Uniqueness check before exporting any final SVG
+
+- [ ] Would this logo look identical if dropped onto 10 other AI-tooling brand sites? If yes → discard, iterate
+- [ ] Is the asymmetric disc rule visually obvious without explanation? If no → increase offset toward 12%
+- [ ] Does the wordmark read clearly at 16px on a low-res monitor? If no → consider Josefin 600 instead of 700
+- [ ] Does the favicon (disc only) read clearly at 16×16? If no → disc must fill more of the favicon canvas (consider 240u/256u)
+- [ ] Would a non-Latvian SMB owner find anything *memorable* after a 2-second glance? If no → the asymmetric rule is too subtle; push it harder
 
 ---
 
