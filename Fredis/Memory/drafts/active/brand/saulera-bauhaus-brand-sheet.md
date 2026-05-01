@@ -13,36 +13,41 @@ service: brand
 
 ---
 
-## 1. Palette — Direction A (Classic Bauhaus + Saule)
+## 1. Palette — canonical Saulera tokens
 
-**The unlock:** in Bauhaus colour theory (Itten / Klee / Albers), the sun is the *red disc*, not the yellow circle. Yellow is the radiant *quality* of red. Saulera's sun therefore lives in `#D62828` — and the brand earns the sun motif without ever using yellow.
+**The unlock:** in Bauhaus colour theory (Itten / Klee / Albers), the sun is the *red disc*, not the yellow circle. Yellow is the radiant *quality* of red. Saulera's sun therefore lives in `#FF6B5C` — coral-red — and the brand earns the sun motif without ever using yellow.
 
 | Role | Hex | Name | Usage |
 |------|------|------|-------|
 | Anchor | `#0A0A0A` | Bauhaus Black | Headers, body, dark UI, wordmark |
-| Signature | `#D62828` | Saule Red | The sun — disc, primary CTA fills, accent shapes |
-| Counterweight | `#003F88` | Pure Blue | Secondary CTAs, infographic counter-tone |
-| Mid | `#5A5A5A` | Iron Grey | Borders, secondary text, muted UI |
-| Ground | `#EAE6DE` | Studio Stone | Page background, light mode (avoid pure white) |
+| Signature | `#FF6B5C` | Saule Red / Coral | The sun — disc, primary CTA fills, accent shapes |
+| Counterweight | `#1F76B0` | Pacific Blue | Secondary CTAs, infographic counter-tone |
+| Background | `#EAE6DE` | Warm Stone | Page background, light mode |
+| Surface | `#F4F1EA` | Light Cream | Cards, panels (one layer above background) |
+| Border | `#C8C0B0` | Warm Grey | Dividers, input borders, muted edges |
+| Mid | `#5A5A5A` | Iron Grey | Secondary text, captions |
 
-**WCAG contrast:**
-- Black on Studio Stone — 16:1 (AAA)
-- Blue on Studio Stone — 9:1 (AAA)
-- Red on Studio Stone — 4.7:1 (AA — not for small body text)
-- White on Saule Red — 4.6:1 (AA — use for CTA labels)
+**WCAG contrast — read carefully, the coral changes the rules:**
+- Black on Warm Stone — 16:1 ✓ AAA
+- Black on Saule Red — 8:1 ✓ AAA — **use Black for CTA labels, not White**
+- White on Saule Red — 2.6:1 ✗ FAILS AA
+- Pacific Blue on Warm Stone — 3.8:1 ✓ AA Large only (headlines, icons — not body)
+- Pacific Blue on White / Light Cream — 4.8:1 ✓ AA body
+
+**Practical rule:** Black-on-Saule-Red CTAs only. Pacific Blue is for display sizes, icons, and accents — not for body text on the Warm Stone background.
 
 **Usage proportions (modified 60/30/10):**
-- 60% Studio Stone or Black (ground)
+- 60% Warm Stone or Black (ground)
 - 30% the opposite anchor (text on stone, or stone on black)
-- 10% combined Saule Red + Pure Blue (signal, never decoration)
+- 10% combined Saule Red + Pacific Blue (signal, never decoration)
 
 ---
 
 ## 2. Logo — Concept #1: Red Disc + Wordmark
 
 **Construction:**
-- Red disc (`#D62828`) of diameter `X`
-- Wordmark `saulera` in lowercase geometric sans, cap-height = `0.7X`
+- Saule Red disc (`#FF6B5C`) of diameter `X`
+- Wordmark `saulera` in Josefin Sans 700 lowercase, cap-height = `0.7X`
 - Disc sits left of wordmark; rightmost edge of the disc aligned to start of "s", minus one optical-correction unit so the disc visually overlaps slightly
 
 **The Saulera asymmetric rule (the twist that prevents generic Bauhaus revival):**
@@ -66,14 +71,13 @@ service: brand
 
 ## 3. Typography
 
-One family, two weights. Bauhaus is mono-typographic.
+| Role | Family | Weight |
+|------|---------|--------|
+| Display / Headings | Josefin Sans | 700 |
+| Body | Hubot Sans | 400-600 |
+| Mono / Labels | JetBrains Mono | 500 |
 
-**Display + body:** geometric sans with Bauhaus DNA
-- Free first choice: **Pangram Sans Rounded** or **Mona Sans** (GitHub)
-- Paid alternatives: **Söhne Breit**, **GT America**, **ABC Diatype**, **Neue Haas Grotesk Display**
-- Avoid: Futura PT (overused), Helvetica (wrong DNA — Swiss not German Bauhaus)
-
-**Code:** **JetBrains Mono** or **GT America Mono**
+**Why this pairing works.** Josefin Sans is geometric and disciplined (Bauhaus DNA). Hubot Sans is its humanist sibling (GitHub's commissioned counterpart to Mona Sans). The combination diverges from strict Bauhaus mono-typography by pairing a geometric display with a humanist body — that's deliberate. It softens the brand for SMB-owner readers without losing the modernist structure.
 
 **Type scale (4 steps):**
 - Display: 56/64
@@ -81,7 +85,7 @@ One family, two weights. Bauhaus is mono-typographic.
 - Body: 17/26
 - Caption: 14/22
 
-Never pair a serif. Never set anything in title-case headers. Lowercase rules apply (see §6).
+Never pair a serif. Never set anything in title-case headers. Lowercase rules apply (see §6). Alternative pairings on file in §8 if Josefin/Hubot needs to be swapped later.
 
 ---
 
@@ -96,9 +100,9 @@ Refine after the first three client conversations. Tone register: confident, low
 ## 5. Asset checklist — ship-tonight
 
 - [ ] Logo SVG — horizontal, stacked, mark-only, wordmark-only
-- [ ] Favicon — 32×32, just the red disc
-- [ ] saulera.com landing page — black on Studio Stone, red disc, one bold sentence
-- [ ] LinkedIn header — 1584×396, black ground, red disc, wordmark
+- [ ] Favicon — 32×32, just the Saule Red disc
+- [ ] saulera.com landing page — black on Warm Stone, Saule Red disc, one bold sentence
+- [ ] LinkedIn header — 1584×396, black ground, Saule Red disc, wordmark
 - [ ] Email signature — wordmark + role + saulera.com
 
 All five fit in one Figma file with shared components. Realistic build time: 2-3 hours at email-developer-level vector chops.
@@ -123,30 +127,9 @@ Three rules that separate Saulera from a generic Bauhaus revival:
 
 ---
 
-## 8. Design system — claude.ai source of truth
+## 8. Alternative Bauhaus-inspired font pairings
 
-Imported from the Saulera Design System artefact in claude.ai (Linards's working file, 2026-05-01).
-
-### Typography
-
-| Role | Family | Weight |
-|------|---------|--------|
-| Display / Headings | Josefin Sans | 700 |
-| Body | Hubot Sans | 400-600 |
-| Mono / Labels | JetBrains Mono | 500 |
-
-### Colour tokens (Bauhaus theme)
-
-| Role | Hex | Name |
-|------|------|------|
-| Background | `#EAE6DE` | Warm Stone / Paper |
-| Surface | `#F4F1EA` | Light Cream |
-| Text / Ink | `#0A0A0A` | Deep Black |
-| Primary accent | `#FF6B5C` | Saule Red / Coral |
-| Warm accent | `#1F76B0` | Pacific Blue |
-| Border | `#C8C0B0` | Warm Grey |
-
-### Alternative Bauhaus-inspired font pairings
+Reserve list — for swap-out later if Josefin / Hubot needs to change. Imported from the Saulera Design System artefact in claude.ai.
 
 | Pairing | Display | Body | Mono | Character |
 |---------|---------|------|------|-----------|
@@ -156,27 +139,6 @@ Imported from the Saulera Design System artefact in claude.ai (Linards's working
 | Clean Minimal | Geist | Geist | Geist Mono | Vercel / Linear neutrality |
 | Mechanical | Space Mono | Space Grotesk | Space Mono | Retro-futurist, code-forward |
 | Humanist Modern | Mona Sans | Hubot Sans | JetBrains Mono | GitHub's commissioned pair |
-
-**Linards's current pick:** **Josefin Sans (display) + Hubot Sans (body) + JetBrains Mono (mono)** — Josefin is geometric and disciplined (Bauhaus DNA); Hubot is its humanist sibling (GitHub's commissioned counterpart to Mona Sans). Diverges from pure-Bauhaus mono-typography by pairing a geometric display with a humanist body — softens the brand without losing structure.
-
----
-
-## 9. Reconciliation — §1 vs §8
-
-§8 is the **live source of truth** (claude.ai design system). Two palette shifts vs the original §1 Bauhaus-pure spec worth surfacing:
-
-| Token | §1 (Bauhaus-pure) | §8 (live) | Shift |
-|-------|-------------------|------------|-------|
-| Saule Red | `#D62828` | `#FF6B5C` | Pure Bauhaus red → contemporary coral. Softer, warmer, less severe. |
-| Counterweight Blue | `#003F88` | `#1F76B0` | Pure Bauhaus deep blue → Pacific blue. Lighter, more contemporary. |
-| Surface | (not specified) | `#F4F1EA` | New layer between Background and primary surfaces — useful for cards / panels. |
-| Border | `#5A5A5A` Iron Grey | `#C8C0B0` Warm Grey | Functional mid-grey → warm paper-toned border. |
-
-**The philosophical shift.** §1 was severe historical Bauhaus (Itten / Klee). §8 is *Bauhaus-adjacent contemporary* — the discipline holds, but the palette is softened toward 2020s "warm modernist" (closer to Vercel / Linear / Stripe Press than to 1925 Dessau). Defensible direction: it makes the brand more inviting to SMB owners without losing structure.
-
-**Implication for the logo.** The disc colour changes from severe `#D62828` to coral `#FF6B5C` — still red enough to read as the sun, but now reads warmer and more contemporary. The asymmetric-disc rule (§6.1) still applies. The "yellow kills the concept" rule (§2) still applies.
-
-§1's pure-Bauhaus tokens become *archived alternatives* — kept on file in case you want a "severe" sister palette for editorial / case-study covers later.
 
 ---
 
