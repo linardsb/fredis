@@ -96,6 +96,8 @@ These are the day-one rules — synthesised from J5. The brain should respect th
 
 - **Claude.ai web connectors are account-level, not local MCPs (2026-04-21).** `claude.ai Gmail/Calendar/Drive/Figma` connectors sync from Claude.ai web settings — cannot be removed via `claude mcp remove`. They appear in the deferred tools list but show "Needs authentication" and do nothing. To actually disconnect: https://claude.ai → Settings → Connectors. Harmless duplicates; Fredis has zero dependency on them (direct Python APIs via `query.py`). `[impact: low, status: resolved]`
 
+- **Slack Socket Mode `is_connected()` returns stale True on half-open sockets (2026-05-01).** Second occurrence of the pattern — slack-sdk Socket Mode WebSocket goes half-open silently, process stays alive with no exception, systemd never restarts, all events stop reaching Fredis. `is_connected()` keeps reporting `True` so it can't be used as a health check. Fix shipped: 30-min forced reconnect cycle in `SlackAdapter` via `_socket_watchdog` asyncio task that skips the cycle if a turn is mid-reply (`note_turn_start/end` from router); 3 consecutive reconnect failures → `sys.exit(1)` so systemd picks it up. Tunable via `CHAT_SLACK_RECONNECT_SEC` (0 disables). Periodic forced reconnect is the Slack-recommended pattern. Commits `2bc4034` + `44448c2`. `[impact: med, status: decided]`
+
 - **Ghost Mac processes silently steal Slack Socket Mode events (2026-04-22).** Slack load-balances across all active WebSocket connections for the same bot token — `app_mention` events fan out to every connection, but `message.channels` events go to only one. A stale local `fredis-chat` process on Mac was stealing thread-engage events meant for the VPS. Always check for duplicate bot-token consumers (`ps aux | grep fredis`) before debugging Slack event delivery. Secondary rule: `message.channels` also requires `/invite @Fredis` in the channel AND enabling the event in the Slack app's Event Subscriptions (separate from OAuth scopes). `[impact: med, status: decided]`
 
 - **`OnCalendar` embedded timezone requires systemd 246+ (2026-04-22).** VPS confirmed compatible. Worth remembering for future timer files — older systemd needs a separate `Environment=TZ=...` stanza instead. `[impact: low, status: decided]`
@@ -145,8 +147,8 @@ These are the day-one rules — synthesised from J5. The brain should respect th
 
 ## Upcoming Events
 
-- **Year 10 Consultation Evening — Thu 30 Apr 2026** (son's school). Book appointment slots.
 - **Sports Awards — Thu 7 May 2026** (son's school, Matis). Surfaced in school notice 2026-04-27 — may need RSVP / calendar block.
+- **Year 10 Geography field trip — 15–16 Jun 2026** (Matis, Sackville School). Letter received 2026-04-30 — likely needs consent + payment.
 - **Ashdown Park dinner — Sat 20 Jun 2026.** Dietary requirements confirmed; thread resolved.
 
 ## Preferences Confirmed
@@ -191,7 +193,7 @@ These are the day-one rules — synthesised from J5. The brain should respect th
 - **`block-template-residue.py` allowlist gap (2026-04-27).** `Fredis/Memory/drafts/active/` is **not** in `ALLOWLIST_PREFIXES` (lines 46-52 of `.claude/hooks/block-template-residue.py`). Doesn't bite `propose_draft` (writes via Python `open`, not Edit/Write tool), but will fire if Claude later edits a draft containing template-residue strings via the Edit tool. One-line fix needed as housekeeping. `[impact: low, status: pending]`
 - **MCP server VPS deploy (Phase 1B) is manual (2026-04-27).** Linards needs to follow the runbook in `docs/mcp-server-vps.md` via SSH after merge: generate token, append env vars, copy systemd unit, daemon-reload, enable, run `tailscale serve`, set ACL, verify with nmap. Stop condition for slice. `[impact: low, status: pending]`
 - **MCP integration manual smoke test pending (2026-04-27).** `FREDIS_MCP_ENABLED` still `0` in `.claude/scripts/.env`. Linards has 8-step guide to flip the flag, wire Claude Desktop, and run two verification prompts (read path + denylist; write path + `propose_draft`) before declaring slice 1.4 done. `[impact: low, status: pending]`
-- **Guardrail false-positive on `</external_data>` closing tag (2026-04-28).** Every non-timeout heartbeat on 2026-04-28 (7/7) flagged the legitimate structural closing tag of the data wrapper as `xml_escape_attempt`, forcing the Claude reasoning step to write a paragraph explaining the false positive. Wastes tokens on every tick. Pattern matcher needs to either skip the wrapper's own structural tags or only fire when the tag appears *inside* an inner content block. `[impact: low, status: pending]`
+- **Guardrail false-positive on `</external_data>` closing tag — now blocking reflection (2026-04-28, escalated 2026-04-30).** Every non-timeout heartbeat on 2026-04-28 (7/7) and 2026-04-30 (8/8) flagged the legitimate structural closing tag of the data wrapper as `xml_escape_attempt`. **Escalation:** the 2026-04-30 08:00 reflection pass aborted (`reflection-aborted` source) because the same pattern was detected in 2026-04-29's daily log — losing a day of MEMORY.md consolidation. No longer just token waste; it now silently skips the reflection pipeline. Pattern matcher needs to either skip the wrapper's own structural tags or only fire when the tag appears *inside* an inner content block. `[impact: med, status: pending]`
 
 ---
 
