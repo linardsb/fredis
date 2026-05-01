@@ -123,8 +123,8 @@ These five visual moves separate the logo from "another Bauhaus revival". An AI 
 ### 2.7 AI image-generator prompt (copy-paste)
 
 ```
-Minimal Bauhaus-modernist logo for "saulera". Single solid coral-red 
-filled circle (hex #D94E2A) sitting LEFT of lowercase wordmark "saulera" 
+Minimal Bauhaus-modernist logo for "saulera". Single solid vermillion 
+red filled circle (hex #D94E2A) sitting LEFT of lowercase wordmark "saulera" 
 set in Josefin Sans bold (700 weight). Background: warm stone beige 
 (hex #EAE6DE). The circle is offset UPWARD by 10% above the wordmark's 
 optical centre — NEVER centred, never below. Wordmark cap-height equals 
@@ -268,11 +268,11 @@ Reserve list — for swap-out later if Josefin / Hubot needs to change. Imported
 
 The metaphor isn't decorative — it determines every brand decision:
 
-- **Palette = literal pre-dawn-to-ground gradient** sampled from Latvian and Argentinean dawns (§1).
-- **Coral disc = the sun, just risen.** Not yellow, not orange — the specific coral-red of the sun two minutes after horizon-break, before atmospheric scatter washes it out.
+- **Vermillion disc = the sun, just risen.** Not yellow, not orange — the specific oxidised-red of the sun two minutes after horizon-break, before atmospheric scatter washes it out.
+- **Dawn Teal = the cool side of the sky** before full light. Reads as the calm that precedes momentum — counterweight to the vermillion's energy.
 - **Asymmetric disc upward** (§2.2) reads as *ascending* — the sun is still rising, not noon-overhead.
 - **Lowercase always** — quiet morning register, not midday corporate shout.
-- **Pre-Dawn Indigo** carries the residue of night — anchors the optimism in something serious. Without it, the brand drifts toward greeting-card warmth.
+- **Bauhaus Black anchor** — the residue of night, the discipline holding the optimism. Without it, the brand drifts toward greeting-card warmth.
 - **Audience read:** SMB owner waking up to AI's possibility. The brand promises a disciplined start to a real new day, not a hype cycle.
 
 When in doubt about a brand decision, ask: *does this read as 06:00 or 12:00?* Saulera is always 06:00.
@@ -285,8 +285,8 @@ The full sunrise-stack gradient. **This is a brand asset, not a utility colour.*
 
 ```css
 background: linear-gradient(180deg,
-  #1A1F3A 0%,    /* Pre-Dawn Indigo — top of sky */
-  #C9466F 50%,   /* Pampas Rose — horizon band */
+  #0A0A0A 0%,    /* Bauhaus Black — pre-dawn sky */
+  #2A7E8F 40%,   /* Dawn Teal — twilight band */
   #D94E2A 80%,   /* Vermillion Rise — sun line */
   #EAE6DE 100%   /* Warm Stone — ground */
 );
@@ -299,7 +299,7 @@ background: linear-gradient(180deg,
 
 **Forbidden surfaces:** buttons, cards, body backgrounds, email signatures, favicons, mobile UI fills, content sections beyond the hero.
 
-When the gradient appears, the wordmark sits on top in Warm Stone (`#EAE6DE`) — never on indigo or coral alone. Logo on gradient: wordmark in Warm Stone, disc still Vermillion Rise but with a 1u Warm Stone outer breathing-ring to hold it visible against the coral band.
+When the gradient appears, the wordmark sits on top in Warm Stone (`#EAE6DE`) — never on black or vermillion alone. Logo on gradient: wordmark in Warm Stone, disc still Vermillion Rise but with a 1u Warm Stone outer breathing-ring to hold it visible against the dawn-teal-to-vermillion band.
 
 ---
 
