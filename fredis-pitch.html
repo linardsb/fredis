@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FREDIS — An Advisor, Not An Agent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,400;1,9..144,600&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f1e9dc;
+    --paper-2: #e7dccb;
+    --ink: #14110f;
+    --ink-soft: #3a342d;
+    --ink-faint: rgba(20,17,15,0.45);
+    --rule: rgba(20,17,15,0.18);
+    --rule-strong: rgba(20,17,15,0.5);
+    --signal: #c5341a;
+    --signal-deep: #8b1e10;
+    --sage: #4a5a3e;
+    --gold: #b3893d;
+    --shadow: 0 1px 0 rgba(20,17,15,0.04), 0 30px 60px -30px rgba(20,17,15,0.18);
+    --serif: 'Fraunces', 'Times New Roman', serif;
+    --italic: 'Instrument Serif', 'Times New Roman', serif;
+    --mono: 'JetBrains Mono', 'Courier New', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-feature-settings: "ss01", "ss02", "kern", "liga";
+    font-variation-settings: "opsz" 14, "SOFT" 30;
+    line-height: 1.55;
+    overflow-x: hidden;
+    background-image:
+      radial-gradient(1200px 600px at 80% -10%, rgba(197,52,26,0.08), transparent 60%),
+      radial-gradient(900px 600px at -10% 100%, rgba(74,90,62,0.10), transparent 60%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.05 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    background-attachment: fixed, fixed, fixed;
+  }
+
+  ::selection { background: var(--signal); color: var(--paper); }
+
+  /* ---------- Layout primitives ---------- */
+  .frame {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 0 56px;
+  }
+
+  .rule { height: 1px; background: var(--rule); margin: 32px 0; }
+  .rule.thick { height: 2px; background: var(--ink); }
+  .rule.double {
+    height: 6px;
+    background: linear-gradient(to bottom, var(--ink) 0 1px, transparent 1px 5px, var(--ink) 5px 6px);
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--signal-deep);
+    font-weight: 500;
+  }
+
+  .smallcaps {
+    font-family: var(--serif);
+    font-variant-caps: all-small-caps;
+    letter-spacing: 0.14em;
+    font-weight: 600;
+  }
+
+  /* ---------- Masthead ---------- */
+  header.masthead {
+    border-bottom: 2px solid var(--ink);
+    padding-top: 24px;
+    position: relative;
+  }
+
+  .masthead-top {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 24px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    padding-bottom: 16px;
+  }
+
+  .masthead-top .center { text-align: center; }
+  .masthead-top .right { text-align: right; }
+  .masthead-top .badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border: 1px solid var(--rule-strong);
+    border-radius: 999px;
+    color: var(--ink);
+  }
+
+  .masthead-top .dot {
+    width: 6px; height: 6px; background: var(--signal); border-radius: 50%;
+    display: inline-block; margin-right: 6px; vertical-align: 1px;
+    box-shadow: 0 0 0 4px rgba(197,52,26,0.18);
+  }
+
+  .wordmark {
+    font-family: var(--serif);
+    font-variation-settings: "opsz" 144, "wght" 900, "SOFT" 0;
+    font-size: clamp(64px, 11vw, 156px);
+    line-height: 0.86;
+    letter-spacing: -0.04em;
+    text-align: center;
+    padding: 4px 0 14px;
+    position: relative;
+  }
+  .wordmark .ampersand {
+    font-family: var(--italic);
+    font-style: italic;
+    font-weight: 400;
+    color: var(--signal);
+    font-size: 0.72em;
+    vertical-align: 0.06em;
+    padding: 0 0.04em;
+  }
+
+  .masthead-strap {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    border-top: 1px solid var(--ink);
+    border-bottom: 1px solid var(--ink);
+    padding: 10px 0;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+  .masthead-strap .center {
+    text-align: center;
+    font-family: var(--italic);
+    font-style: italic;
+    text-transform: none;
+    letter-spacing: 0.01em;
+    font-size: 20px;
+    color: var(--ink);
+  }
+  .masthead-strap .right { text-align: right; }
+
+  /* ---------- HERO ---------- */
+  .hero {
+    padding: 64px 0 48px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 64px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .hero-headline {
+    font-family: var(--serif);
+    font-variation-settings: "opsz" 144, "wght" 400, "SOFT" 100;
+    font-size: clamp(48px, 6.4vw, 92px);
+    line-height: 0.96;
+    letter-spacing: -0.022em;
+  }
+  .hero-headline em {
+    font-family: var(--italic);
+    font-style: italic;
+    color: var(--signal);
+    font-weight: 400;
+  }
+  .hero-headline .strike {
+    position: relative;
+    color: var(--ink-soft);
+  }
+  .hero-headline .strike::after {
+    content: "";
+    position: absolute;
+    inset: 50% 0 auto 0;
+    height: 2px;
+    background: var(--signal);
+    transform: rotate(-2deg);
+  }
+
+  .hero-deck {
+    font-family: var(--italic);
+    font-style: italic;
+    font-size: 22px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    max-width: 38ch;
+    margin-top: 28px;
+  }
+
+  .hero-side {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    border-left: 1px solid var(--rule);
+    padding-left: 32px;
+  }
+
+  .dossier {
+    border: 1px solid var(--ink);
+    padding: 18px 20px;
+    background: rgba(255,255,255,0.35);
+    box-shadow: var(--shadow);
+    position: relative;
+  }
+  .dossier::before {
+    content: "FILE / FREDIS — VOL. I";
+    position: absolute;
+    top: -10px; left: 16px;
+    background: var(--paper);
+    padding: 0 8px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    color: var(--signal-deep);
+  }
+  .dossier dl {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    row-gap: 6px;
+    column-gap: 14px;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+  .dossier dt { color: var(--ink-faint); letter-spacing: 0.1em; text-transform: uppercase; }
+  .dossier dd { color: var(--ink); }
+  .dossier dd .pill {
+    background: var(--ink); color: var(--paper);
+    padding: 1px 8px; border-radius: 2px;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+  }
+  .dossier dd .pill.signal { background: var(--signal); }
+  .dossier dd .pill.sage { background: var(--sage); }
+
+  .hero-quote {
+    font-family: var(--italic);
+    font-style: italic;
+    font-size: 17px;
+    line-height: 1.55;
+    margin-top: 28px;
+    color: var(--ink);
+    padding-left: 18px;
+    border-left: 3px solid var(--signal);
+  }
+  .hero-quote cite {
+    display: block;
+    margin-top: 10px;
+    font-family: var(--mono);
+    font-style: normal;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  /* ---------- Section base ---------- */
+  section {
+    padding: 80px 0;
+    border-bottom: 1px solid var(--rule);
+    position: relative;
+  }
+
+  .section-head {
+    display: grid;
+    grid-template-columns: 200px 1fr 200px;
+    gap: 32px;
+    align-items: end;
+    margin-bottom: 48px;
+  }
+  .section-head .num {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    color: var(--signal-deep);
+  }
+  .section-head h2 {
+    font-family: var(--serif);
+    font-variation-settings: "opsz" 144, "wght" 400, "SOFT" 100;
+    font-size: clamp(40px, 5vw, 64px);
+    line-height: 0.98;
+    letter-spacing: -0.02em;
+  }
+  .section-head h2 em {
+    font-family: var(--italic);
+    color: var(--signal);
+    font-weight: 400;
+    font-style: italic;
+  }
+  .section-head .meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    text-align: right;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 8px;
+  }
+
+  /* ---------- The Problem ---------- */
+  .columns-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    border-top: 1px solid var(--ink);
+    border-bottom: 1px solid var(--ink);
+  }
+  .columns-3 > .col {
+    padding: 32px 28px;
+    border-right: 1px solid var(--rule);
+    position: relative;
+  }
+  .columns-3 > .col:last-child { border-right: none; }
+  .col h3 {
+    font-family: var(--serif);
+    font-variation-settings: "opsz" 36, "wght" 600;
+    font-size: 22px;
+    line-height: 1.15;
+    margin-bottom: 14px;
+    letter-spacing: -0.01em;
+  }
+  .col h3::before {
+    content: attr(data-num);
+    display: block;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    color: var(--signal);
+    margin-bottom: 12px;
+  }
+  .col p {
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--ink-soft);
+  }
+
+  /* ---------- Manifesto ---------- */
+  .manifesto {
+    columns: 2;
+    column-gap: 56px;
+    column-rule: 1px solid var(--rule);
+    font-size: 17px;
+    line-height: 1.65;
+    color: var(--ink);
+  }
+  .manifesto p { margin-bottom: 16px; break-inside: avoid; }
+  .manifesto p.lead::first-letter {
+    font-family: var(--italic);
+    font-style: italic;
+    color: var(--signal);
+    font-size: 5.6em;
+    line-height: 0.78;
+    float: left;
+    padding-right: 10px;
+    padding-top: 6px;
+  }
+  .manifesto strong {
+    font-family: var(--serif);
+    font-variation-settings: "opsz" 24, "wght" 700;
+    font-style: normal;
+    background: linear-gradient(to top, rgba(197,52,26,0.18) 40%, transparent 40%);
+    padding: 0 2px;
+  }
+
+  /* ---------- Features ---------- */
+  .features {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 24px;
+  }
+  .feature {
+    border: 1px solid var(--rule-strong);
+    background: rgba(255,255,255,0.4);
+    padding: 28px;
+    position: relative;
+    transition: transform 0.4s cubic-bezier(0.2,0.8,0.2,1), box-shadow 0.4s ease;
+    overflow: hidden;
+  }
+  .feature::before {
+    content: "";
+    position: absolute;
+    inset: 6px;
+    border: 1px dashed var(--rule);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .feature:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+  .feature:hover::before { opacity: 1; }
+
+  .feature .tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--signal-deep);
+    margin-bottom: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .feature h3 {
+    font-family: var(--serif);
+    font-variation-settings: "opsz" 60, "wght" 600, "SOFT" 30;
+    font-size: 26px;
+    line-height: 1.1;
+    letter-spacing: -0.012em;
+    margin-bottom: 12px;
+  }
+  .feature h3 em {
+    font-family: var(--italic);
+    color: var(--signal);
+    font-weight: 400;
+    font-style: italic;
+  }
+  .feature p {
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+  }
+  .feature .icon {
+    width: 56px; height: 56px;
+    border: 1px solid var(--ink);
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    margin-bottom: 18px;
+    background: var(--paper);
+    position: relative;
+  }
+  .feature .icon svg { width: 28px; height: 28px; }
+
+  /* span widths */
+  .feature.w6 { grid-column: span 6; }
+  .feature.w4 { grid-column: span 4; }
+  .feature.w3 { grid-column: span 3; }
+  .feature.w8 { grid-column: span 8; }
+  .feature.w12 { grid-column: span 12; }
+
+  .feature.tall { padding: 36px; }
+
+  .feature.dark { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .feature.dark p { color: rgba(241,233,220,0.72); }
+  .feature.dark .tag { color: #ff8a5b; }
+  .feature.dark .icon { background: var(--ink); border-color: var(--paper); }
+  .feature.dark .icon svg { color: var(--paper); }
+  .feature.dark h3 em { color: #ff8a5b; }
+
+  .feature.signal { background: var(--signal); color: var(--paper); border-color: var(--signal); }
+  .feature.signal p { color: rgba(241,233,220,0.92); }
+  .feature.signal .tag { color: var(--paper); opacity: 0.8; }
+  .feature.signal h3 em { color: var(--paper); font-style: italic; }
+  .feature.signal .icon { background: var(--signal); border-color: var(--paper); }
+  .feature.signal .icon svg { color: var(--paper); }
+
+  /* ---------- How It Works diagram ---------- */
+  .stack-board {
+    display: grid;
+    grid-template-columns: 320px 1fr 320px;
+    gap: 0;
+    border: 1px solid var(--ink);
+    background: rgba(255,255,255,0.3);
+  }
+  .stack-col {
+    padding: 28px 24px;
+    border-right: 1px dashed var(--rule-strong);
+  }
+  .stack-col:last-child { border-right: none; }
+  .stack-col .stack-eyebrow {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    color: var(--signal-deep);
+    margin-bottom: 6px;
+  }
+  .stack-col h4 {
+    font-family: var(--serif);
+    font-variation-settings: "opsz" 36, "wght" 600;
+    font-size: 22px;
+    margin-bottom: 18px;
+    letter-spacing: -0.01em;
+  }
+
+  .node {
+    border: 1px solid var(--rule-strong);
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    background: var(--paper);
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.5;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: relative;
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  .node:hover { border-color: var(--signal); background: #fffaf2; }
+  .node .nlabel { color: var(--signal-deep); letter-spacing: 0.14em; text-transform: uppercase; font-size: 10px;}
+  .node .nbody { color: var(--ink); font-family: var(--serif); font-size: 14px; line-height: 1.4; }
+
+  .stack-center {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 32px 28px;
+    border-right: 1px dashed rgba(241,233,220,0.18);
+    position: relative;
+  }
+  .stack-center .stack-eyebrow { color: #ff8a5b; }
+  .stack-center h4 { color: var(--paper); }
+  .stack-center .node {
+    background: rgba(255,255,255,0.04);
+    border-color: rgba(241,233,220,0.18);
+    color: var(--paper);
+  }
+  .stack-center .node .nbody { color: var(--paper); }
+  .stack-center .node .nlabel { color: #ff8a5b; }
+  .stack-center .core-glyph {
+    position: absolute;
+    top: 24px; right: 24px;
+    width: 64px; height: 64px;
+    border: 1px solid #ff8a5b;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    font-family: var(--italic); font-style: italic;
+    font-size: 22px; color: #ff8a5b;
+  }
+
+  .flow-line {
+    position: relative;
+    margin: 18px 0 6px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-faint);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+  }
+  .flow-line::before, .flow-line::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: repeating-linear-gradient(to right, var(--rule-strong) 0 4px, transparent 4px 8px);
+    margin: 0 12px;
+  }
+
+  /* ---------- Integrations ---------- */
+  .integration-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    border: 1px solid var(--ink);
+  }
+  .int {
+    padding: 28px 22px;
+    border-right: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    position: relative;
+    transition: background 0.2s ease;
+  }
+  .int:hover { background: rgba(255,255,255,0.6); }
+  .int:nth-child(4n) { border-right: none; }
+  .int:nth-last-child(-n+4) { border-bottom: none; }
+  .int .icon-wrap {
+    width: 40px; height: 40px;
+    border: 1px solid var(--ink);
+    background: var(--paper);
+    display: grid; place-items: center;
+    margin-bottom: 14px;
+  }
+  .int .icon-wrap svg { width: 22px; height: 22px; }
+  .int h4 {
+    font-family: var(--serif);
+    font-variation-settings: "opsz" 24, "wght" 600;
+    font-size: 17px;
+    margin-bottom: 4px;
+    letter-spacing: -0.005em;
+  }
+  .int p {
+    font-family: var(--serif);
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+  }
+  .int .channel {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: var(--signal-deep);
+    text-transform: uppercase;
+    display: block;
+    margin-top: 10px;
+  }
+
+  .channels-strip {
+    margin-top: 32px;
+    border: 1px solid var(--ink);
+    padding: 18px 24px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 24px;
+    align-items: center;
+    background: var(--ink);
+    color: var(--paper);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  .channels-strip .lhs {
+    display: flex; gap: 18px; flex-wrap: wrap; align-items: center;
+  }
+  .channels-strip .arrow {
+    font-family: var(--italic); font-style: italic;
+    font-size: 22px; text-transform: none; letter-spacing: 0;
+    color: #ff8a5b;
+  }
+
+  /* ---------- Skills Stack table ---------- */
+  .ledger {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--serif);
+    font-size: 14.5px;
+  }
+  .ledger thead th {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--signal-deep);
+    text-align: left;
+    padding: 14px 18px;
+    border-bottom: 2px solid var(--ink);
+    border-top: 2px solid var(--ink);
+    background: rgba(255,255,255,0.25);
+  }
+  .ledger tbody td {
+    padding: 14px 18px;
+    border-bottom: 1px dashed var(--rule);
+    vertical-align: top;
+    line-height: 1.55;
+  }
+  .ledger tbody tr:hover { background: rgba(197,52,26,0.04); }
+  .ledger td.id {
+    font-family: var(--mono);
+    color: var(--ink-faint);
+    font-size: 12px;
+    width: 64px;
+  }
+  .ledger td.name {
+    font-family: var(--serif);
+    font-variation-settings: "opsz" 24, "wght" 600;
+    color: var(--ink);
+    width: 22%;
+  }
+  .ledger td.name em {
+    font-family: var(--italic); font-style: italic;
+    color: var(--signal);
+  }
+  .ledger td.cat {
+    width: 14%;
+  }
+  .ledger td.cat .chip {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    border: 1px solid var(--rule-strong);
+    padding: 2px 8px;
+    border-radius: 2px;
+    color: var(--ink);
+  }
+  .chip.advisor { border-color: var(--signal); color: var(--signal-deep); }
+  .chip.builder { border-color: var(--sage); color: var(--sage); }
+  .chip.capture { border-color: var(--gold); color: var(--gold); }
+  .chip.meta { border-color: var(--ink-soft); color: var(--ink-soft); }
+
+  .ledger td.desc { color: var(--ink-soft); }
+
+  /* ---------- Stats ---------- */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    border: 1px solid var(--ink);
+    background: var(--ink);
+    color: var(--paper);
+  }
+  .stat {
+    padding: 36px 28px;
+    border-right: 1px solid rgba(241,233,220,0.18);
+    position: relative;
+  }
+  .stat:last-child { border-right: none; }
+  .stat .num {
+    font-family: var(--serif);
+    font-variation-settings: "opsz" 144, "wght" 400, "SOFT" 100;
+    font-size: 88px;
+    line-height: 0.9;
+    color: var(--paper);
+    letter-spacing: -0.02em;
+  }
+  .stat .num em {
+    font-family: var(--italic); font-style: italic;
+    color: #ff8a5b;
+    font-size: 0.7em;
+    vertical-align: 0.2em;
+  }
+  .stat .label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(241,233,220,0.55);
+    margin-top: 14px;
+  }
+  .stat .sub {
+    font-family: var(--italic); font-style: italic;
+    font-size: 14px;
+    color: rgba(241,233,220,0.85);
+    margin-top: 6px;
+  }
+
+  /* ---------- Heartbeat band ---------- */
+  .heartbeat-band {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 56px;
+    align-items: center;
+  }
+  .heartbeat-graph {
+    height: 240px;
+    width: 100%;
+    border: 1px solid var(--ink);
+    background:
+      repeating-linear-gradient(to right, transparent 0 19.99%, var(--rule) 20% 20.05%),
+      repeating-linear-gradient(to bottom, transparent 0 24.99%, var(--rule) 25% 25.05%),
+      var(--paper);
+    position: relative;
+    overflow: hidden;
+  }
+  .heartbeat-graph svg {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+  }
+  .heartbeat-graph .grid-label {
+    position: absolute;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-faint);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  /* ---------- Quote / closer ---------- */
+  .closer {
+    text-align: center;
+    padding: 120px 0 80px;
+  }
+  .closer h2 {
+    font-family: var(--serif);
+    font-variation-settings: "opsz" 144, "wght" 400, "SOFT" 100;
+    font-size: clamp(48px, 7.4vw, 110px);
+    line-height: 0.96;
+    letter-spacing: -0.025em;
+    max-width: 18ch;
+    margin: 0 auto;
+  }
+  .closer h2 em {
+    font-family: var(--italic);
+    font-style: italic;
+    color: var(--signal);
+  }
+  .closer .deck {
+    font-family: var(--italic); font-style: italic;
+    font-size: 22px; color: var(--ink-soft);
+    margin-top: 28px;
+    max-width: 56ch; margin-left: auto; margin-right: auto;
+  }
+
+  .colophon {
+    border-top: 2px solid var(--ink);
+    padding: 32px 0 64px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 24px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .colophon .center { text-align: center; }
+  .colophon .right { text-align: right; }
+  .colophon a { color: var(--signal-deep); text-decoration: none; }
+
+  /* ---------- Reveal animation ---------- */
+  .reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.9s ease, transform 0.9s cubic-bezier(0.2,0.8,0.2,1); }
+  .reveal.in { opacity: 1; transform: translateY(0); }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 980px) {
+    .frame { padding: 0 24px; }
+    .hero { grid-template-columns: 1fr; gap: 32px; }
+    .hero-side { border-left: none; padding-left: 0; border-top: 1px solid var(--rule); padding-top: 24px; }
+    .columns-3 { grid-template-columns: 1fr; }
+    .columns-3 > .col { border-right: none; border-bottom: 1px solid var(--rule); }
+    .columns-3 > .col:last-child { border-bottom: none; }
+    .manifesto { columns: 1; }
+    .features { grid-template-columns: 1fr; }
+    .feature.w6, .feature.w4, .feature.w3, .feature.w8, .feature.w12 { grid-column: span 1; }
+    .stack-board { grid-template-columns: 1fr; }
+    .stack-col { border-right: none; border-bottom: 1px dashed var(--rule-strong); }
+    .integration-grid { grid-template-columns: repeat(2, 1fr); }
+    .int { border-right: 1px solid var(--rule) !important; border-bottom: 1px solid var(--rule) !important; }
+    .int:nth-child(2n) { border-right: none !important; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .stat { border-bottom: 1px solid rgba(241,233,220,0.18); }
+    .heartbeat-band { grid-template-columns: 1fr; }
+    .section-head { grid-template-columns: 1fr; gap: 12px; }
+    .section-head .meta { text-align: left; }
+    .ledger td.cat, .ledger thead th:nth-child(3) { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============== MASTHEAD ============== -->
+<header class="masthead">
+  <div class="frame">
+    <div class="masthead-top">
+      <div class="left"><span class="dot"></span> heartbeat <span style="color:var(--ink-faint)">/ q15min</span></div>
+      <div class="center"><span class="badge">VOL. I &nbsp;·&nbsp; ISSUE 04 &nbsp;·&nbsp; APR 2026</span></div>
+      <div class="right">drafts → never sends</div>
+    </div>
+
+    <h1 class="wordmark">FRE<span class="ampersand">d</span>IS</h1>
+
+    <div class="masthead-strap">
+      <div class="left">AN ADVISOR, NOT AN AGENT</div>
+      <div class="center">— for the consultancy, the research, &amp; the long-game move across UK · LV · AR —</div>
+      <div class="right">PERSONAL · ADVISORY · OPEN</div>
+    </div>
+  </div>
+</header>
+
+<!-- ============== HERO ============== -->
+<div class="frame">
+<section class="hero">
+  <div class="hero-main">
+    <p class="eyebrow reveal">∠ The pitch — in one breath</p>
+    <h2 class="hero-headline reveal" style="margin-top:12px">
+      A personal AI that <em>thinks alongside</em> you,<br>
+      drafts everything, <span class="strike">sends</span> nothing.
+    </h2>
+    <p class="hero-deck reveal">
+      Fredis is a self-hosted second brain — a memory, a heartbeat, and twenty-four advisor skills running on the Claude Agent SDK. It reads your inbox, your calendar, your CRM and your code. It writes you the reply, the doc, the next move. You ship it. You stay the author.
+    </p>
+  </div>
+
+  <aside class="hero-side reveal">
+    <div class="dossier">
+      <dl>
+        <dt>Operator</dt><dd>Linards Berzins</dd>
+        <dt>Codename</dt><dd>Fredis &nbsp;<span class="pill signal">v1</span></dd>
+        <dt>Mode</dt><dd><span class="pill">advisor-only</span> &nbsp;drafts → human → send</dd>
+        <dt>Engine</dt><dd>Claude Opus / Sonnet via Agent SDK</dd>
+        <dt>Memory</dt><dd>Obsidian vault · 5 root files · daily logs</dd>
+        <dt>Skills</dt><dd>24 specialists — advisor, builder, capture</dd>
+        <dt>Infra</dt><dd>Hetzner VPS · MCP streamable-HTTP · Slack &amp; chat</dd>
+        <dt>Bias</dt><dd><span class="pill sage">never auto-sends</span> external messages</dd>
+      </dl>
+    </div>
+
+    <blockquote class="hero-quote">
+      Sharp, direct, grounded. Catches the thing he almost missed, calls it without preamble, and ties everything back to what actually happens next — not theory.
+      <cite>— from <code style="font-family:var(--mono);font-size:11px;">SOUL.md</code></cite>
+    </blockquote>
+  </aside>
+</section>
+</div>
+
+<!-- ============== THE PROBLEM ============== -->
+<section>
+  <div class="frame">
+    <div class="section-head">
+      <div class="num">№ 01 — THE PROBLEM</div>
+      <h2>The tools you have <em>don't think</em> with you.</h2>
+      <div class="meta">three failure modes</div>
+    </div>
+
+    <div class="columns-3">
+      <div class="col reveal">
+        <h3 data-num="A.">Inboxes are silos</h3>
+        <p>Gmail, Slack, Calendar, HubSpot, GitHub, Drive, Sheets — every tool stores a fragment of context. None of them remember the through-line of what you're actually doing this quarter.</p>
+      </div>
+      <div class="col reveal">
+        <h3 data-num="B.">Generic AI auto-sends</h3>
+        <p>Off-the-shelf assistants happily ship public messages on your behalf. That's fine for tickets — fatal for client trust, partner agreements, and anything with your face on it. The author has to remain the human.</p>
+      </div>
+      <div class="col reveal">
+        <h3 data-num="C.">Memory dies on logout</h3>
+        <p>A chat that forgets last week's decision is a stranger you have to onboard daily. Real leverage starts when the assistant remembers the deal, the constraint, the family plan, the kill-criteria — and uses them.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== MANIFESTO ============== -->
+<section>
+  <div class="frame">
+    <div class="section-head">
+      <div class="num">№ 02 — THE STANCE</div>
+      <h2>Built around <em>three</em> non-negotiables.</h2>
+      <div class="meta">manifesto, abridged</div>
+    </div>
+
+    <div class="manifesto reveal">
+      <p class="lead">Fredis is not a product. It is a one-person operating system, written and re-written in public, that earned its place by getting one person — Linards — through more decisions per day with less friction and zero unauthorised sends.</p>
+
+      <p>The first rule is <strong>advisor-mode is the boundary</strong>. Every external action — replies, posts, ticket moves, calendar invites — lands as a draft in <code style="font-family:var(--mono);font-size:13px">drafts/active/</code> and a HubSpot review ticket. Linards reviews. Linards sends. The system never speaks in his name.</p>
+
+      <p>The second rule is <strong>memory is a vault, not a vector</strong>. The brain lives as plain Markdown in an Obsidian vault — SOUL, USER, MEMORY, HABITS, HEARTBEAT — versioned in git, synced across machines, readable without the AI. If the model goes away tomorrow, the brain stays.</p>
+
+      <p>The third rule is <strong>skills over scripts</strong>. Twenty-four discrete skills carry the playbooks: a CISO, a CTO, a product manager, a launch-governor, a meeting scribe. Each one is an executable persona — not a wrapper, but an opinion encoded in markdown that knows when to load itself.</p>
+
+      <p>Underneath, a heartbeat ticks every fifteen minutes. It scans the vault, watches the gates, drafts what's due, and posts a single line to Slack: <em>"Here's what I'd do if I were you. You decide."</em></p>
+    </div>
+  </div>
+</section>
+
+<!-- ============== UNIQUE FEATURES ============== -->
+<section>
+  <div class="frame">
+    <div class="section-head">
+      <div class="num">№ 03 — UNIQUE FEATURES</div>
+      <h2>Eight things <em>nothing else</em> on the shelf does.</h2>
+      <div class="meta">spec sheet</div>
+    </div>
+
+    <div class="features">
+
+      <div class="feature w6 tall dark reveal">
+        <div class="tag"><span>F-01 / FLAGSHIP</span><span>● live</span></div>
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 12h3l2 5 4-10 2 5h7"/></svg>
+        </div>
+        <h3>The 15-minute <em>heartbeat</em>.</h3>
+        <p>A self-running tick that pulls fresh inbox + calendar + CRM context, scans launch-governance gates, drafts the replies that are overdue, and updates today's daily log. Quiet between ticks. Useful at every tick. You can read what it did at any time — it leaves a trail in <code style="font-family:var(--mono);font-size:12px;color:#ff8a5b">daily/YYYY-MM-DD.md</code>.</p>
+      </div>
+
+      <div class="feature w6 tall reveal">
+        <div class="tag"><span>F-02 / TRUST MODEL</span><span>advisor</span></div>
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6l-8-4Z"/><path d="m9 12 2 2 4-4"/></svg>
+        </div>
+        <h3><em>Never-send</em> by design.</h3>
+        <p>The architecture itself enforces advisor-only behaviour. Outbound channels are write-locked at the integration layer. Drafts go to disk, a HubSpot review ticket appears, Slack posts a <code style="font-family:var(--mono);font-size:12px">[DRAFT]</code> notice. The keys to actually send live with the human, not the agent.</p>
+      </div>
+
+      <div class="feature w4 reveal">
+        <div class="tag"><span>F-03 / VOICE</span><span>matched</span></div>
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M5 12c0-3.866 3.134-7 7-7s7 3.134 7 7-3.134 7-7 7H5l2-2.5C5.5 15 5 13.5 5 12Z"/></svg>
+        </div>
+        <h3>Voice-matched drafts.</h3>
+        <p>Every reply retrieves three structurally similar past sends from <code style="font-family:var(--mono);font-size:12px">drafts/sent/</code> and copies cadence, hedge-level, sign-off, line breaks. The drafts read like Linards because they were trained on Linards.</p>
+      </div>
+
+      <div class="feature w4 reveal">
+        <div class="tag"><span>F-04 / KILL GATES</span><span>YAML</span></div>
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        </div>
+        <h3><em>Launch-governance</em> gates.</h3>
+        <p>Per-lane YAML kill-criteria (Email Hub, VTV, Cab) read each tick. If a metric crosses, the heartbeat drafts the post-mortem and the pivot memo before the founder finds time to feel attached.</p>
+      </div>
+
+      <div class="feature w4 reveal">
+        <div class="tag"><span>F-05 / VAULT</span><span>portable</span></div>
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 7l8-4 8 4v10l-8 4-8-4Z"/><path d="M4 7l8 4 8-4M12 11v10"/></svg>
+        </div>
+        <h3>Markdown-first memory.</h3>
+        <p>Five top-level files (SOUL, USER, MEMORY, HABITS, HEARTBEAT) plus a daily log directory. Versioned in git, opened in Obsidian, readable without the AI. The brain outlives the model.</p>
+      </div>
+
+      <div class="feature w6 signal reveal">
+        <div class="tag"><span>F-06 / SKILLS</span><span>24 specialists</span></div>
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 7h18M3 12h18M3 17h18"/><circle cx="6" cy="7" r="1.5" fill="currentColor"/><circle cx="14" cy="12" r="1.5" fill="currentColor"/><circle cx="9" cy="17" r="1.5" fill="currentColor"/></svg>
+        </div>
+        <h3>An <em>advisory bench</em>, on tap.</h3>
+        <p>Solo-founder, startup-CTO, product-manager, CISO, business-cycle-analyst, IP-overhang-guard, scenario-war-room — each a skill that auto-loads on trigger phrases and answers in its own voice with its own framework. Same brain, different chair.</p>
+      </div>
+
+      <div class="feature w6 reveal">
+        <div class="tag"><span>F-07 / REVIEW QUEUE</span><span>HubSpot</span></div>
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h10M7 17h6"/></svg>
+        </div>
+        <h3>One queue, five stages.</h3>
+        <p>Every draft creates a HubSpot ticket — Drafted → In review → Needs send → Actioned / Rejected. The queue is the inbox; the file is the content. Approve from a phone, action from a laptop, never lose a thread.</p>
+      </div>
+
+      <div class="feature w8 reveal">
+        <div class="tag"><span>F-08 / IP-AWARE</span><span>UK · LV</span></div>
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 3 4 7v10l8 4 8-4V7l-8-4Z"/><path d="M12 7v6m-3 0h6"/></svg>
+        </div>
+        <h3>Knows where the legal lines are — and stops you crossing them.</h3>
+        <p>The <code style="font-family:var(--mono);font-size:12px">ip-overhang-guard</code> skill encodes UK CDPA s.11(2), Patents Act s.39, clean-room rebuild triggers and a Merkle-letter template — fires automatically when product work touches anything built on employer time. The <code style="font-family:var(--mono);font-size:12px">uk-latvia-context</code> skill carries the cross-border tax / Companies House / VID admin map. Same brain, dual-jurisdiction citizen.</p>
+      </div>
+
+      <div class="feature w4 reveal">
+        <div class="tag"><span>F-09 / OPEN</span><span>self-hosted</span></div>
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        </div>
+        <h3>Yours. Not a SaaS.</h3>
+        <p>Runs on a Hetzner VPS, MCP streamable-HTTP transport, BYO model keys. No tenant boundary to leak across. No vendor lock-in to pay rent on.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============== HOW IT WORKS ============== -->
+<section>
+  <div class="frame">
+    <div class="section-head">
+      <div class="num">№ 04 — HOW IT WORKS</div>
+      <h2>Three layers — <em>signals</em>, brain, drafts.</h2>
+      <div class="meta">architecture, in plain</div>
+    </div>
+
+    <div class="stack-board reveal">
+      <!-- LEFT: signals -->
+      <div class="stack-col">
+        <div class="stack-eyebrow">∠ INPUTS</div>
+        <h4>Signals come in</h4>
+
+        <div class="node">
+          <span class="nlabel">channel · gmail</span>
+          <span class="nbody">New replies, calendar holds, payment receipts.</span>
+        </div>
+        <div class="node">
+          <span class="nlabel">channel · slack</span>
+          <span class="nbody">DMs, mentions, the <code style="font-family:var(--mono);font-size:11px">#hubspot</code> stream.</span>
+        </div>
+        <div class="node">
+          <span class="nlabel">channel · hubspot</span>
+          <span class="nbody">Deal stage moves, ticket changes.</span>
+        </div>
+        <div class="node">
+          <span class="nlabel">channel · calendar</span>
+          <span class="nbody">Today + next 7 days, free/busy.</span>
+        </div>
+        <div class="node">
+          <span class="nlabel">channel · github</span>
+          <span class="nbody">PR reviews, issue mentions.</span>
+        </div>
+        <div class="node">
+          <span class="nlabel">channel · drive · sheets · docs</span>
+          <span class="nbody">Pulled on demand by skills that need them.</span>
+        </div>
+      </div>
+
+      <!-- CENTER: brain -->
+      <div class="stack-center stack-col">
+        <div class="core-glyph">F</div>
+        <div class="stack-eyebrow">∠ THE BRAIN</div>
+        <h4>The heartbeat decides</h4>
+
+        <div class="node">
+          <span class="nlabel">tick · q15min</span>
+          <span class="nbody"><code style="font-family:var(--mono);font-size:11px">heartbeat.py</code> reads the vault, scans gates, fans out to skills.</span>
+        </div>
+        <div class="node">
+          <span class="nlabel">memory · markdown vault</span>
+          <span class="nbody">SOUL · USER · MEMORY · HABITS · HEARTBEAT + 14 days of daily logs.</span>
+        </div>
+        <div class="node">
+          <span class="nlabel">skills · 24 specialists</span>
+          <span class="nbody">Auto-loaded on trigger phrases. Each one its own voice, framework, output path.</span>
+        </div>
+        <div class="node">
+          <span class="nlabel">guardrails · pre-tool hooks</span>
+          <span class="nbody">SOUL is read-only. Outbound sends are blocked. Templates can't leak.</span>
+        </div>
+        <div class="node">
+          <span class="nlabel">model · Claude Opus + Sonnet</span>
+          <span class="nbody">Streamable HTTP via Anthropic Agent SDK on a Hetzner VPS.</span>
+        </div>
+      </div>
+
+      <!-- RIGHT: drafts -->
+      <div class="stack-col">
+        <div class="stack-eyebrow">∠ OUTPUTS</div>
+        <h4>Drafts go out</h4>
+
+        <div class="node">
+          <span class="nlabel">surface · drafts/active/</span>
+          <span class="nbody">Markdown reply, doc, plan, post — pending review.</span>
+        </div>
+        <div class="node">
+          <span class="nlabel">surface · gmail draft</span>
+          <span class="nbody">Native draft created via API — visible in Linards's inbox.</span>
+        </div>
+        <div class="node">
+          <span class="nlabel">surface · hubspot ticket</span>
+          <span class="nbody">Review queue ticket with the draft attached.</span>
+        </div>
+        <div class="node">
+          <span class="nlabel">surface · slack DM</span>
+          <span class="nbody"><code style="font-family:var(--mono);font-size:11px">[DRAFT]</code> notice with the link.</span>
+        </div>
+        <div class="node">
+          <span class="nlabel">surface · daily log</span>
+          <span class="nbody">Tick is journaled. Tomorrow you can read why today did what it did.</span>
+        </div>
+        <div class="node">
+          <span class="nlabel">never · auto-send</span>
+          <span class="nbody">Linards approves and sends. Always.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-line reveal">
+      <span>SIGNAL → MEMORY → SKILL → DRAFT → HUMAN</span>
+    </div>
+
+    <div class="stats reveal" style="margin-top:48px">
+      <div class="stat"><div class="num">24</div><div class="label">advisor skills</div><div class="sub">CISO to scribe</div></div>
+      <div class="stat"><div class="num">15<em>min</em></div><div class="label">heartbeat cadence</div><div class="sub">quiet, not silent</div></div>
+      <div class="stat"><div class="num">12<em>+</em></div><div class="label">live integrations</div><div class="sub">read-many · send-zero</div></div>
+      <div class="stat"><div class="num">0</div><div class="label">unauthorised sends</div><div class="sub">since day one</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== INTEGRATIONS ============== -->
+<section>
+  <div class="frame">
+    <div class="section-head">
+      <div class="num">№ 05 — INTEGRATIONS</div>
+      <h2>Wired into <em>everything</em> Linards already uses.</h2>
+      <div class="meta">read · understand · draft</div>
+    </div>
+
+    <div class="integration-grid reveal">
+
+      <div class="int">
+        <div class="icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h18v12H3z"/><path d="m3 6 9 7 9-7"/></svg>
+        </div>
+        <h4>Gmail</h4>
+        <p>Reads threads, retrieves voice from sent mail, writes native drafts.</p>
+        <span class="channel">read · draft</span>
+      </div>
+
+      <div class="int">
+        <div class="icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        </div>
+        <h4>Google Calendar</h4>
+        <p>Today and the next 7 days. Knows when not to ping.</p>
+        <span class="channel">read</span>
+      </div>
+
+      <div class="int">
+        <div class="icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 3h14v18H5z"/><path d="M8 7h8M8 11h8M8 15h6"/></svg>
+        </div>
+        <h4>Google Docs</h4>
+        <p>Pulls long-form content into the brain when a skill needs it.</p>
+        <span class="channel">read</span>
+      </div>
+
+      <div class="int">
+        <div class="icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 7h7l2 3h9v9H3z"/></svg>
+        </div>
+        <h4>Google Drive</h4>
+        <p>Find-by-name, fetch, summarise. No mass crawl.</p>
+        <span class="channel">read</span>
+      </div>
+
+      <div class="int">
+        <div class="icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
+        </div>
+        <h4>Google Sheets</h4>
+        <p>Reads named ranges; structured pulls for metrics gates.</p>
+        <span class="channel">read</span>
+      </div>
+
+      <div class="int">
+        <div class="icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 5h6v6H4zM14 5h6v6h-6zM4 13h6v6H4zM14 13h6v6h-6z"/></svg>
+        </div>
+        <h4>Slack</h4>
+        <p>The chat surface. DM Fredis, get a draft back.</p>
+        <span class="channel">read · draft</span>
+      </div>
+
+      <div class="int">
+        <div class="icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M9 9h6v6H9z"/></svg>
+        </div>
+        <h4>HubSpot CRM</h4>
+        <p>Deal stages, tickets, contacts. Hosts the review queue.</p>
+        <span class="channel">read · ticket</span>
+      </div>
+
+      <div class="int">
+        <div class="icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.36-1.34-3.36-1.34-.46-1.16-1.13-1.47-1.13-1.47-.92-.63.07-.62.07-.62 1.02.07 1.56 1.05 1.56 1.05.91 1.55 2.38 1.1 2.96.84.09-.66.36-1.1.65-1.36-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.99 1.03-2.69-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02A9.6 9.6 0 0 1 12 6.8c.85 0 1.7.11 2.5.34 1.9-1.29 2.74-1.02 2.74-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.6 1.03 2.69 0 3.84-2.34 4.69-4.57 4.93.37.32.69.95.69 1.92v2.85c0 .27.18.58.69.48A10 10 0 0 0 12 2Z"/></svg>
+        </div>
+        <h4>GitHub</h4>
+        <p>Your PR reviews, your issues, your activity — surfaced before standup.</p>
+        <span class="channel">read</span>
+      </div>
+
+      <div class="int">
+        <div class="icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2v6m0 8v6M2 12h6m8 0h6"/><circle cx="12" cy="12" r="3"/></svg>
+        </div>
+        <h4>MCP Universal</h4>
+        <p>Talks to any MCP server — Zapier, sequential-thinking, filesystem.</p>
+        <span class="channel">protocol</span>
+      </div>
+
+      <div class="int">
+        <div class="icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12c3-6 15-6 18 0M3 12c3 6 15 6 18 0"/><circle cx="12" cy="12" r="2.5"/></svg>
+        </div>
+        <h4>jCodeMunch</h4>
+        <p>Token-efficient code search across your repos via MCP.</p>
+        <span class="channel">protocol</span>
+      </div>
+
+      <div class="int">
+        <div class="icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 3h14v18H5z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg>
+        </div>
+        <h4>jDocMunch</h4>
+        <p>Section-level docs lookup — 400 tokens, not 25k.</p>
+        <span class="channel">protocol</span>
+      </div>
+
+      <div class="int">
+        <div class="icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18M8 14h2M8 17h6"/></svg>
+        </div>
+        <h4>Obsidian Vault</h4>
+        <p>The memory layer itself. Plain markdown. Read it without the AI.</p>
+        <span class="channel">file system</span>
+      </div>
+
+    </div>
+
+    <div class="channels-strip reveal">
+      <div class="lhs">
+        <span>direction</span>
+        <span class="arrow">→</span>
+        <span>read · many</span>
+        <span class="arrow">·</span>
+        <span>draft · always</span>
+        <span class="arrow">·</span>
+        <span>auto-send · zero</span>
+      </div>
+      <div class="rhs">advisor mode</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== SKILLS LEDGER ============== -->
+<section>
+  <div class="frame">
+    <div class="section-head">
+      <div class="num">№ 06 — THE SKILL STACK</div>
+      <h2>Twenty-four <em>specialists</em>, on call.</h2>
+      <div class="meta">excerpt · advisor / builder / capture / meta</div>
+    </div>
+
+    <table class="ledger reveal">
+      <thead>
+        <tr>
+          <th>№</th><th>Skill</th><th>Lane</th><th>What it carries</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="id">01</td><td class="name">ip-overhang-<em>guard</em></td><td class="cat"><span class="chip advisor">advisor</span></td><td class="desc"><strong>Audits whether you legally own what you built.</strong> Fires before any product work that might touch employer-owned IP. Encodes UK CDPA s.11(2) (copyright defaults to employer), Patents Act s.39 (employee-invention rules), clean-room rebuild triggers, and a Merkle-letter template for carve-outs. Tells you: ship, rewrite clean, or get a lawyer.</td></tr>
+        <tr><td class="id">02</td><td class="name">business-cycle-<em>analyst</em></td><td class="cat"><span class="chip advisor">advisor</span></td><td class="desc"><strong>Locates a market or sector on the cycle and calls timing.</strong> Picks a lens — Dalio short + long debt cycles, Kondratieff wave, sector rotation, commodity supercycle — applies it, then writes the verdict in Chris-Lori trader voice: setup, trigger, invalidator. No hedging.</td></tr>
+        <tr><td class="id">03</td><td class="name">ciso-<em>advisor</em></td><td class="cat"><span class="chip advisor">advisor</span></td><td class="desc"><strong>Strategic security leadership for growth-stage companies.</strong> Quantifies risk in dollars, sequences the right compliance framework (SOC 2 / ISO 27001 / HIPAA / GDPR), runs incident response, prepares board-level security reports, justifies budget. The CISO seat without the salary line.</td></tr>
+        <tr><td class="id">04</td><td class="name">executive-<em>leadership</em></td><td class="cat"><span class="chip advisor">advisor</span></td><td class="desc"><strong>Founder-grade strategy, board prep, and mental-health backstop.</strong> CEO advice on quarterly plans, board decks, investor updates, fundraising; founder coaching on delegation, burnout, imposter syndrome; solo-founder persona voice; scenario war-room for cascading multi-variable risk modelling.</td></tr>
+        <tr><td class="id">05</td><td class="name">technical-<em>leadership</em></td><td class="cat"><span class="chip advisor">advisor</span></td><td class="desc"><strong>The CTO chair for a small or one-person team.</strong> Architecture decisions, technology evaluation, tech-debt assessment, DORA metrics, team scaling, technical due-diligence prep. Ships-fast startup-CTO voice on demand for small-team tradeoffs.</td></tr>
+        <tr><td class="id">06</td><td class="name">product-<em>management</em></td><td class="cat"><span class="chip advisor">advisor</span></td><td class="desc"><strong>Outcomes over features, ruthlessly.</strong> OKR cascades, quarterly plans, RICE prioritisation, PRD drafting, customer-interview synthesis, GTM strategy, opportunity-solution trees. Kills darlings when data says so. Product-manager persona voice on tap.</td></tr>
+        <tr><td class="id">07</td><td class="name">org-<em>design</em></td><td class="cat"><span class="chip advisor">advisor</span></td><td class="desc"><strong>Surfaces silos and orphan goals before they cost a quarter.</strong> Cascades strategy from boardroom to IC, picks the operating system (EOS / Scaling Up / OKR-native / hybrid), sets meeting pulse (L10), accountability charts, scorecards, 90-day rocks.</td></tr>
+        <tr><td class="id">08</td><td class="name">launch-<em>governance</em></td><td class="cat"><span class="chip advisor">advisor</span></td><td class="desc"><strong>Decides when to launch, when to pivot, when to kill.</strong> Bullseye wedge picker, do-things-that-don't-scale playbook, AARRR + SaaS metrics gates with breach drafts, monthly Thinking-in-Bets review, Munger inversion, two-layer decision journal. Heartbeat-wired — checks gates every tick.</td></tr>
+        <tr><td class="id">09</td><td class="name">idea-<em>validation</em></td><td class="cat"><span class="chip advisor">advisor</span></td><td class="desc"><strong>Stops bad ideas before they eat a quarter.</strong> Three-stage chain: Porter / STEEP / Blue-Ocean market scan → Mom Test + JTBD-switch problem interviews with commitment extraction → Kniberg MLP + Kano + Klein pre-mortem. Forces the Atis-£1k smoke test and explicit kill criteria before any build.</td></tr>
+        <tr><td class="id">10</td><td class="name">product-<em>shape</em></td><td class="cat"><span class="chip advisor">advisor</span></td><td class="desc"><strong>Turns a validated idea into a priced, positioned, stack-ready MVP.</strong> Van Westendorp + Gabor-Granger pricing research, April Dunford + Geoffrey Moore positioning with the one-tweet test, Ries + Wardley build-vs-buy stack architecture. Pre-built canvases for B2G, B2C-commission, and SaaS lanes.</td></tr>
+        <tr><td class="id">11</td><td class="name">engineering</td><td class="cat"><span class="chip builder">builder</span></td><td class="desc"><strong>Hands-on system design and code generation.</strong> Architecture decisions, ADRs, C4 diagrams, scalability tradeoffs; REST / GraphQL / Postgres / auth / Node; Jest + Playwright + MSW test scaffolding; red-green-refactor TDD; agentic-backend shape (VSA, blueprint/node, connector pattern, observability).</td></tr>
+        <tr><td class="id">12</td><td class="name">security-<em>engineering</em></td><td class="cat"><span class="chip builder">builder</span></td><td class="desc"><strong>Hands-on app and infra security — not strategy.</strong> STRIDE threat models, OWASP / cryptography review, SAST + DAST + secret-scan, AWS / Azure / GCP cloud-posture audits, IAM escalation paths. LLM-specific: prompt-injection / jailbreak / model-inversion defences via MITRE ATLAS, plus three-layer agent guardrails.</td></tr>
+        <tr><td class="id">13</td><td class="name">data-and-<em>experimentation</em></td><td class="cat"><span class="chip builder">builder</span></td><td class="desc"><strong>Designs experiments and reads results without lying to you.</strong> A/B test design, sample-size calc, hypothesis tests, effect sizes, CIs, Bonferroni; XGBoost / SHAP / MLflow / causal inference / DiD; LLM eval harness — judge-based with rubric calibration, fixture-driven regression, failure-mode taxonomies.</td></tr>
+        <tr><td class="id">14</td><td class="name">robotics-<em>engineer</em></td><td class="cat"><span class="chip builder">builder</span></td><td class="desc"><strong>Designs and reviews robotics systems against the safety standards.</strong> ROS2 architecture; ISO 10218 (industrial), 13482 (personal-care), 15066 (collaborative); RRT* and MPC motion planning. Reserved for future UGOKI / cobot product work.</td></tr>
+        <tr><td class="id">15</td><td class="name">integrations</td><td class="cat"><span class="chip builder">builder</span></td><td class="desc"><strong>The bridge to every external system Linards uses.</strong> Direct Python APIs for Gmail, Google Calendar, Slack, Sheets, Docs, Drive, HubSpot, GitHub; plus a universal MCP client that talks to any MCP server (Zapier, sequential-thinking, filesystem). One CLI: <code style="font-family:var(--mono);font-size:12px">query.py</code>.</td></tr>
+        <tr><td class="id">16</td><td class="name">content-<em>social</em></td><td class="cat"><span class="chip builder">builder</span></td><td class="desc"><strong>Drafts AI / tech educational content in your voice.</strong> LinkedIn long-form posts and carousels, X / Twitter posts and threads (with thread structure), Instagram carousels and Reels scripts. Hook design, CTA conventions, voice matching. Always advisor-mode — drafts to disk, never auto-posts.</td></tr>
+        <tr><td class="id">17</td><td class="name">content-<em>artifacts</em></td><td class="cat"><span class="chip builder">builder</span></td><td class="desc"><strong>Generates the deliverables you'd open in PowerPoint or Excalidraw.</strong> PPTX decks and brand-aware LinkedIn carousels, architecture / workflow / concept diagrams as Excalidraw JSON, PDF ops (extract / merge / split / forms / image conversion), and runbooks / SOPs / playbooks for repeatable procedures.</td></tr>
+        <tr><td class="id">18</td><td class="name">draft-<em>reply</em></td><td class="cat"><span class="chip capture">capture</span></td><td class="desc"><strong>Drafts an email or Slack reply that sounds like Linards.</strong> Retrieves three structurally similar past replies from <code style="font-family:var(--mono);font-size:12px">drafts/sent/</code> for voice match, writes a structured draft to <code style="font-family:var(--mono);font-size:12px">drafts/active/draft-reply/</code>, and for Gmail also creates a native draft via API so it's visible in the inbox. Never sends.</td></tr>
+        <tr><td class="id">19</td><td class="name">meeting-<em>notes</em></td><td class="cat"><span class="chip capture">capture</span></td><td class="desc"><strong>Structured meeting capture — attendees, decisions, owned action items.</strong> Prompts for what's needed, normalises the output, writes to <code style="font-family:var(--mono);font-size:12px">Fredis/Memory/meetings/YYYY-MM-DD_&lt;slug&gt;.md</code> with due dates. The trail next week's heartbeat will read.</td></tr>
+        <tr><td class="id">20</td><td class="name">client-<em>log</em></td><td class="cat"><span class="chip capture">capture</span></td><td class="desc"><strong>Appends a dated entry to a retainer client's running file.</strong> Context, decisions, open items, owners. Creates the client file the first time it sees a name. So the next call you walk in remembering exactly what you said three weeks ago.</td></tr>
+        <tr><td class="id">21</td><td class="name">uk-latvia-<em>context</em></td><td class="cat"><span class="chip capture">capture</span></td><td class="desc"><strong>The cross-border admin reference pack — UK + Latvia.</strong> Companies House, HMRC, Lursoft, VID, VAT thresholds, filing deadlines, permanent-establishment risk, invoice-currency rules. Reference only — cites sources, flags when the answer needs a human advisor.</td></tr>
+        <tr><td class="id">22</td><td class="name">phase1-<em>ready</em></td><td class="cat"><span class="chip meta">meta</span></td><td class="desc"><strong>The onboarding pipeline that builds Fredis's memory from scratch.</strong> Reads the interview answers, drafts the five personalised memory files (SOUL / USER / MEMORY / HABITS / HEARTBEAT), shows each draft for review, scaffolds topic folders, appends context deltas to the PRD. Run once; never run again.</td></tr>
+        <tr><td class="id">23</td><td class="name">obsidian-vault-<em>structure</em></td><td class="cat"><span class="chip meta">meta</span></td><td class="desc"><strong>The map of where everything lives in the vault.</strong> Tells skills where to save new research, drafts, retainer entries, daily logs, case studies. Encodes date-based naming conventions and the relationship between the five Phase-1 memory files and the topical folders. Routing reference, not content.</td></tr>
+        <tr><td class="id">24</td><td class="name">skill-<em>creator</em></td><td class="cat"><span class="chip meta">meta</span></td><td class="desc"><strong>The brain that grows the brain.</strong> Scaffolds new skills with the right SKILL.md frontmatter, validates trigger phrases don't collide with existing skills, generates reference docs, drops the skill into the right place under <code style="font-family:var(--mono);font-size:12px">.claude/skills/</code>. How the bench expands.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============== HEARTBEAT BAND ============== -->
+<section>
+  <div class="frame">
+    <div class="section-head">
+      <div class="num">№ 07 — A DAY WITH FREDIS</div>
+      <h2>The <em>heartbeat</em>, drawn out.</h2>
+      <div class="meta">tick = 15 min</div>
+    </div>
+
+    <div class="heartbeat-band reveal">
+      <div class="heartbeat-graph">
+        <svg viewBox="0 0 600 240" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="pulse" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="rgba(197,52,26,0.25)"/>
+              <stop offset="100%" stop-color="rgba(197,52,26,0)"/>
+            </linearGradient>
+          </defs>
+          <path d="M0,140 L60,140 L70,138 L80,141 L100,140 L120,140 L130,80 L140,200 L150,140 L200,140 L210,138 L230,141 L260,140 L275,60 L285,210 L295,140 L340,140 L360,141 L380,140 L420,140 L432,40 L444,220 L456,140 L520,140 L540,140 L560,138 L600,140"
+            fill="none" stroke="#c5341a" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+          <path d="M0,140 L60,140 L70,138 L80,141 L100,140 L120,140 L130,80 L140,200 L150,140 L200,140 L210,138 L230,141 L260,140 L275,60 L285,210 L295,140 L340,140 L360,141 L380,140 L420,140 L432,40 L444,220 L456,140 L520,140 L540,140 L560,138 L600,140 L600,240 L0,240 Z"
+            fill="url(#pulse)"/>
+          <line x1="0" y1="140" x2="600" y2="140" stroke="rgba(20,17,15,0.18)" stroke-width="0.5" stroke-dasharray="3 3"/>
+          <circle cx="130" cy="80" r="3" fill="#c5341a"/>
+          <circle cx="275" cy="60" r="3" fill="#c5341a"/>
+          <circle cx="432" cy="40" r="4" fill="#c5341a"/>
+        </svg>
+        <span class="grid-label" style="left:8px;top:8px;">06:00</span>
+        <span class="grid-label" style="left:50%;top:8px;transform:translateX(-50%)">12:00</span>
+        <span class="grid-label" style="right:8px;top:8px;">22:00</span>
+        <span class="grid-label" style="left:8px;bottom:8px;">heartbeat ticks · q15m</span>
+      </div>
+
+      <div>
+        <div class="eyebrow" style="margin-bottom:14px">a representative day</div>
+        <ol style="list-style:none; padding:0; counter-reset: tick;">
+          <li style="display:grid; grid-template-columns:60px 1fr; gap:18px; padding:16px 0; border-bottom:1px dashed var(--rule);">
+            <span style="font-family:var(--mono); font-size:11px; letter-spacing:0.14em; color:var(--signal-deep);">07:30</span>
+            <span><strong style="font-family:var(--serif); font-variation-settings:'opsz' 24, 'wght' 600;">Wakeup tick.</strong> &nbsp;<span style="color:var(--ink-soft)">Pulls overnight Slack DMs, unread Gmail threads, GitHub PR mentions, calendar conflicts for the day. Cross-references the inbox against today's three priority lanes. Drafts the replies that need to land before 9am — voice-matched against three past sends each. Posts a single <code style="font-family:var(--mono);font-size:11px">[DRAFT]</code> notice to <code style="font-family:var(--mono);font-size:11px">#hubspot</code> with the queue link, and creates native Gmail drafts so they're visible the moment Linards opens his inbox. <em style="font-family:var(--italic);font-style:italic;color:var(--signal);">Output:</em> 3–5 reviewable drafts, zero sends.</span></span>
+          </li>
+          <li style="display:grid; grid-template-columns:60px 1fr; gap:18px; padding:16px 0; border-bottom:1px dashed var(--rule);">
+            <span style="font-family:var(--mono); font-size:11px; letter-spacing:0.14em; color:var(--signal-deep);">10:15</span>
+            <span><strong style="font-family:var(--serif); font-variation-settings:'opsz' 24, 'wght' 600;">Gate scan.</strong> &nbsp;<span style="color:var(--ink-soft)">Heartbeat reads <code style="font-family:var(--mono);font-size:11px">Fredis/Memory/gates/*.yaml</code> — one file per active lane (Email Hub, VTV, Cab). VTV's "qualified bids per week" gate breaches: 0 against a floor of 2. <code style="font-family:var(--mono);font-size:11px">launch-governance</code> auto-drafts a Klein pre-mortem to <code style="font-family:var(--mono);font-size:11px">drafts/active/metrics-gate/</code> with three branches — pivot the channel, persevere with a smaller test, or trigger the kill criterion. A HubSpot ticket is created in the <em>Needs send</em> stage. <em style="font-family:var(--italic);font-style:italic;color:var(--signal);">Output:</em> a 1-page bet review on Linards's desk before lunch.</span></span>
+          </li>
+          <li style="display:grid; grid-template-columns:60px 1fr; gap:18px; padding:16px 0; border-bottom:1px dashed var(--rule);">
+            <span style="font-family:var(--mono); font-size:11px; letter-spacing:0.14em; color:var(--signal-deep);">14:00</span>
+            <span><strong style="font-family:var(--serif); font-variation-settings:'opsz' 24, 'wght' 600;">Meeting capture.</strong> &nbsp;<span style="color:var(--ink-soft)">Atis call ends. Linards drops a note: <em>"capture meeting — Atis pricing"</em>. The <code style="font-family:var(--mono);font-size:11px">meeting-notes</code> skill structures attendees, agenda, decisions, and action items with owners + ISO dates. Writes to <code style="font-family:var(--mono);font-size:11px">Fredis/Memory/meetings/2026-04-27_atis-pricing.md</code>, then <code style="font-family:var(--mono);font-size:11px">client-log</code> appends a dated entry to <code style="font-family:var(--mono);font-size:11px">retainers/atis.md</code> with the open items. <em style="font-family:var(--italic);font-style:italic;color:var(--signal);">Output:</em> next week's heartbeat already knows what was promised, by whom, by when.</span></span>
+          </li>
+          <li style="display:grid; grid-template-columns:60px 1fr; gap:18px; padding:16px 0; border-bottom:1px dashed var(--rule);">
+            <span style="font-family:var(--mono); font-size:11px; letter-spacing:0.14em; color:var(--signal-deep);">17:45</span>
+            <span><strong style="font-family:var(--serif); font-variation-settings:'opsz' 24, 'wght' 600;">EOD synthesis.</strong> &nbsp;<span style="color:var(--ink-soft)"><code style="font-family:var(--mono);font-size:11px">memory_synthesis.py</code> rolls up the day: every tool call, every draft created, every decision made or deferred. Writes the structured daily log to <code style="font-family:var(--mono);font-size:11px">Fredis/Memory/daily/2026-04-27.md</code>. <code style="font-family:var(--mono);font-size:11px">memory_reflect.py</code> scans for reusable lessons — patterns that recurred, surprising user feedback, decisions worth remembering — and surfaces MEMORY.md candidates as draft entries for review. Decisions are graded against the morning plan: shipped, slipped, killed. <em style="font-family:var(--italic);font-style:italic;color:var(--signal);">Output:</em> tomorrow you can read why today did what it did.</span></span>
+          </li>
+          <li style="display:grid; grid-template-columns:60px 1fr; gap:18px; padding:16px 0;">
+            <span style="font-family:var(--mono); font-size:11px; letter-spacing:0.14em; color:var(--signal-deep);">22:00</span>
+            <span><strong style="font-family:var(--serif); font-variation-settings:'opsz' 24, 'wght' 600;">Vault sync.</strong> &nbsp;<span style="color:var(--ink-soft)">VPS-side <code style="font-family:var(--mono);font-size:11px">git-sync</code> stages today's diff — daily log, new drafts, MEMORY candidates, gate state changes — and commits with a timestamped message (<code style="font-family:var(--mono);font-size:11px">vault: sync from ubuntu-4gb-hel1-1 @ 2026-04-27T22:00:00Z</code>). Pushes to the private repo. Linards's laptop pulls on next Obsidian open. The brain is now the same on every machine, every device, and durably backed up. <em style="font-family:var(--italic);font-style:italic;color:var(--signal);">Output:</em> tomorrow's heartbeat starts with full context — no warm-up, no re-onboarding.</span></span>
+          </li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== CLOSER ============== -->
+<section class="closer">
+  <div class="frame">
+    <p class="eyebrow reveal">∠ The bet</p>
+    <h2 class="reveal">An assistant with <em>no personality</em><br>is just a search engine<br>with extra steps.</h2>
+    <p class="deck reveal">
+      Fredis has opinions. Fredis disagrees. Fredis remembers. Fredis drafts. Fredis never sends. The author stays the human — the human just thinks a little faster, with less dropped on the floor.
+    </p>
+  </div>
+</section>
+
+<!-- ============== COLOPHON ============== -->
+<footer>
+  <div class="frame">
+    <div class="colophon">
+      <div class="left">SET IN FRAUNCES · INSTRUMENT SERIF · JETBRAINS MONO</div>
+      <div class="center">Fredis · Vol. I · Issue 04 · Apr 2026</div>
+      <div class="right">PRINTED ON LOCALHOST · EDITION OF ONE</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Reveal-on-scroll
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('in');
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12 });
+
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+</script>
+
+</body>
+</html>
