@@ -14,35 +14,34 @@ service: brand
 
 ---
 
-## 1. Palette — Soft Sunrise (canonical Saulera tokens)
+## 1. Palette — canonical Saulera tokens (final)
 
-**The unlock:** the sunrise as Bauhaus composition. The sun is still the *red disc* (Itten / Klee / Albers — the radiant quality of red, never yellow), but it now sits inside a layered dawn: pre-dawn indigo at the top of the sky, pampas-rose at the horizon line, coral as the sun itself, and a warm dawn-stone ground below. Latvian and Argentinean dawns share this exact gradient at 30 minutes before sunrise — that's where the palette is sampled from.
+**The unlock:** in Bauhaus colour theory (Itten / Klee / Albers), the sun is the *red disc*, not the yellow circle. Yellow is the radiant *quality* of red. Saulera's sun lives in `#D94E2A` Vermillion Rise — the specific oxidised-red of the disc just clearing the horizon — and the brand earns the sun motif without ever using yellow. The teal counterweight reads as the cool side of the dawn sky before the sun fully clears.
 
 | Role | Hex | Name | Usage |
 |------|------|------|-------|
-| Anchor | `#1A1F3A` | Pre-Dawn Indigo | Headers, body, dark UI, wordmark |
-| Signature | `#FF6B5C` | Sunrise Coral | The sun — disc, primary CTA fills, accent shapes |
-| Bridge accent | `#C9466F` | Pampas Rose | Horizon transition, hero gradient mid-tone, link hover, AR ↔ LV bridge nod |
-| Cool counterpoint | `#A8A7C4` | Daugava Lavender | Secondary infographic tone, soft icons, quiet UI accents |
-| Surface | `#F5E8DD` | Dawn Stone | Page background, light mode |
-| Border | `#D4C8C0` | Mist Grey | Dividers, input borders, muted edges |
-| Mid text | `#5A5260` | Slate Indigo | Secondary text, captions, metadata |
+| Anchor | `#0A0A0A` | Bauhaus Black | Headers, body, dark UI, wordmark |
+| Signature | `#D94E2A` | Vermillion Rise | The sun — disc, primary CTA fills, accent shapes |
+| Counterweight | `#2A7E8F` | Dawn Teal | Secondary CTAs, infographic counter-tone |
+| Background | `#EAE6DE` | Warm Stone | Page background, light mode |
+| Surface | `#F4F1EA` | Light Cream | Cards, panels (one layer above background) |
+| Border | `#C8C0B0` | Warm Grey | Dividers, input borders, muted edges |
+| Mid | `#5A5A5A` | Iron Grey | Secondary text, captions |
 
 **WCAG contrast:**
-- Pre-Dawn Indigo on Dawn Stone — 12.2:1 ✓ AAA
-- Slate Indigo on Dawn Stone — 5.9:1 ✓ AA body
-- Black on Sunrise Coral — 8:1 ✓ AAA — **use Pre-Dawn Indigo or Black for CTA labels, not White**
-- White on Sunrise Coral — 2.6:1 ✗ FAILS AA
-- Pampas Rose on Dawn Stone — 4.4:1 ✓ AA Large (headlines, accents — not body)
-- Daugava Lavender on Pre-Dawn Indigo — 5.1:1 ✓ AA body (dark-mode pairing)
+- Bauhaus Black on Warm Stone — 16:1 ✓ AAA
+- Bauhaus Black on Vermillion Rise — 6.1:1 ✓ AA — **use Black for CTA labels, not White**
+- White on Vermillion Rise — 3.4:1 ✗ FAILS AA body (Large only)
+- Dawn Teal on Warm Stone — 4.8:1 ✓ AA body
+- Dawn Teal on Light Cream — 5.0:1 ✓ AA body
+- Iron Grey on Warm Stone — 6.3:1 ✓ AA body
 
-**Practical rule:** Pre-Dawn-Indigo-on-Sunrise-Coral CTAs only. Pampas Rose is for display sizes, link hovers, and gradient mid-tones — not body text. Daugava Lavender carries the dark-mode body weight.
+**Practical rule:** Black-on-Vermillion CTAs only. Dawn Teal works for body text on stone or cream — that's the upgrade over a pure red-and-blue Bauhaus pair: the teal carries weight without shouting.
 
-**Usage proportions (60/25/10/5):**
-- 60% Dawn Stone or Pre-Dawn Indigo (ground)
-- 25% the opposite anchor (text on stone, or stone on indigo)
-- 10% Sunrise Coral (signal, never decoration)
-- 5% Pampas Rose + Daugava Lavender combined (gradient mid-tones, accents)
+**Usage proportions (modified 60/30/10):**
+- 60% Warm Stone or Bauhaus Black (ground)
+- 30% the opposite anchor (text on stone, or stone on black)
+- 10% combined Vermillion Rise + Dawn Teal (signal, never decoration)
 
 ---
 
@@ -54,7 +53,7 @@ Set up a 1000-unit square canvas. All measurements relative — scale to any out
 
 | Element | Value | Notes |
 |---------|-------|-------|
-| Disc diameter (X) | `280u` | Sunrise Coral `#FF6B5C` fill, no stroke |
+| Disc diameter (X) | `280u` | Vermillion Rise `#D94E2A` fill, no stroke |
 | Disc left edge | `100u` from canvas left | Left padding |
 | Disc vertical position | offset `28u` (10% of X) **upward** from canvas optical centre | The asymmetric rule — never centred |
 | Wordmark cap-height | `196u` (= 0.7X) | Josefin Sans 700, lowercase `saulera` |
@@ -86,7 +85,7 @@ These MUST NOT appear in any generated variant:
 - Initial caps, title case, ALL CAPS, mixed case — lowercase only
 - Multiple discs, broken discs, partial discs, disc segments — single solid filled circle only
 - Any text other than `saulera`
-- Backgrounds other than `#F5E8DD` Dawn Stone or `#0A0A0A` Bauhaus Black
+- Backgrounds other than `#EAE6DE` Warm Stone or `#0A0A0A` Bauhaus Black
 - Patterns, textures, noise, paper-grain effects
 
 ### 2.4 Required uniqueness signatures (what makes it *Saulera*)
@@ -95,7 +94,7 @@ These five visual moves separate the logo from "another Bauhaus revival". An AI 
 
 1. **Off-axis disc placement** — disc above optical centre, never centred (§2.2)
 2. **Lowercase Josefin Sans 700** wordmark — not Helvetica, not Futura, not Inter, not generic geometric sans
-3. **Coral disc** (`#FF6B5C`), not pure Bauhaus red, not yellow, not orange
+3. **Coral disc** (`#D94E2A`), not pure Bauhaus red, not yellow, not orange
 4. **Optical disc-into-"s" nudge** — disc visually overlaps the start of the wordmark by `4u`, breaking pure mathematical alignment
 5. **One design move per variant** — never combine the disc with halo, inner ring, secondary mark, or companion glyph. Pure single solid filled circle, always.
 
@@ -108,7 +107,7 @@ These five visual moves separate the logo from "another Bauhaus revival". An AI 
 | P1 | Stacked lockup | `600×600` | Square — Instagram, app store, business card |
 | P1 | Wordmark only | `800×200` | Footer, fine print, partner-logo bars |
 | P2 | Mono Black | `1000×400` | Single-colour print, dark backgrounds |
-| P2 | Mono Stone | `1000×400` | Single-colour print on Sunrise Coral backgrounds |
+| P2 | Mono Stone | `1000×400` | Single-colour print on Vermillion Rise backgrounds |
 
 ### 2.6 SVG output requirements
 
@@ -125,9 +124,9 @@ These five visual moves separate the logo from "another Bauhaus revival". An AI 
 
 ```
 Minimal Bauhaus-modernist logo for "saulera". Single solid coral-red 
-filled circle (hex #FF6B5C) sitting LEFT of lowercase wordmark "saulera" 
+filled circle (hex #D94E2A) sitting LEFT of lowercase wordmark "saulera" 
 set in Josefin Sans bold (700 weight). Background: warm stone beige 
-(hex #F5E8DD). The circle is offset UPWARD by 10% above the wordmark's 
+(hex #EAE6DE). The circle is offset UPWARD by 10% above the wordmark's 
 optical centre — NEVER centred, never below. Wordmark cap-height equals 
 70% of disc diameter. Style reference: Otl Aicher 1972 Munich Olympics 
 signage — geometric, disciplined, lowercase, no decoration. Flat colour, 
@@ -145,7 +144,7 @@ Output: clean SVG-ready flat vector, transparent or stone background,
 
 **Prompt A — mark only (256×256):**
 ```
-Single solid filled circle, fill="#FF6B5C", no stroke, no gradient, 
+Single solid filled circle, fill="#D94E2A", no stroke, no gradient, 
 on transparent background. Diameter 200px centred horizontally on a 
 256×256 canvas, but vertically offset 20px UPWARD from the canvas centre 
 (asymmetric rule). Output: minimal SVG with one <circle> element, 
@@ -156,7 +155,7 @@ viewBox="0 0 256 256".
 ```
 Horizontal logo lockup. 
 
-Left element: solid filled circle, fill="#FF6B5C", no stroke, 
+Left element: solid filled circle, fill="#D94E2A", no stroke, 
 diameter 280px, cx=240px, cy=172px (28px upward from canvas centre).
 
 Right element: text "saulera" in Josefin Sans 700, lowercase, 
@@ -164,7 +163,7 @@ fill="#0A0A0A", font-size sized so cap-height equals 196px,
 baseline at y=300px, left edge of "s" at x=408px (28px right of 
 disc rightmost edge minus 4px optical overlap).
 
-Background: rect fill="#F5E8DD" covering full viewBox.
+Background: rect fill="#EAE6DE" covering full viewBox.
 viewBox="0 0 1000 400". Text converted to outlined paths.
 ```
 
@@ -220,9 +219,9 @@ Refine after the first three client conversations. Tone register: confident, low
 ## 5. Asset checklist — ship-tonight
 
 - [ ] Logo SVG — horizontal, stacked, mark-only, wordmark-only
-- [ ] Favicon — 32×32, just the Sunrise Coral disc
-- [ ] saulera.com landing page — black on Dawn Stone, Sunrise Coral disc, one bold sentence
-- [ ] LinkedIn header — 1584×396, black ground, Sunrise Coral disc, wordmark
+- [ ] Favicon — 32×32, just the Vermillion Rise disc
+- [ ] saulera.com landing page — black on Warm Stone, Vermillion Rise disc, one bold sentence
+- [ ] LinkedIn header — 1584×396, black ground, Vermillion Rise disc, wordmark
 - [ ] Email signature — wordmark + role + saulera.com
 
 All five fit in one Figma file with shared components. Realistic build time: 2-3 hours at email-developer-level vector chops.
@@ -288,8 +287,8 @@ The full sunrise-stack gradient. **This is a brand asset, not a utility colour.*
 background: linear-gradient(180deg,
   #1A1F3A 0%,    /* Pre-Dawn Indigo — top of sky */
   #C9466F 50%,   /* Pampas Rose — horizon band */
-  #FF6B5C 80%,   /* Sunrise Coral — sun line */
-  #F5E8DD 100%   /* Dawn Stone — ground */
+  #D94E2A 80%,   /* Vermillion Rise — sun line */
+  #EAE6DE 100%   /* Warm Stone — ground */
 );
 ```
 
@@ -300,7 +299,7 @@ background: linear-gradient(180deg,
 
 **Forbidden surfaces:** buttons, cards, body backgrounds, email signatures, favicons, mobile UI fills, content sections beyond the hero.
 
-When the gradient appears, the wordmark sits on top in Dawn Stone (`#F5E8DD`) — never on indigo or coral alone. Logo on gradient: wordmark in Dawn Stone, disc still Sunrise Coral but with a 1u Dawn Stone outer breathing-ring to hold it visible against the coral band.
+When the gradient appears, the wordmark sits on top in Warm Stone (`#EAE6DE`) — never on indigo or coral alone. Logo on gradient: wordmark in Warm Stone, disc still Vermillion Rise but with a 1u Warm Stone outer breathing-ring to hold it visible against the coral band.
 
 ---
 
