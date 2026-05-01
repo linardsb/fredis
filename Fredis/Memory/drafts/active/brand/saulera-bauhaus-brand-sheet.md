@@ -123,4 +123,61 @@ Three rules that separate Saulera from a generic Bauhaus revival:
 
 ---
 
+## 8. Design system — claude.ai source of truth
+
+Imported from the Saulera Design System artefact in claude.ai (Linards's working file, 2026-05-01).
+
+### Typography
+
+| Role | Family | Weight |
+|------|---------|--------|
+| Display / Headings | Josefin Sans | 700 |
+| Body | Hubot Sans | 400-600 |
+| Mono / Labels | JetBrains Mono | 500 |
+
+### Colour tokens (Bauhaus theme)
+
+| Role | Hex | Name |
+|------|------|------|
+| Background | `#EAE6DE` | Warm Stone / Paper |
+| Surface | `#F4F1EA` | Light Cream |
+| Text / Ink | `#0A0A0A` | Deep Black |
+| Primary accent | `#FF6B5C` | Saule Red / Coral |
+| Warm accent | `#1F76B0` | Pacific Blue |
+| Border | `#C8C0B0` | Warm Grey |
+
+### Alternative Bauhaus-inspired font pairings
+
+| Pairing | Display | Body | Mono | Character |
+|---------|---------|------|------|-----------|
+| Geometric Classic | Futura | Avenir | JetBrains Mono | True Bauhaus geometry |
+| Swiss Precision | Archivo | Manrope | JetBrains Mono | Engineered, tight, modern |
+| Modernist Grid | Unbounded | Manrope | Fira Code | Bold geometric display |
+| Clean Minimal | Geist | Geist | Geist Mono | Vercel / Linear neutrality |
+| Mechanical | Space Mono | Space Grotesk | Space Mono | Retro-futurist, code-forward |
+| Humanist Modern | Mona Sans | Hubot Sans | JetBrains Mono | GitHub's commissioned pair |
+
+**Linards's current pick:** **Josefin Sans (display) + Hubot Sans (body) + JetBrains Mono (mono)** — Josefin is geometric and disciplined (Bauhaus DNA); Hubot is its humanist sibling (GitHub's commissioned counterpart to Mona Sans). Diverges from pure-Bauhaus mono-typography by pairing a geometric display with a humanist body — softens the brand without losing structure.
+
+---
+
+## 9. Reconciliation — §1 vs §8
+
+§8 is the **live source of truth** (claude.ai design system). Two palette shifts vs the original §1 Bauhaus-pure spec worth surfacing:
+
+| Token | §1 (Bauhaus-pure) | §8 (live) | Shift |
+|-------|-------------------|------------|-------|
+| Saule Red | `#D62828` | `#FF6B5C` | Pure Bauhaus red → contemporary coral. Softer, warmer, less severe. |
+| Counterweight Blue | `#003F88` | `#1F76B0` | Pure Bauhaus deep blue → Pacific blue. Lighter, more contemporary. |
+| Surface | (not specified) | `#F4F1EA` | New layer between Background and primary surfaces — useful for cards / panels. |
+| Border | `#5A5A5A` Iron Grey | `#C8C0B0` Warm Grey | Functional mid-grey → warm paper-toned border. |
+
+**The philosophical shift.** §1 was severe historical Bauhaus (Itten / Klee). §8 is *Bauhaus-adjacent contemporary* — the discipline holds, but the palette is softened toward 2020s "warm modernist" (closer to Vercel / Linear / Stripe Press than to 1925 Dessau). Defensible direction: it makes the brand more inviting to SMB owners without losing structure.
+
+**Implication for the logo.** The disc colour changes from severe `#D62828` to coral `#FF6B5C` — still red enough to read as the sun, but now reads warmer and more contemporary. The asymmetric-disc rule (§6.1) still applies. The "yellow kills the concept" rule (§2) still applies.
+
+§1's pure-Bauhaus tokens become *archived alternatives* — kept on file in case you want a "severe" sister palette for editorial / case-study covers later.
+
+---
+
 *Working draft for Linards's review — not a final spec.*
