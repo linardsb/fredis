@@ -1,15 +1,16 @@
 ---
-title: Saulera — Bauhaus Brand Sheet (working draft)
+title: Saulera — Brand Sheet (Sunrise + Bauhaus)
 status: Draft for Linards review
 date: 2026-05-01
 service: brand
 ---
 
-# Saulera — Brand Sheet (Bauhaus Direction)
+# Saulera — Brand Sheet (Sunrise + Bauhaus Direction)
 
 **Wordmark:** saulera
 **Domain:** saulera.com (acquired 2026-05-01)
-**Positioning bet:** AI-agentic advisory + build studio for SMBs across UK / LV / AR. Bauhaus discipline → engineer-grade brand without becoming corporate-blue or generic AI-tooling.
+**Brand metaphor:** *Saulera = a new day starting. Sunrise upon, a new era begins.* The brand carries that literally — sunrise palette pulled from Latvian and Argentinean dawn landscapes, Bauhaus typography for discipline.
+**Positioning bet:** AI-agentic build studio for small-and-medium businesses. The "sunrise era" of small-business AI ops — warm, optimistic, disciplined. Differentiated from cold enterprise-blue AI tooling on one side and hand-wavy AI consulting on the other.
 
 ---
 
