@@ -303,4 +303,21 @@ When the gradient appears, the wordmark sits on top in Warm Stone (`#EAE6DE`) �
 
 ---
 
+## 11. Mission
+
+> saulera turns the daily operations of small and medium businesses into compounding momentum — building ai agents for the work owners actually do, not the work consultants imagine.
+
+**Why this line.** Two moves carry the weight: *compounding momentum* names the real outcome (ops that improve the longer agents run, not a one-off automation), and *the work owners actually do, not the work consultants imagine* draws the line between Saulera and generic AI consulting. That second clause is the moat — twelve years of MarTech depth means the agents are built around real workflows, not whiteboard ones.
+
+**Where the mission shows up:**
+- Landing page hero (sub-headline under the wordmark)
+- Deck slide 2 (after cover)
+- Email signature long-form
+- Linkedin "About" section first paragraph
+- First sentence of any cold outreach where space allows
+
+**Where it does not appear:** business cards, favicon-adjacent contexts, anywhere shorter than 200 characters of usable space. For tight surfaces, fall back to the §4 short voice line.
+
+---
+
 *Working draft for Linards's review — not a final spec.*
