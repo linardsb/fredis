@@ -13,6 +13,7 @@ import asyncio
 import sys
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 # Add both chat dir and scripts dir to path for imports
 _CHAT_DIR = Path(__file__).resolve().parent
@@ -30,6 +31,7 @@ from config import (  # noqa: E402
     CHAT_DB_PATH,
     CHAT_MAX_BUDGET_USD,
     CHAT_MAX_TURNS,
+    CHAT_SLACK_RECONNECT_SEC,
     PROJECT_ROOT,
     SLACK_APP_TOKEN,
     SLACK_BOT_TOKEN,
@@ -142,8 +144,59 @@ def main() -> None:
 
     print(f"[{datetime.now()}] Starting chat interface...")
 
+    async def _socket_watchdog(slack_adapter: Any, interval_sec: int) -> None:
+        """Force-reconnect the Slack WebSocket on a timer.
+
+        Defends against the silent-drop class where Slack's autoping logic
+        gets stuck and the process keeps running but never receives events
+        again. Three consecutive reconnect failures → exit so systemd
+        (`Restart=always`) brings us back fresh. A reconnect that returns
+        False (turn in flight) is not a failure; we just retry next cycle.
+        """
+        consec_fail = 0
+        while True:
+            await asyncio.sleep(interval_sec)
+            try:
+                reconnected = await slack_adapter.reconnect()
+                if reconnected:
+                    consec_fail = 0
+                # else: skipped because a turn is in flight — try next cycle.
+            except Exception as e:
+                consec_fail += 1
+                print(
+                    f"[{datetime.now()}] socket watchdog: reconnect failed "
+                    f"({consec_fail}/3): {e}"
+                )
+                if consec_fail >= 3:
+                    print(
+                        f"[{datetime.now()}] socket watchdog: 3 consecutive "
+                        f"failures — exiting for systemd to restart"
+                    )
+                    sys.exit(1)
+
+    async def _run_with_watchdog() -> None:
+        run_task = asyncio.create_task(router.run())
+        watchdog_task: asyncio.Task[None] | None = None
+        if CHAT_SLACK_RECONNECT_SEC > 0:
+            print(
+                f"[{datetime.now()}] socket watchdog: forced reconnect every "
+                f"{CHAT_SLACK_RECONNECT_SEC}s"
+            )
+            watchdog_task = asyncio.create_task(
+                _socket_watchdog(adapter, CHAT_SLACK_RECONNECT_SEC)
+            )
+        try:
+            await run_task
+        finally:
+            if watchdog_task is not None:
+                watchdog_task.cancel()
+                try:
+                    await watchdog_task
+                except (asyncio.CancelledError, Exception):
+                    pass
+
     try:
-        asyncio.run(router.run())
+        asyncio.run(_run_with_watchdog())
     except KeyboardInterrupt:
         print(f"\n[{datetime.now()}] Shutting down...")
         asyncio.run(router.shutdown())

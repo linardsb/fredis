@@ -61,6 +61,20 @@ class ChatRouter:
             f"in {incoming.channel.platform_id}: {incoming.text[:80]}..."
         )
 
+        # Notify the adapter that a turn is in flight so the Socket Mode
+        # watchdog skips its periodic reconnect until we're done. Using
+        # try/finally guarantees the counter decrements even if the engine
+        # or send call raises.
+        if hasattr(adapter, "note_turn_start"):
+            adapter.note_turn_start()
+        try:
+            await self._handle_inner(adapter, incoming)
+        finally:
+            if hasattr(adapter, "note_turn_end"):
+                adapter.note_turn_end()
+
+    async def _handle_inner(self, adapter: Any, incoming: Any) -> None:
+        """The original turn-handling body, now wrapped by `_handle` for turn tracking."""
         # Post "Thinking..." placeholder
         placeholder_id: str | None = None
         try:

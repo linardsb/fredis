@@ -87,6 +87,11 @@ CHAT_DB_PATH = DATA_DIR / "chat.db"
 CHAT_MAX_TURNS = int(os.getenv("CHAT_MAX_TURNS", "25"))
 CHAT_MAX_BUDGET_USD = float(os.getenv("CHAT_MAX_BUDGET_USD", "2.0"))
 CHAT_ALLOWED_USERS = os.getenv("CHAT_ALLOWED_USERS", SLACK_OWNER_USER_ID).split(",")
+# Periodic forced reconnect of the chat Socket Mode WebSocket. Defends
+# against slack-sdk's silent-drop class (half-open WS, process alive but
+# deaf). 0 disables. Default 1800s (30 min) — never too long for a silent
+# drop to bite, never short enough to be disruptive.
+CHAT_SLACK_RECONNECT_SEC = int(os.getenv("CHAT_SLACK_RECONNECT_SEC", "1800"))
 
 # Calendar
 GOOGLE_CALENDAR_ID = os.getenv("GOOGLE_CALENDAR_ID", "")

@@ -146,6 +146,11 @@ class SlackAdapter:
 
         # Socket mode handler (created on connect)
         self._handler: Any = None
+        # Watchdog state — counts router turns currently in flight so the
+        # periodic reconnect skips a cycle rather than tearing down the
+        # WebSocket mid-reply. Lock serialises concurrent reconnects.
+        self._in_flight_turns: int = 0
+        self._reconnect_lock = asyncio.Lock()
 
     @property
     def platform(self) -> Platform:
@@ -203,6 +208,50 @@ class SlackAdapter:
         if self._handler:
             await self._handler.close_async()
             print(f"[{datetime.now()}] Slack adapter disconnected")
+
+    async def reconnect(self) -> bool:
+        """Force a fresh Socket Mode WebSocket — the silent-drop escape hatch.
+
+        Slack's Socket Mode autoping/reconnect logic occasionally fails
+        silently (half-open WebSocket, process alive but deaf to events).
+        Cycling the handler on a timer makes that class of failure
+        impossible: the connection is never older than one watchdog
+        interval. See `main._socket_watchdog`.
+
+        Returns True if the reconnect happened, False if it was skipped
+        because a turn is currently in flight (watchdog will retry next
+        cycle). Exceptions propagate to the watchdog, which counts
+        consecutive failures and exits for systemd to restart us.
+        """
+        if self._in_flight_turns > 0:
+            return False  # busy — skip this cycle
+
+        from slack_bolt.adapter.socket_mode.async_handler import AsyncSocketModeHandler
+
+        async with self._reconnect_lock:
+            old_handler = self._handler
+            self._handler = AsyncSocketModeHandler(self.app, self.app_token)
+            await self._handler.connect_async()
+            if old_handler is not None:
+                try:
+                    await old_handler.close_async()
+                except Exception as e:
+                    # Old handler refusing to close cleanly is non-fatal —
+                    # the new one is already up.
+                    print(
+                        f"[{datetime.now()}] old handler close_async failed during "
+                        f"reconnect (non-fatal): {e}"
+                    )
+            print(f"[{datetime.now()}] Slack adapter reconnected (forced refresh)")
+            return True
+
+    def note_turn_start(self) -> None:
+        """Router calls this before invoking the engine. Pairs with note_turn_end."""
+        self._in_flight_turns += 1
+
+    def note_turn_end(self) -> None:
+        """Router calls this once the response is delivered (or errored)."""
+        self._in_flight_turns = max(0, self._in_flight_turns - 1)
 
     async def listen(self) -> Any:
         """Yield incoming messages from the queue (infinite loop)."""

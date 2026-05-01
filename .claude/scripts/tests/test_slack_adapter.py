@@ -538,3 +538,106 @@ def test_resolve_channel_name_empty_id_returns_none(adapter: Any) -> None:
 
     assert result is None
     assert client.call_count == 0
+
+
+# ---------------------------------------------------------------------------
+# Socket Mode reconnect — permanent fix for silent WebSocket drops
+# ---------------------------------------------------------------------------
+
+
+class _FakeHandler:
+    """Stand-in for AsyncSocketModeHandler to test reconnect cycling."""
+
+    def __init__(self, app: Any, app_token: str) -> None:
+        self.app = app
+        self.app_token = app_token
+        self.connected = False
+        self.closed = False
+
+    async def connect_async(self) -> None:
+        self.connected = True
+
+    async def close_async(self) -> None:
+        self.closed = True
+
+
+def test_note_turn_start_end_increments_and_decrements(adapter: Any) -> None:
+    """Turn counter pairs symmetrically and never goes negative."""
+    assert adapter._in_flight_turns == 0
+    adapter.note_turn_start()
+    adapter.note_turn_start()
+    assert adapter._in_flight_turns == 2
+    adapter.note_turn_end()
+    assert adapter._in_flight_turns == 1
+    adapter.note_turn_end()
+    adapter.note_turn_end()  # extra end — should clamp at 0, not go negative
+    assert adapter._in_flight_turns == 0
+
+
+def test_reconnect_skips_when_turn_in_flight(
+    adapter: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A reconnect cycle never lands mid-turn — it returns False and retries later."""
+    import asyncio
+
+    # Wire a fake handler so we can detect whether reconnect actually fired.
+    monkeypatch.setattr(
+        "slack_bolt.adapter.socket_mode.async_handler.AsyncSocketModeHandler",
+        _FakeHandler,
+    )
+    fake_existing = _FakeHandler(adapter.app, "xapp-test")
+    adapter._handler = fake_existing
+    adapter.note_turn_start()  # simulate router mid-turn
+
+    result = asyncio.run(adapter.reconnect())
+
+    assert result is False
+    assert adapter._handler is fake_existing  # untouched
+    assert fake_existing.closed is False
+
+
+def test_reconnect_cycles_handler_when_idle(
+    adapter: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Idle reconnect: new handler connects FIRST, then old one closes (no event-loss window)."""
+    import asyncio
+
+    monkeypatch.setattr(
+        "slack_bolt.adapter.socket_mode.async_handler.AsyncSocketModeHandler",
+        _FakeHandler,
+    )
+    old = _FakeHandler(adapter.app, "xapp-test")
+    adapter._handler = old
+
+    result = asyncio.run(adapter.reconnect())
+
+    assert result is True
+    assert adapter._handler is not old
+    assert isinstance(adapter._handler, _FakeHandler)
+    assert adapter._handler.connected is True
+    assert old.closed is True
+
+
+def test_reconnect_tolerates_old_handler_close_failure(
+    adapter: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """If close_async on the dead handler raises, the new handler still wins."""
+    import asyncio
+
+    monkeypatch.setattr(
+        "slack_bolt.adapter.socket_mode.async_handler.AsyncSocketModeHandler",
+        _FakeHandler,
+    )
+
+    class _BrokenOld(_FakeHandler):
+        async def close_async(self) -> None:
+            raise RuntimeError("WebSocket already torn down")
+
+    broken = _BrokenOld(adapter.app, "xapp-test")
+    adapter._handler = broken
+
+    result = asyncio.run(adapter.reconnect())
+
+    assert result is True
+    assert adapter._handler is not broken
+    assert adapter._handler.connected is True
