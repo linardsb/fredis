@@ -155,6 +155,18 @@ def bearer_auth_app(
             await app(scope, receive, send)
             return
 
+        # OAuth/OIDC discovery probes (RFC 8414, RFC 9728, OIDC) bypass the
+        # bearer check and pass through to the inner app — which returns 404
+        # because Fredis does not implement OAuth. A 401-with-Bearer-challenge
+        # here would lure dynamic-client-registration bridges (mcp-remote and
+        # similar) into running an OAuth flow that then fails at registration.
+        # The inner app sees the request unauthenticated; FastMCP exposes no
+        # handlers under /.well-known/, so no information leaks.
+        path = scope.get("path", "")
+        if isinstance(path, str) and path.startswith("/.well-known/"):
+            await app(scope, receive, send)
+            return
+
         auth_bytes = b""
         for name, value in scope.get("headers", []):
             if name == b"authorization":

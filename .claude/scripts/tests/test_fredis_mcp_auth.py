@@ -237,7 +237,10 @@ async def _dummy_ok_app(
     await send({"type": "http.response.body", "body": b"hello", "more_body": False})
 
 
-def _http_scope(authorization: str | None = None) -> dict[str, Any]:
+def _http_scope(
+    authorization: str | None = None,
+    path: str = "/mcp",
+) -> dict[str, Any]:
     headers: list[tuple[bytes, bytes]] = []
     if authorization is not None:
         headers.append((b"authorization", authorization.encode("latin-1")))
@@ -246,8 +249,8 @@ def _http_scope(authorization: str | None = None) -> dict[str, Any]:
         "asgi": {"version": "3.0", "spec_version": "2.3"},
         "http_version": "1.1",
         "method": "GET",
-        "path": "/mcp",
-        "raw_path": b"/mcp",
+        "path": path,
+        "raw_path": path.encode("ascii"),
         "query_string": b"",
         "headers": headers,
         "scheme": "http",
@@ -370,6 +373,47 @@ def test_bearer_app_rejects_malformed_scheme() -> None:
 
     async def _run() -> tuple[int | None, dict[str, str], bytes]:
         return await _drive(app, _http_scope("Basic dXNlcjpwYXNz"))
+
+    status, _, _ = asyncio.run(_run())
+    assert status == 401
+
+
+@pytest.mark.parametrize(
+    "discovery_path",
+    [
+        "/.well-known/oauth-authorization-server",
+        "/.well-known/openid-configuration",
+        "/.well-known/oauth-protected-resource",
+    ],
+)
+def test_bearer_app_bypasses_well_known_oauth_discovery(
+    discovery_path: str,
+) -> None:
+    """OAuth/OIDC discovery probes under ``/.well-known/`` must skip the
+    bearer check so dynamic-client-registration bridges (mcp-remote and
+    similar) see a clean 404 from the inner app and fall through to the
+    static bearer header for actual MCP requests instead of triggering a
+    failing OAuth flow."""
+    app = bearer_auth_app(_dummy_ok_app, expected_token="goodtoken")
+
+    async def _run() -> tuple[int | None, dict[str, str], bytes]:
+        # No Authorization header — would normally 401 on /mcp.
+        return await _drive(app, _http_scope(None, path=discovery_path))
+
+    status, _, body = asyncio.run(_run())
+    # The dummy inner app responds 200/hello — proves the request passed
+    # through the middleware without the bearer check kicking in.
+    assert status == 200
+    assert body == b"hello"
+
+
+def test_bearer_app_does_not_bypass_paths_only_containing_well_known() -> None:
+    """The bypass anchors on the leading ``/.well-known/`` prefix; a path
+    that merely contains the substring elsewhere must still be bearer-checked."""
+    app = bearer_auth_app(_dummy_ok_app, expected_token="goodtoken")
+
+    async def _run() -> tuple[int | None, dict[str, str], bytes]:
+        return await _drive(app, _http_scope(None, path="/mcp/.well-known/foo"))
 
     status, _, _ = asyncio.run(_run())
     assert status == 401
