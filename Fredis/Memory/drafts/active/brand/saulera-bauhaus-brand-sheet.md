@@ -14,27 +14,42 @@ service: brand
 
 ---
 
-## 1. Palette — canonical Saulera tokens (final)
+## 1. Palette — canonical Saulera tokens (final, v2 — 2026-05-03)
 
-Saulera's sun lives in `#D94E2A` Vermillion Rise — the specific oxidised-red of the disc just clearing the horizon — and the brand earns the sun motif without ever using yellow. The teal counterweight reads as the cool side of the dawn sky before the sun fully clears.
+**The shift:** earlier draft enforced strict Bauhaus "no yellow" theory — sun is the red disc, never amber. The brand is now richer than that: a literal sunrise has both the vermillion disc *and* the amber horizon-glow that spreads behind it. Saulera embraces the full dawn stack — vermillion as the disc, amber as the spreading first light, dawn teal as the cool zenith, deep ocean as the receding night, warm stone as the ground.
 
 | Role | Hex | Name | Usage |
 |------|------|------|-------|
-| Anchor | `#0A0A0A` | Bauhaus Black | Headers, body, dark UI, wordmark |
-| Signature | `#D94E2A` | Vermillion Rise | The sun — disc, primary CTA fills, accent shapes |
-| Counterweight | `#2A7E8F` | Dawn Teal | Secondary CTAs, infographic counter-tone |
+| Anchor | `#264653` | Deep Ocean | Headers, body text, dark UI, wordmark — replaces Bauhaus Black |
+| Signature | `#D94E2A` | Vermillion Rise | The sun — disc, primary CTA fills, hero accent |
+| Counterweight | `#2A7E8F` | Dawn Teal | Secondary CTAs, infographic counter-tone, link colour |
+| Horizon glow | `#F59E0B` | Amber | Fill-only accent — gradient stops, hero highlights, badge / callout backgrounds. **NEVER text.** |
 | Background | `#EAE6DE` | Warm Stone | Page background, light mode |
 | Surface | `#F4F1EA` | Light Cream | Cards, panels (one layer above background) |
 | Border | `#C8C0B0` | Warm Grey | Dividers, input borders, muted edges |
-| Mid | `#5A5A5A` | Iron Grey | Secondary text, captions |
 
 **WCAG contrast:**
-- Bauhaus Black on Warm Stone — 16:1 ✓ AAA
-- Bauhaus Black on Vermillion Rise — 6.1:1 ✓ AA — **use Black for CTA labels, not White**
-- White on Vermillion Rise — 3.4:1 ✗ FAILS AA body (Large only)
+- Deep Ocean on Warm Stone — 9.5:1 ✓ AAA (body text)
+- Deep Ocean on Light Cream — 10:1 ✓ AAA
+- Deep Ocean on Amber — 5.0:1 ✓ AA Large (headlines on amber callouts only)
+- Deep Ocean on Vermillion Rise — 4.7:1 ✓ AA Large (CTA labels safe)
 - Dawn Teal on Warm Stone — 4.8:1 ✓ AA body
 - Dawn Teal on Light Cream — 5.0:1 ✓ AA body
-- Iron Grey on Warm Stone — 6.3:1 ✓ AA body
+- Vermillion Rise on Warm Stone — 3.4:1 ✗ AA Large only (headlines, icons — not body)
+- Amber on Warm Stone — 1.9:1 ✗ FAILS at any size — **fill-only, never type**
+
+**Practical rules:**
+- **Body text** = Deep Ocean on Warm Stone or Light Cream
+- **CTAs** = Deep Ocean label on Vermillion Rise fill (Large only)
+- **Amber** = fill-only — gradient stops, hero glow band, badge backgrounds with Deep Ocean text overlay (Large only). Never body, never outline, never glow
+- **Dawn Teal** = body-safe — links and secondary CTAs
+- **Vermillion Rise** = restraint colour — single signature mark per composition
+
+**Usage proportions (60/25/10/5):**
+- 60% Warm Stone or Deep Ocean (ground)
+- 25% the opposite anchor (text on stone, stone on ocean)
+- 10% Vermillion Rise + Dawn Teal combined (signal)
+- 5% Amber (horizon-glow accents — hero / callouts only, never decoration)
 
 
 
@@ -73,11 +88,12 @@ Refine after the first three client conversations. Tone register: confident, low
 
 The metaphor isn't decorative — it determines every brand decision:
 
-- **Vermillion disc = the sun, just risen.** Not yellow, not orange — the specific oxidised-red of the sun two minutes after horizon-break, before atmospheric scatter washes it out.
-- **Dawn Teal = the cool side of the sky** before full light. Reads as the calm that precedes momentum — counterweight to the vermillion's energy.
-- **Asymmetric disc upward** (§2.2) reads as *ascending* — the sun is still rising, not noon-overhead.
+- **Vermillion disc = the sun, just risen.** The specific oxidised-red two minutes after horizon-break, before atmospheric scatter washes it out.
+- **Amber = the horizon glow** spreading behind and above the disc. The first-light warmth that earlier drafts banned on Bauhaus theory grounds — restored as a fill-only accent because real sunrises have it and the brand should not be more disciplined than reality.
+- **Dawn Teal = the cool side of the sky** before full light. Calm that precedes momentum — counterweight to vermillion's energy.
+- **Deep Ocean anchor** — the residue of night, the discipline holding the optimism. Replaces Bauhaus Black — softer, still serious, still 06:00-coded.
+- **Asymmetric disc upward** reads as *ascending* — the sun is still rising, not noon-overhead.
 - **Lowercase always** — quiet morning register, not midday corporate shout.
-- **Bauhaus Black anchor** — the residue of night, the discipline holding the optimism. Without it, the brand drifts toward greeting-card warmth.
 - **Audience read:** SMB owner waking up to AI's possibility. The brand promises a disciplined start to a real new day, not a hype cycle.
 
 When in doubt about a brand decision, ask: *does this read as 06:00 or 12:00?* Saulera is always 06:00.

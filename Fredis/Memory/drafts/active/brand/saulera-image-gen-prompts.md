@@ -21,13 +21,13 @@ edges, no gradients, no drop shadow, no glow, no 3D, no glassmorphism,
 no photorealism, no texture, no noise, no grain.
 
 Palette — use ONLY these, no other colours allowed:
-- Bauhaus Black #0A0A0A
+- Deep Ocean #264653 (anchor — text, dark UI, wordmark)
 - Vermillion Rise #D94E2A (the sun / signal red — sparingly)
 - Dawn Teal #2A7E8F (cool counterweight)
+- Amber #F59E0B (horizon-glow accent — FILL ONLY, never text/outline)
 - Warm Stone #EAE6DE (background / ground default)
 - Light Cream #F4F1EA (secondary surface only)
 - Warm Grey #C8C0B0 (borders, dividers)
-- Iron Grey #5A5A5A (mid tones)
 
 Composition rules:
 - Asymmetric, NEVER centred — the primary mark sits off-axis
@@ -39,8 +39,11 @@ Composition rules:
 - Lowercase only if any text appears
 
 NEGATIVE — must NOT appear:
-- Yellow, gold, orange, ochre, mustard, amber, beige-yellow
-- Gradients, glow, halo, sun rays, light beams, lens flare
+- Yellow, gold, orange, ochre, mustard outside the specified Amber #F59E0B
+  (Amber is a permitted fill, but only as a flat block — no amber gradients,
+  no amber outlines, no amber rays, and never as type colour)
+- Glow, halo, sun rays, light beams, lens flare
+- Gradients of any kind unless explicitly specified in the suffix
 - Drop shadow, inner shadow, bevel, emboss, 3D depth, perspective
 - Photorealism, faces, hands, people, animals, body parts
 - Decorative flourishes, ornaments, swooshes, sparkles, stars
@@ -65,7 +68,7 @@ fill: Warm Stone #EAE6DE covering full canvas. Composition: one solid
 Vermillion Rise #D94E2A circle, diameter 320px, positioned at upper
 LEFT third of canvas (cx=560, cy=380 — above optical centre). Below
 the disc: one horizontal Dawn Teal #2A7E8F band, 60px tall, spanning
-full width at y=720. One Bauhaus Black #0A0A0A thin horizontal line,
+full width at y=720. One Deep Ocean #264653 thin horizontal line,
 4px tall, at y=80 (residue of night). Nothing else. Asymmetric, weighted
 left. Output: 1920×1080 PNG or SVG.
 ```
@@ -93,7 +96,7 @@ upper-right corner area (cx=600, cy=200). Warm Stone background.
 
 ```
 Variant — "advisory / strategy":
-One thick Bauhaus Black #0A0A0A quarter-circle arc, stroke 24px,
+One thick Deep Ocean #264653 quarter-circle arc, stroke 24px,
 sitting bottom-left (centre at 0,800, radius 480px, sweep from 0° to
 90°). One Vermillion Rise #D94E2A solid circle diameter 160px upper-
 right (cx=620, cy=200). Warm Stone background. Two-element composition.
@@ -110,7 +113,7 @@ cy=560. Warm Stone background. Reads as sun + horizon.
 ### C. Blog header (1200×400 wide horizon strip)
 
 ```
-Three horizontal bands: top 80px Bauhaus Black #0A0A0A, middle 200px
+Three horizontal bands: top 80px Deep Ocean #264653, middle 200px
 Dawn Teal #2A7E8F, bottom 120px Warm Stone #EAE6DE. One Vermillion
 Rise #D94E2A solid circle diameter 140px at cx=380, cy=180 (left third,
 intersecting black/teal boundary). No text.
@@ -120,7 +123,7 @@ intersecting black/teal boundary). No text.
 
 ```
 Warm Stone #EAE6DE background. Lowercase wordmark "saulera" set in
-Josefin Sans 700, fill Bauhaus Black #0A0A0A, baseline y=380, x=80
+Josefin Sans 700, fill Deep Ocean #264653, baseline y=380, x=80
 (left-aligned). Vermillion Rise #D94E2A solid circle diameter 180px
 at cx=1000, cy=200 (upper right). One Dawn Teal #2A7E8F straight line,
 4px stroke, connecting wordmark end to disc edge diagonally. No other
@@ -140,7 +143,7 @@ Nothing else. Pure breathing-room divider.
 
 ```
 Single solid silhouette icon, ONE geometric primitive only, two-colour
-max. Use either: Bauhaus Black #0A0A0A + Vermillion Rise #D94E2A OR
+max. Use either: Deep Ocean #264653 + Vermillion Rise #D94E2A OR
 Dawn Teal #2A7E8F alone. No outlines, no strokes — solid filled
 silhouettes only. Asymmetric placement within 80×80 bounds. Examples:
 filled disc upper-left, filled half-circle bottom, single thick
@@ -156,7 +159,7 @@ Three stages, left to right, asymmetrically spaced (not equal gaps —
 rectangle (varying heights 200–320px) anchored at the bottom. ONE of
 the three rectangles has a Vermillion Rise #D94E2A solid circle
 floating above it (current focus). Connecting elements: thin Bauhaus
-Black #0A0A0A horizontal line at y=600 running across all three
+Black #264653 horizontal line at y=600 running across all three
 rectangles. Warm Stone background. No labels, no arrows.
 ```
 
@@ -188,7 +191,8 @@ Every generated graphic should read as **06:00 (sunrise, quiet, ascending)** not
 Other approval checks before using a generated graphic:
 - [ ] Is the disc above optical centre? (If centred → reject)
 - [ ] Are there gradients, glows, or shadows? (If yes → reject — the prompt failed)
-- [ ] Does it use any yellow/gold/orange? (If yes → reject)
+- [ ] If amber appears, is it a flat fill block only? (Gradients/glows/rays of amber → reject. Amber as type colour → reject.)
+- [ ] Any other yellow/gold/orange outside the specified Amber `#F59E0B`? (If yes → reject)
 - [ ] Could this graphic appear on 50 other AI startup sites unchanged? (If yes → push the asymmetry harder, regenerate)
 - [ ] Are there more than 4 primitive shapes? (If yes → reject — too busy)
 - [ ] Does it have any text other than "saulera"? (If yes → reject)
