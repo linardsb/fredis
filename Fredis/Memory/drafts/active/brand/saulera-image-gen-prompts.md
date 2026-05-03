@@ -89,7 +89,7 @@ WHAT THE GRAPHIC SHOULD SIGNAL:
   studio, not a 1970s graphic-design archive
 - Momentum held by structure
 - Engineer-output, not marketing-output
-- Single-accent discipline — like Linear, like Vercel, like Anthropic
+
 
 TYPOGRAPHY (if any text appears):
 - Display / wordmark: Homizio 500, lowercase only
