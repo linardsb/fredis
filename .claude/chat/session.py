@@ -30,6 +30,17 @@ class Session:
     # of the channel-routed default. Absolute path string (resolved at
     # override-set time) so process restarts re-hydrate the target unchanged.
     summary_folder_override: str | None = None
+    # Phase A (thread-consolidation): per-turn token usage + single-fire
+    # nudge flags. ``last_turn_context_tokens`` = ``usage.input_tokens +
+    # cache_read_input_tokens + cache_creation_input_tokens`` from the latest
+    # ResultMessage — i.e. the *current* attention surface, not a running
+    # sum (each turn's input already includes prior turns once the SDK
+    # resumes the session). The two ``nudged_*_at`` fields hold ISO
+    # timestamps when the soft / hard threshold fired so each fires at most
+    # once per thread.
+    last_turn_context_tokens: int = 0
+    nudged_soft_at: str | None = None
+    nudged_hard_at: str | None = None
 
 
 @dataclass
@@ -66,7 +77,11 @@ class SQLiteSessionStore:
                     updated_at TEXT NOT NULL,
                     message_count INTEGER DEFAULT 0,
                     total_cost_usd REAL DEFAULT 0.0,
-                    status TEXT DEFAULT 'active'
+                    status TEXT DEFAULT 'active',
+                    summary_folder_override TEXT,
+                    last_turn_context_tokens INTEGER DEFAULT 0,
+                    nudged_soft_at TEXT,
+                    nudged_hard_at TEXT
                 );
                 CREATE INDEX IF NOT EXISTS idx_platform_thread
                     ON chat_sessions(platform, channel_id, thread_id);
@@ -80,7 +95,7 @@ class SQLiteSessionStore:
                 CREATE UNIQUE INDEX IF NOT EXISTS idx_hb_channel_thread
                     ON heartbeat_threads(channel_id, thread_ts);
             """)
-            # Phase 11.1 migration: add summary_folder_override if missing.
+            # Phase 11.1 + Phase A migrations: add new columns if missing.
             # SQLite has no `ADD COLUMN IF NOT EXISTS`, so inspect schema first.
             cols = {
                 row[1]
@@ -90,16 +105,35 @@ class SQLiteSessionStore:
                 conn.execute(
                     "ALTER TABLE chat_sessions ADD COLUMN summary_folder_override TEXT"
                 )
+            if "last_turn_context_tokens" not in cols:
+                conn.execute(
+                    "ALTER TABLE chat_sessions ADD COLUMN "
+                    "last_turn_context_tokens INTEGER DEFAULT 0"
+                )
+            if "nudged_soft_at" not in cols:
+                conn.execute(
+                    "ALTER TABLE chat_sessions ADD COLUMN nudged_soft_at TEXT"
+                )
+            if "nudged_hard_at" not in cols:
+                conn.execute(
+                    "ALTER TABLE chat_sessions ADD COLUMN nudged_hard_at TEXT"
+                )
 
     def _row_to_session(self, row: sqlite3.Row) -> Session:
         """Convert a database row to a Session object."""
-        # ``summary_folder_override`` may be absent on DBs predating the
-        # Phase 11.1 migration that just added the column — tolerate its
-        # absence on the row view.
+        # Newer columns may be absent on rows from older clients reading
+        # mid-migration — tolerate them on the row view.
         keys = set(row.keys()) if hasattr(row, "keys") else set()
         override = (
             row["summary_folder_override"] if "summary_folder_override" in keys else None
         )
+        last_tokens = (
+            row["last_turn_context_tokens"]
+            if "last_turn_context_tokens" in keys
+            else 0
+        ) or 0
+        soft_at = row["nudged_soft_at"] if "nudged_soft_at" in keys else None
+        hard_at = row["nudged_hard_at"] if "nudged_hard_at" in keys else None
         return Session(
             session_id=row["session_id"],
             agent_session_id=row["agent_session_id"],
@@ -113,6 +147,9 @@ class SQLiteSessionStore:
             total_cost_usd=row["total_cost_usd"],
             status=row["status"],
             summary_folder_override=override,
+            last_turn_context_tokens=int(last_tokens),
+            nudged_soft_at=soft_at,
+            nudged_hard_at=hard_at,
         )
 
     def get(self, platform: str, channel_id: str, thread_id: str) -> Session | None:
@@ -142,8 +179,9 @@ class SQLiteSessionStore:
                     """INSERT INTO chat_sessions
                        (session_id, agent_session_id, platform, channel_id, thread_id,
                         user_id, created_at, updated_at, message_count, total_cost_usd,
-                        status, summary_folder_override)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        status, summary_folder_override,
+                        last_turn_context_tokens, nudged_soft_at, nudged_hard_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (
                         session.session_id,
                         session.agent_session_id,
@@ -157,6 +195,9 @@ class SQLiteSessionStore:
                         session.total_cost_usd,
                         session.status,
                         session.summary_folder_override,
+                        session.last_turn_context_tokens,
+                        session.nudged_soft_at,
+                        session.nudged_hard_at,
                     ),
                 )
         except sqlite3.IntegrityError:
@@ -168,7 +209,8 @@ class SQLiteSessionStore:
             conn.execute(
                 """UPDATE chat_sessions
                    SET agent_session_id = ?, updated_at = ?, message_count = ?,
-                       total_cost_usd = ?, status = ?, summary_folder_override = ?
+                       total_cost_usd = ?, status = ?, summary_folder_override = ?,
+                       last_turn_context_tokens = ?, nudged_soft_at = ?, nudged_hard_at = ?
                    WHERE session_id = ?""",
                 (
                     session.agent_session_id,
@@ -177,6 +219,9 @@ class SQLiteSessionStore:
                     session.total_cost_usd,
                     session.status,
                     session.summary_folder_override,
+                    session.last_turn_context_tokens,
+                    session.nudged_soft_at,
+                    session.nudged_hard_at,
                     session.session_id,
                 ),
             )
@@ -280,13 +325,30 @@ class PostgresSessionStore:
                 updated_at TIMESTAMPTZ NOT NULL,
                 message_count INTEGER DEFAULT 0,
                 total_cost_usd DOUBLE PRECISION DEFAULT 0.0,
-                status TEXT DEFAULT 'active'
+                status TEXT DEFAULT 'active',
+                summary_folder_override TEXT,
+                last_turn_context_tokens INTEGER DEFAULT 0,
+                nudged_soft_at TEXT,
+                nudged_hard_at TEXT
             )
         """)
-        # Phase 11.1 migration — add column on existing deployments too.
+        # Phase 11.1 + Phase A migrations — add new columns on existing
+        # deployments too.
         cur.execute("""
             ALTER TABLE chat_sessions
                 ADD COLUMN IF NOT EXISTS summary_folder_override TEXT
+        """)
+        cur.execute("""
+            ALTER TABLE chat_sessions
+                ADD COLUMN IF NOT EXISTS last_turn_context_tokens INTEGER DEFAULT 0
+        """)
+        cur.execute("""
+            ALTER TABLE chat_sessions
+                ADD COLUMN IF NOT EXISTS nudged_soft_at TEXT
+        """)
+        cur.execute("""
+            ALTER TABLE chat_sessions
+                ADD COLUMN IF NOT EXISTS nudged_hard_at TEXT
         """)
         cur.execute("""
             CREATE INDEX IF NOT EXISTS idx_platform_thread
@@ -309,12 +371,16 @@ class PostgresSessionStore:
     def _row_to_session(self, row: tuple[Any, ...]) -> Session:
         """Convert a database row to a Session object.
 
-        Column layout after Phase 11.1 migration:
+        Column layout after Phase 11.1 + Phase A migrations:
         ``(id, session_id, agent_session_id, platform, channel_id, thread_id,
         user_id, created_at, updated_at, message_count, total_cost_usd,
-        status, summary_folder_override)``.
+        status, summary_folder_override, last_turn_context_tokens,
+        nudged_soft_at, nudged_hard_at)``.
         """
         override = row[12] if len(row) > 12 else None
+        last_tokens = int(row[13]) if len(row) > 13 and row[13] is not None else 0
+        soft_at = row[14] if len(row) > 14 else None
+        hard_at = row[15] if len(row) > 15 else None
         return Session(
             session_id=row[1],
             agent_session_id=row[2],
@@ -332,6 +398,9 @@ class PostgresSessionStore:
             total_cost_usd=float(row[10]),
             status=row[11],
             summary_folder_override=override,
+            last_turn_context_tokens=last_tokens,
+            nudged_soft_at=soft_at,
+            nudged_hard_at=hard_at,
         )
 
     def get(self, platform: str, channel_id: str, thread_id: str) -> Session | None:
@@ -357,8 +426,9 @@ class PostgresSessionStore:
                 """INSERT INTO chat_sessions
                    (session_id, agent_session_id, platform, channel_id, thread_id,
                     user_id, created_at, updated_at, message_count, total_cost_usd,
-                    status, summary_folder_override)
-                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                    status, summary_folder_override,
+                    last_turn_context_tokens, nudged_soft_at, nudged_hard_at)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
                 (
                     session.session_id,
                     session.agent_session_id,
@@ -372,6 +442,9 @@ class PostgresSessionStore:
                     session.total_cost_usd,
                     session.status,
                     session.summary_folder_override,
+                    session.last_turn_context_tokens,
+                    session.nudged_soft_at,
+                    session.nudged_hard_at,
                 ),
             )
         except psycopg.errors.UniqueViolation:
@@ -383,7 +456,8 @@ class PostgresSessionStore:
         cur.execute(
             """UPDATE chat_sessions
                SET agent_session_id = %s, updated_at = %s, message_count = %s,
-                   total_cost_usd = %s, status = %s, summary_folder_override = %s
+                   total_cost_usd = %s, status = %s, summary_folder_override = %s,
+                   last_turn_context_tokens = %s, nudged_soft_at = %s, nudged_hard_at = %s
                WHERE session_id = %s""",
             (
                 session.agent_session_id,
@@ -392,6 +466,9 @@ class PostgresSessionStore:
                 session.total_cost_usd,
                 session.status,
                 session.summary_folder_override,
+                session.last_turn_context_tokens,
+                session.nudged_soft_at,
+                session.nudged_hard_at,
                 session.session_id,
             ),
         )

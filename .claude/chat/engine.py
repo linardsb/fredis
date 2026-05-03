@@ -97,6 +97,97 @@ _INBOUND_FLAG_NOTE = (
 )
 
 
+# Phase A — thread-degradation nudge thresholds. Soft fires the first time
+# a thread crosses 30 turns OR ~120k tokens of current context; hard fires
+# the first time it crosses 50 turns OR ~180k tokens. The token figure is
+# the *current* attention surface (input + cache reads + cache creation
+# from the latest ResultMessage), not a running sum across turns.
+NUDGE_SOFT_TURNS = 30
+NUDGE_SOFT_TOKENS = 120_000
+NUDGE_HARD_TURNS = 50
+NUDGE_HARD_TOKENS = 180_000
+
+
+def compute_thread_nudge(
+    prior_message_count: int,
+    last_turn_context_tokens: int,
+    nudged_soft_at: str | None,
+    nudged_hard_at: str | None,
+) -> tuple[str, bool, bool]:
+    """Decide whether a degradation nudge fires this turn (pure, testable).
+
+    The nudge text is appended to the outgoing Slack message but NOT to the
+    SDK conversation history — the model never sees it (so it can't echo or
+    treat it as an instruction next turn).
+
+    Args:
+        prior_message_count: ``message_count`` from the persisted Session
+            BEFORE this turn's increment. Current turn count is +1.
+        last_turn_context_tokens: ``input + cache_read + cache_creation`` from
+            the latest ``ResultMessage.usage``; 0 when usage is missing.
+        nudged_soft_at: ISO timestamp set when the soft nudge previously
+            fired for this thread; ``None`` means it has not fired yet.
+        nudged_hard_at: as above, for the hard nudge.
+
+    Returns:
+        ``(text, fire_soft, fire_hard)``. ``text`` is the markdown to append
+        ("" when no nudge). ``fire_soft`` / ``fire_hard`` are flags telling
+        the caller which timestamp(s) to set on the session this turn so
+        each fires at most once. When ``hard`` fires from cold (no prior
+        soft fire) the soft slot is also consumed so it can't fire later in
+        a state that's already past hard.
+    """
+    current_turns = prior_message_count + 1
+    tokens_k = max(1, last_turn_context_tokens // 1000)
+
+    if nudged_hard_at is None and (
+        current_turns >= NUDGE_HARD_TURNS
+        or last_turn_context_tokens >= NUDGE_HARD_TOKENS
+    ):
+        text = (
+            f"\n\n_(thread at {current_turns} turns / ~{tokens_k}k tokens — "
+            "context is now degrading. Strongly recommend \"consolidate\" "
+            "before the next round of work.)_"
+        )
+        # Hard supersedes soft: consume the soft slot too so a thread that
+        # crosses both thresholds in one turn never fires soft afterwards.
+        return text, nudged_soft_at is None, True
+
+    if (
+        nudged_soft_at is None
+        and nudged_hard_at is None
+        and (
+            current_turns >= NUDGE_SOFT_TURNS
+            or last_turn_context_tokens >= NUDGE_SOFT_TOKENS
+        )
+    ):
+        text = (
+            f"\n\n_(thread at {current_turns} turns / ~{tokens_k}k tokens — "
+            "say \"consolidate\" when you want me to lock canon to a file "
+            "before context gets noisy)_"
+        )
+        return text, True, False
+
+    return "", False, False
+
+
+def _extract_context_tokens(usage: dict[str, Any] | None) -> int:
+    """Sum ``input + cache_read + cache_creation`` from a ResultMessage usage dict.
+
+    Returns 0 when ``usage`` is None or none of the keys are present — Phase A
+    treats missing usage as "don't update" (caller should not overwrite the
+    last-known value with 0).
+    """
+    if not usage:
+        return 0
+    total = 0
+    for key in ("input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens"):
+        v = usage.get(key)
+        if isinstance(v, int):
+            total += v
+    return total
+
+
 class ConversationEngine:
     """Routes incoming messages to Claude Agent SDK and manages session persistence.
 
@@ -658,6 +749,11 @@ class ConversationEngine:
         session_id_from_sdk: str | None = None
         cost_usd: float | None = None
         first_yield = True
+        # Phase A — captured at ResultMessage time, applied during persistence.
+        last_turn_context_tokens = 0
+        nudge_text = ""
+        fire_soft = False
+        fire_hard = False
 
         try:
             async for sdk_message in query(prompt=message.text, options=options):
@@ -687,7 +783,33 @@ class ConversationEngine:
                         f"session={session_id_from_sdk}, cost={cost_str}"
                     )
 
-                    # Scan final response for image paths to send back
+                    # Phase A: track current context size + decide whether
+                    # to append a degradation nudge to the final yield.
+                    # `getattr` (not direct attr) so tests / older SDK
+                    # mocks without `usage` degrade to "no token signal"
+                    # instead of crashing the turn.
+                    last_turn_context_tokens = _extract_context_tokens(
+                        getattr(sdk_message, "usage", None)
+                    )
+                    prior_count = existing.message_count if existing else 0
+                    nudge_text, fire_soft, fire_hard = compute_thread_nudge(
+                        prior_message_count=prior_count,
+                        last_turn_context_tokens=last_turn_context_tokens,
+                        nudged_soft_at=existing.nudged_soft_at if existing else None,
+                        nudged_hard_at=existing.nudged_hard_at if existing else None,
+                    )
+                    if nudge_text:
+                        print(
+                            f"[{datetime.now()}] [thread-nudge] "
+                            f"tier={'hard' if fire_hard else 'soft'} "
+                            f"turns={prior_count + 1} "
+                            f"tokens={last_turn_context_tokens}"
+                        )
+
+                    # Scan final response for image paths to send back. The
+                    # nudge text — when fired — rides along on whichever
+                    # final yield happens (image branch OR the dedicated
+                    # post-loop yield below) so Slack only sees one edit.
                     image_paths = self._extract_image_paths(response_text)
                     if image_paths:
                         image_attachments = [
@@ -703,13 +825,16 @@ class ConversationEngine:
                             f"image(s) to send back"
                         )
                         yield OutgoingMessage(
-                            text=response_text,
+                            text=response_text + nudge_text,
                             channel=message.channel,
                             thread=message.thread,
                             is_update=not first_yield,
                             attachments=image_attachments,
                         )
                         first_yield = False
+                        # Mark the nudge as already delivered on this branch
+                        # so the post-loop dedicated yield doesn't double-edit.
+                        nudge_text = ""
 
         except Exception as e:
             print(f"[{datetime.now()}] Agent SDK error: {e}")
@@ -720,6 +845,18 @@ class ConversationEngine:
                 is_update=not first_yield,
             )
             return
+
+        # Phase A — emit a single dedicated edit appending the nudge when no
+        # image branch already absorbed it. Runs in user-text order; the SDK
+        # session is unaffected (model never sees the nudge).
+        if nudge_text and response_text.strip():
+            yield OutgoingMessage(
+                text=response_text + nudge_text,
+                channel=message.channel,
+                thread=message.thread,
+                is_update=not first_yield,
+            )
+            first_yield = False
 
         # Phase 9: touch retrieved chunks only on successful completion — an
         # aborted turn should not reinforce chunks that never influenced a
@@ -739,6 +876,7 @@ class ConversationEngine:
         # Persist session
         if session_id_from_sdk:
             now = datetime.now()
+            now_iso = now.isoformat()
             if existing:
                 existing.agent_session_id = session_id_from_sdk
                 existing.message_count += 1
@@ -747,8 +885,21 @@ class ConversationEngine:
                 # Phase 11.1: propagate save-to override (may be newly set,
                 # cleared, or carried forward from prior turns).
                 existing.summary_folder_override = session_override_value
+                # Phase A: token watermark + single-fire nudge timestamps.
+                # Only overwrite tokens when the SDK reported usage this turn
+                # (else preserve the last known value — better than zeroing).
+                if last_turn_context_tokens > 0:
+                    existing.last_turn_context_tokens = last_turn_context_tokens
+                if fire_soft and existing.nudged_soft_at is None:
+                    existing.nudged_soft_at = now_iso
+                if fire_hard and existing.nudged_hard_at is None:
+                    existing.nudged_hard_at = now_iso
                 self.session_store.update(existing)
             else:
+                # Phase A: brand-new session. Hard fires on turn 1 are only
+                # reachable via the token threshold (single turn ≥ 180k input
+                # — pathological but possible after a heavy resume); soft
+                # likewise. Stamp accordingly.
                 session = Session(
                     session_id=f"{platform_str}:{channel_id}:{thread_id}",
                     agent_session_id=session_id_from_sdk,
@@ -761,6 +912,9 @@ class ConversationEngine:
                     message_count=1,
                     total_cost_usd=cost_usd or 0.0,
                     summary_folder_override=session_override_value,
+                    last_turn_context_tokens=last_turn_context_tokens,
+                    nudged_soft_at=now_iso if fire_soft else None,
+                    nudged_hard_at=now_iso if fire_hard else None,
                 )
                 self.session_store.create(session)
 

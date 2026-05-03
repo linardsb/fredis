@@ -483,6 +483,21 @@ Each Slack channel exposes only the tools, MCP servers, and skills relevant to i
 
 **Promoting/demoting a channel's model.** Add or remove the channel name under `models.opus` / `models.haiku` in YAML. Default is Sonnet. Concrete model IDs are pinned in `channel_router.MODEL_IDS` (intentionally code-side so version pins go through review).
 
+### Thread Degradation Nudges (Phase A)
+
+Long Slack threads degrade as context fills — the SDK eventually auto-compacts older turns into a lossy summary, and "lost in the middle" effects mean Fredis attends less reliably to mid-thread content even before that. Phase A surfaces this passively: each turn the engine reads the latest `ResultMessage.usage` and appends a one-line markdown italic to the outgoing Slack reply when the thread first crosses a soft or hard threshold. The nudge text is **not** persisted to the SDK conversation history — the model never sees its own nudge on the next turn (so it can't echo or treat it as an instruction).
+
+| Tier | Turn count OR | Tokens | Nudge wording |
+|---|---|---|---|
+| Soft | ≥ 30 | ≥ 120 000 | _say "consolidate" when you want me to lock canon to a file before context gets noisy_ |
+| Hard | ≥ 50 | ≥ 180 000 | _context is now degrading. Strongly recommend "consolidate" before the next round of work._ |
+
+- **Token metric:** `input_tokens + cache_read_input_tokens + cache_creation_input_tokens` from the latest turn's usage — the *current* attention surface, not a running sum (each resumed turn's input already includes prior turns once).
+- **Single-fire guarantee:** `chat_sessions.nudged_soft_at` and `nudged_hard_at` are ISO timestamps set the first time each tier fires for a thread. A hard fire from cold (no prior soft) consumes the soft slot too so soft can't fire afterwards.
+- **Where it's wired:** `engine.py:compute_thread_nudge` (pure decision function, fully unit-tested in `tests/test_chat_thread_nudge.py`); persisted via `Session.last_turn_context_tokens` / `nudged_soft_at` / `nudged_hard_at` (`session.py`).
+- **Per-turn observability:** `[thread-nudge] tier=<soft|hard> turns=N tokens=N` printed to stdout the turn a nudge fires. Grep chat logs to verify firing is happening (or not, when you'd expect it).
+- **Tuning the thresholds:** edit `NUDGE_SOFT_TURNS / NUDGE_SOFT_TOKENS / NUDGE_HARD_TURNS / NUDGE_HARD_TOKENS` constants at the top of `engine.py`. Restart the chat engine to pick up the change. Phase B (`/consolidate` directive) is gated on observing these in production for 3+ days before tuning.
+
 ---
 
 ## Pre-Commit Workflow

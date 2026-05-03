@@ -110,6 +110,110 @@ def test_sqlite_migration_idempotent_on_existing_db(tmp_path: Path) -> None:
     assert got.summary_folder_override == "/foo"
 
 
+def test_sqlite_phase_a_nudge_fields_roundtrip(tmp_path: Path) -> None:
+    """Phase A: ``last_turn_context_tokens`` + ``nudged_*_at`` round-trip
+    through INSERT, SELECT, and UPDATE; defaults are 0 / None."""
+    store = SQLiteSessionStore(tmp_path / "c.db")
+    s = _make_session()
+    store.create(s)
+
+    fresh = store.get("slack", "C1", "T1")
+    assert fresh is not None
+    assert fresh.last_turn_context_tokens == 0
+    assert fresh.nudged_soft_at is None
+    assert fresh.nudged_hard_at is None
+
+    # Set all three, persist, re-read.
+    fresh.last_turn_context_tokens = 125_500
+    fresh.nudged_soft_at = "2026-05-03T14:00:00"
+    store.update(fresh)
+    got = store.get("slack", "C1", "T1")
+    assert got is not None
+    assert got.last_turn_context_tokens == 125_500
+    assert got.nudged_soft_at == "2026-05-03T14:00:00"
+    assert got.nudged_hard_at is None
+
+    # Hard fires later — must persist alongside the existing soft stamp.
+    got.nudged_hard_at = "2026-05-03T15:30:00"
+    got.last_turn_context_tokens = 195_000
+    store.update(got)
+    final = store.get("slack", "C1", "T1")
+    assert final is not None
+    assert final.nudged_soft_at == "2026-05-03T14:00:00"
+    assert final.nudged_hard_at == "2026-05-03T15:30:00"
+    assert final.last_turn_context_tokens == 195_000
+
+
+def test_sqlite_phase_a_migration_adds_columns_to_legacy_db(tmp_path: Path) -> None:
+    """Pre-Phase-A databases (no Phase A columns) must gain them on re-open
+    and the existing rows must be readable as Sessions with default values."""
+    import sqlite3
+
+    path = tmp_path / "legacy.db"
+    # Hand-craft a legacy schema: just the Phase 11.1 layout, no Phase A cols.
+    with sqlite3.connect(path) as conn:
+        conn.executescript(
+            """
+            CREATE TABLE chat_sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL UNIQUE,
+                agent_session_id TEXT NOT NULL,
+                platform TEXT NOT NULL,
+                channel_id TEXT NOT NULL,
+                thread_id TEXT NOT NULL,
+                user_id TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                message_count INTEGER DEFAULT 0,
+                total_cost_usd REAL DEFAULT 0.0,
+                status TEXT DEFAULT 'active',
+                summary_folder_override TEXT
+            );
+            """
+        )
+        now_iso = datetime.now().isoformat()
+        conn.execute(
+            """INSERT INTO chat_sessions
+               (session_id, agent_session_id, platform, channel_id, thread_id,
+                user_id, created_at, updated_at, message_count, total_cost_usd,
+                status, summary_folder_override)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                "slack:CL:TL",
+                "agent-legacy",
+                "slack",
+                "CL",
+                "TL",
+                "U",
+                now_iso,
+                now_iso,
+                7,
+                0.42,
+                "active",
+                None,
+            ),
+        )
+
+    # Re-open with the migration-aware store.
+    store = SQLiteSessionStore(path)
+    cols = {
+        row[1]
+        for row in sqlite3.connect(path)
+        .execute("PRAGMA table_info(chat_sessions)")
+        .fetchall()
+    }
+    assert "last_turn_context_tokens" in cols
+    assert "nudged_soft_at" in cols
+    assert "nudged_hard_at" in cols
+
+    got = store.get("slack", "CL", "TL")
+    assert got is not None
+    assert got.message_count == 7
+    assert got.last_turn_context_tokens == 0
+    assert got.nudged_soft_at is None
+    assert got.nudged_hard_at is None
+
+
 def test_sqlite_update_mutates_fields(tmp_path: Path) -> None:
     store = SQLiteSessionStore(tmp_path / "c.db")
     s = _make_session()
