@@ -466,6 +466,23 @@ The process needs to stay running — it connects via Socket Mode (outbound WebS
 
 **Config:** `SLACK_BOT_TOKEN` and `SLACK_APP_TOKEN` in `.claude/scripts/.env`. Only the authorized Slack user ID (see `USER.md` → Integrations) can trigger responses.
 
+### Per-Channel Scoping (Tools / MCP / Skills)
+
+Each Slack channel exposes only the tools, MCP servers, and skills relevant to its work. Reduces per-turn context floor and prevents the model from invoking, say, `Bash` in `#legal` or the `engineering` skill in `#gmail`.
+
+- **Config:** `.claude/config/channel-routing.yaml` under `tools:`, `mcp_servers:`, `skills:`. Resolvers live in `channel_router.py:resolve_tools/resolve_mcp_servers/resolve_skills`.
+- **Always-on base palette:** `Read`, `Write`, `Edit`, `Glob`, `Grep`, `Skill` — every channel including DMs.
+- **DMs:** universal surface — full tool palette, every MCP server, every skill (`skills.defaults.dm: ALL`).
+- **Skills enforcement is prompt-level**, not a hard SDK filter. The SDK has no clean per-call skill-discovery override (`setting_sources` only accepts the `user|project|local` enum, not arbitrary paths). The engine appends a `# Skill scope (per-channel)` rule to the system prompt naming the allowed subset; non-listed skills must be refused with a redirect to DMs.
+- **Tools and MCP servers ARE hard-filtered** via `allowed_tools` and `mcp_servers` on `ClaudeAgentOptions` — these are real SDK gates.
+- **Per-turn observability:** every turn logs `[scoping] channel=#X model=Y tools=N mcp=N skills=N` to stdout. Grep chat logs to verify scoping took effect.
+
+**Kill switch.** Set `scoping_enabled: false` at the top level of `channel-routing.yaml` to revert every channel to the legacy "everything everywhere" behaviour without a code revert. Restart the chat engine to pick up the change. Use this for emergency rollback if scoping breaks a channel.
+
+**Adding a new MCP server.** Register the server in `mcp_tools.py:_SERVER_SPECS`, then add its name to the relevant `mcp_servers.by_channel` lists in YAML. The engine picks up the registry at startup; per-channel mounts are computed per turn.
+
+**Promoting/demoting a channel's model.** Add or remove the channel name under `models.opus` / `models.haiku` in YAML. Default is Sonnet. Concrete model IDs are pinned in `channel_router.MODEL_IDS` (intentionally code-side so version pins go through review).
+
 ---
 
 ## Pre-Commit Workflow

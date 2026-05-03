@@ -297,6 +297,314 @@ def test_resolve_override_rejects_backslash(tmp_path: Path) -> None:
         router.resolve_override("research\\ai")
 
 
+_SCOPING_YAML = """\
+version: 1
+channels:
+  ideation: Fredis/Memory/ideation/
+  email-hub: Fredis/Memory/builds/email-hub/
+  gmail: Fredis/Memory/integrations/gmail/
+  legal: Fredis/Memory/legal/
+by_id: {}
+defaults:
+  dm: Fredis/Memory/daily/
+  fallback: Fredis/Memory/daily/
+models:
+  default: sonnet
+scoping_enabled: true
+tools:
+  by_channel:
+    ideation:  [WebSearch, WebFetch]
+    email-hub: [WebSearch, WebFetch, Bash, NotebookEdit]
+  defaults:
+    dm:        [WebSearch, WebFetch, Bash, NotebookEdit]
+    fallback:  []
+mcp_servers:
+  by_channel:
+    gmail:    [fredis]
+    ideation: [fredis]
+  defaults:
+    dm:       [fredis]
+    fallback: []
+skills:
+  always:
+    - obsidian-vault-structure
+    - integrations
+  by_channel:
+    ideation: [idea-validation, content-social]
+    legal:    [ip-overhang-guard, uk-latvia-context]
+    email-hub: [engineering, security-engineering]
+  defaults:
+    dm:       ALL
+    fallback: []
+"""
+
+
+def test_resolve_tools_dm_uses_dm_default(tmp_path: Path) -> None:
+    from channel_router import ChannelRouter
+
+    cfg = _write_config(tmp_path, _SCOPING_YAML)
+    router = ChannelRouter(cfg, tmp_path)
+
+    tools = router.resolve_tools(channel_name=None, is_dm=True)
+    # base + dm extras
+    assert tools == [
+        "Read", "Write", "Edit", "Glob", "Grep", "Skill",
+        "WebSearch", "WebFetch", "Bash", "NotebookEdit",
+    ]
+
+
+def test_resolve_tools_strategy_channel_no_bash(tmp_path: Path) -> None:
+    from channel_router import ChannelRouter
+
+    cfg = _write_config(tmp_path, _SCOPING_YAML)
+    router = ChannelRouter(cfg, tmp_path)
+
+    tools = router.resolve_tools(channel_name="ideation", is_dm=False)
+    assert "Bash" not in tools
+    assert "WebSearch" in tools
+    # Base palette always present.
+    for base in ("Read", "Write", "Edit", "Glob", "Grep", "Skill"):
+        assert base in tools
+
+
+def test_resolve_tools_build_channel_full_palette(tmp_path: Path) -> None:
+    from channel_router import ChannelRouter
+
+    cfg = _write_config(tmp_path, _SCOPING_YAML)
+    router = ChannelRouter(cfg, tmp_path)
+
+    tools = router.resolve_tools(channel_name="email-hub", is_dm=False)
+    assert "Bash" in tools
+    assert "NotebookEdit" in tools
+    assert "WebSearch" in tools
+
+
+def test_resolve_tools_unmapped_channel_base_only(tmp_path: Path) -> None:
+    from channel_router import ChannelRouter
+
+    cfg = _write_config(tmp_path, _SCOPING_YAML)
+    router = ChannelRouter(cfg, tmp_path)
+
+    tools = router.resolve_tools(channel_name="gmail", is_dm=False)
+    assert tools == ["Read", "Write", "Edit", "Glob", "Grep", "Skill"]
+
+
+def test_resolve_mcp_servers_per_channel(tmp_path: Path) -> None:
+    from channel_router import ChannelRouter
+
+    cfg = _write_config(tmp_path, _SCOPING_YAML)
+    router = ChannelRouter(cfg, tmp_path)
+
+    assert router.resolve_mcp_servers(channel_name="gmail", is_dm=False) == ["fredis"]
+    assert router.resolve_mcp_servers(channel_name="ideation", is_dm=False) == ["fredis"]
+    assert router.resolve_mcp_servers(channel_name="legal", is_dm=False) == []
+    assert router.resolve_mcp_servers(channel_name=None, is_dm=True) == ["fredis"]
+    # Unknown channel hits fallback (empty here).
+    assert router.resolve_mcp_servers(channel_name="random", is_dm=False) == []
+
+
+def test_resolve_skills_dm_returns_all_sentinel(tmp_path: Path) -> None:
+    from channel_router import ChannelRouter
+
+    cfg = _write_config(tmp_path, _SCOPING_YAML)
+    router = ChannelRouter(cfg, tmp_path)
+
+    assert router.resolve_skills(channel_name=None, is_dm=True) == "ALL"
+
+
+def test_resolve_skills_per_channel_unions_always_and_extras(tmp_path: Path) -> None:
+    from channel_router import ChannelRouter
+
+    cfg = _write_config(tmp_path, _SCOPING_YAML)
+    router = ChannelRouter(cfg, tmp_path)
+
+    skills = router.resolve_skills(channel_name="legal", is_dm=False)
+    # Order: always-on first, then extras.
+    assert skills == [
+        "obsidian-vault-structure",
+        "integrations",
+        "ip-overhang-guard",
+        "uk-latvia-context",
+    ]
+
+
+def test_resolve_skills_all_sentinel_under_by_channel(tmp_path: Path) -> None:
+    """A channel mapped to ALL under skills.by_channel returns the ALL sentinel
+    (same universal-surface semantics as DMs)."""
+    from channel_router import ChannelRouter
+
+    body = """\
+version: 1
+channels:
+  ideation: Fredis/Memory/ideation/
+  marketing: Fredis/Memory/marketing/
+by_id: {}
+defaults:
+  dm: Fredis/Memory/daily/
+  fallback: Fredis/Memory/daily/
+models:
+  default: sonnet
+scoping_enabled: true
+skills:
+  always: [obsidian-vault-structure]
+  by_channel:
+    ideation: ALL
+    marketing: [content-social]
+  defaults:
+    dm: ALL
+    fallback: []
+"""
+    cfg = _write_config(tmp_path, body)
+    router = ChannelRouter(cfg, tmp_path)
+
+    # ideation now matches DM semantics — full ALL sentinel, no allowlist.
+    assert router.resolve_skills(channel_name="ideation", is_dm=False) == "ALL"
+    # marketing still gets the constrained allowlist (always + extras).
+    assert router.resolve_skills(channel_name="marketing", is_dm=False) == [
+        "obsidian-vault-structure",
+        "content-social",
+    ]
+
+
+def test_resolve_skills_invalid_string_under_by_channel_rejected(tmp_path: Path) -> None:
+    """Only 'ALL' is a valid string for a per-channel skills entry."""
+    from channel_router import ChannelRouter
+
+    bad = """\
+version: 1
+channels:
+  ideation: Fredis/Memory/ideation/
+by_id: {}
+defaults:
+  dm: Fredis/Memory/daily/
+  fallback: Fredis/Memory/daily/
+models:
+  default: sonnet
+skills:
+  always: []
+  by_channel:
+    ideation: EVERYTHING
+"""
+    cfg = _write_config(tmp_path, bad)
+    with pytest.raises(ValueError, match="ALL"):
+        ChannelRouter(cfg, tmp_path)
+
+
+def test_resolve_skills_unmapped_channel_falls_to_always_only(tmp_path: Path) -> None:
+    from channel_router import ChannelRouter
+
+    cfg = _write_config(tmp_path, _SCOPING_YAML)
+    router = ChannelRouter(cfg, tmp_path)
+
+    skills = router.resolve_skills(channel_name="random", is_dm=False)
+    # Fallback is empty extras + always-on.
+    assert skills == ["obsidian-vault-structure", "integrations"]
+
+
+def test_scoping_disabled_returns_legacy_full_sets(tmp_path: Path) -> None:
+    from channel_router import ChannelRouter
+
+    body = _SCOPING_YAML.replace("scoping_enabled: true", "scoping_enabled: false")
+    cfg = _write_config(tmp_path, body)
+    router = ChannelRouter(cfg, tmp_path)
+
+    # Even on a strategy channel, kill switch returns the legacy full palette.
+    assert router.resolve_tools("ideation", is_dm=False) == [
+        "Read", "Write", "Edit", "Glob", "Grep", "Skill",
+        "Bash", "WebSearch", "WebFetch", "NotebookEdit",
+    ]
+    # And the legacy single-server mount everywhere.
+    assert router.resolve_mcp_servers("legal", is_dm=False) == ["fredis"]
+    # Skills "ALL" everywhere.
+    assert router.resolve_skills("legal", is_dm=False) == "ALL"
+
+
+def test_unknown_channel_in_tools_block_raises(tmp_path: Path) -> None:
+    """A typo in tools.by_channel must fail at startup, not at runtime."""
+    from channel_router import ChannelRouter
+
+    bad = """\
+version: 1
+channels:
+  ideation: Fredis/Memory/ideation/
+by_id: {}
+defaults:
+  dm: Fredis/Memory/daily/
+  fallback: Fredis/Memory/daily/
+models:
+  default: sonnet
+tools:
+  by_channel:
+    ideatoin: [WebSearch]   # typo
+"""
+    cfg = _write_config(tmp_path, bad)
+    with pytest.raises(ValueError, match="ideatoin"):
+        ChannelRouter(cfg, tmp_path)
+
+
+def test_unknown_channel_in_skills_block_raises(tmp_path: Path) -> None:
+    from channel_router import ChannelRouter
+
+    bad = """\
+version: 1
+channels:
+  ideation: Fredis/Memory/ideation/
+by_id: {}
+defaults:
+  dm: Fredis/Memory/daily/
+  fallback: Fredis/Memory/daily/
+models:
+  default: sonnet
+skills:
+  always: []
+  by_channel:
+    not-a-real-channel: [some-skill]
+"""
+    cfg = _write_config(tmp_path, bad)
+    with pytest.raises(ValueError, match="not-a-real-channel"):
+        ChannelRouter(cfg, tmp_path)
+
+
+def test_skills_dm_invalid_string_rejected(tmp_path: Path) -> None:
+    """Only 'ALL' is a valid string for skills.defaults.dm."""
+    from channel_router import ChannelRouter
+
+    bad = """\
+version: 1
+channels: {}
+by_id: {}
+defaults:
+  dm: Fredis/Memory/daily/
+  fallback: Fredis/Memory/daily/
+models:
+  default: sonnet
+skills:
+  always: []
+  defaults:
+    dm: EVERYTHING
+"""
+    cfg = _write_config(tmp_path, bad)
+    with pytest.raises(ValueError, match="ALL"):
+        ChannelRouter(cfg, tmp_path)
+
+
+def test_legacy_yaml_without_scoping_block_loads(tmp_path: Path) -> None:
+    """Configs predating Phase-1 scoping (no tools/mcp_servers/skills/scoping_enabled
+    keys) must still load — useful for tests and rollback."""
+    from channel_router import ChannelRouter
+
+    cfg = _write_config(tmp_path, _MINIMAL_YAML)
+    router = ChannelRouter(cfg, tmp_path)
+
+    # No scoping_enabled key → defaults to false → legacy behaviour.
+    assert router.resolve_tools("ideation", is_dm=False) == [
+        "Read", "Write", "Edit", "Glob", "Grep", "Skill",
+        "Bash", "WebSearch", "WebFetch", "NotebookEdit",
+    ]
+    assert router.resolve_mcp_servers("ideation", is_dm=False) == ["fredis"]
+    assert router.resolve_skills("ideation", is_dm=False) == "ALL"
+
+
 def test_production_config_loads(tmp_path: Path) -> None:
     """Smoke test: the real shipping config file loads without errors."""
     from channel_router import ChannelRouter

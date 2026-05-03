@@ -39,8 +39,8 @@ from integrations.registry import get_enabled as _get_enabled_integrations  # no
 # Local import to avoid ordering surprises with the sys.path tweak above.
 from mcp_tools import (  # noqa: E402
     SERVER_NAME as _FREDIS_MCP_SERVER_NAME,
-    allowed_tool_names as _fredis_mcp_tool_names,
-    build_server as _build_fredis_mcp_server,
+    build_server_registry as _build_fredis_mcp_registry,
+    tool_names_for_servers as _mcp_tool_names_for_servers,
 )
 
 
@@ -117,9 +117,10 @@ class ConversationEngine:
         self.max_turns = max_turns
         self.max_budget_usd = max_budget_usd
         self.channel_router = channel_router
-        # Built once — the SDK MCP server is stateless across turns and
-        # the tool set is fixed at process start.
-        self._fredis_mcp_server = _build_fredis_mcp_server()
+        # Built once — the SDK MCP servers are stateless across turns and
+        # the tool set is fixed at process start. Per-channel scoping picks a
+        # subset of this registry on each turn via `ChannelRouter.resolve_mcp_servers`.
+        self._mcp_server_registry = _build_fredis_mcp_registry()
         self._integration_facts = _integration_facts_block()
 
     # Image extensions to detect in response text
@@ -331,6 +332,36 @@ class ConversationEngine:
             else ""
         )
 
+        # Phase 3-lite: per-channel skill allowlist (prompt-enforced).
+        # Skills auto-discover from .claude/skills/ regardless — the SDK has
+        # no clean per-call skill-discovery filter. This rule tells the model
+        # which skills it may invoke; non-allowlisted skills should be refused
+        # with a redirect to DMs (the universal-access surface).
+        skill_scope_rule = ""
+        if self.channel_router is not None:
+            allowed_skills = self.channel_router.resolve_skills(
+                channel_name=message.channel.name,
+                is_dm=message.channel.is_dm,
+            )
+            if allowed_skills != "ALL":
+                # Sorted for prompt-cache stability — list order shouldn't
+                # change per-turn just because of dict iteration.
+                skill_list = ", ".join(sorted(allowed_skills))
+                channel_label = (
+                    "this DM"
+                    if message.channel.is_dm
+                    else f"#{message.channel.name or 'this channel'}"
+                )
+                skill_scope_rule = (
+                    "\n# Skill scope (per-channel)\n"
+                    f"In {channel_label}, the only skills available to you are: "
+                    f"{skill_list}. Do NOT invoke any other skill — even if it "
+                    "appears in the system catalogue. If the user asks for "
+                    "something that requires a non-listed skill, say briefly "
+                    "that it's out of scope here and suggest they DM you for "
+                    "unrestricted access. This is a hard channel boundary.\n"
+                )
+
         system_append = (
             "\n\n# Chat (Slack) rules\n"
             "Only your FINAL turn is shown — all tool calls and intermediate "
@@ -358,10 +389,58 @@ class ConversationEngine:
             "subject) in one line, then proceed. Do not ask the user to "
             "identify someone who already exists in their own inbox.\n"
             + self._integration_facts
+            + skill_scope_rule
             + "\n# Images\n"
             "Include absolute file paths in your response — the engine "
             "auto-uploads them to the current Slack thread. Never call the "
             "Slack API directly (wrong thread).\n"
+        )
+
+        # Per-channel scoping (Phase 2). Router returns the full built-in tool
+        # palette + the MCP server names to mount for this channel. Falls back
+        # to the legacy "everything everywhere" set when no router is wired or
+        # `scoping_enabled: false` in the YAML.
+        if self.channel_router is not None:
+            tool_palette = self.channel_router.resolve_tools(
+                channel_name=message.channel.name,
+                is_dm=message.channel.is_dm,
+            )
+            mcp_server_names = self.channel_router.resolve_mcp_servers(
+                channel_name=message.channel.name,
+                is_dm=message.channel.is_dm,
+            )
+        else:
+            tool_palette = [
+                "Read", "Write", "Edit", "Glob", "Grep", "Skill",
+                "Bash", "WebSearch", "WebFetch", "NotebookEdit",
+            ]
+            mcp_server_names = [_FREDIS_MCP_SERVER_NAME]
+
+        mcp_servers_for_call = {
+            name: self._mcp_server_registry[name]
+            for name in mcp_server_names
+            if name in self._mcp_server_registry
+        }
+
+        # Phase 4: per-turn scoping observability. One line per turn so a
+        # `grep '\[scoping\]'` against chat logs answers "what did this channel
+        # actually load?" without reproducing the YAML in code.
+        scoping_channel = (
+            "DM" if message.channel.is_dm
+            else f"#{message.channel.name or '?'}"
+        )
+        if self.channel_router is None:
+            skill_count_label = "ALL"
+        else:
+            resolved = self.channel_router.resolve_skills(
+                channel_name=message.channel.name,
+                is_dm=message.channel.is_dm,
+            )
+            skill_count_label = "ALL" if resolved == "ALL" else str(len(resolved))
+        print(
+            f"[{datetime.now()}] [scoping] channel={scoping_channel} "
+            f"model={selected_model} tools={len(tool_palette)} "
+            f"mcp={len(mcp_server_names)} skills={skill_count_label}"
         )
 
         # Build Agent SDK options
@@ -375,19 +454,10 @@ class ConversationEngine:
                 "append": system_append,
             },
             "allowed_tools": [
-                "Read",
-                "Write",
-                "Edit",
-                "Bash",
-                "Glob",
-                "Grep",
-                "Skill",
-                "WebSearch",
-                "WebFetch",
-                "NotebookEdit",
-                *_fredis_mcp_tool_names(),
+                *tool_palette,
+                *_mcp_tool_names_for_servers(mcp_server_names),
             ],
-            "mcp_servers": {_FREDIS_MCP_SERVER_NAME: self._fredis_mcp_server},
+            "mcp_servers": mcp_servers_for_call,
             "permission_mode": "acceptEdits",
             "max_turns": self.max_turns,
             "max_budget_usd": self.max_budget_usd,

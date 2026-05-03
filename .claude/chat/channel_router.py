@@ -30,6 +30,21 @@ MODEL_IDS: dict[str, str] = {
     "haiku":  "claude-haiku-4-5-20251001",
 }
 
+# Always-on built-in tool palette. Every channel including DMs gets these;
+# scoping only adds *extra* tools on top. Kept in code (not YAML) — these are
+# the fundamental capabilities the engine assumes are always available.
+TOOL_BASE: tuple[str, ...] = ("Read", "Write", "Edit", "Glob", "Grep", "Skill")
+
+# Legacy "everything everywhere" sets used when scoping_enabled=false. Mirror
+# the engine's pre-Phase-1 hardcoded values so the kill switch is a true revert.
+_LEGACY_TOOL_EXTRAS: tuple[str, ...] = ("Bash", "WebSearch", "WebFetch", "NotebookEdit")
+_LEGACY_MCP_SERVERS: tuple[str, ...] = ("fredis",)
+
+# Sentinel: skills.defaults.dm = ALL means "no allowlist clause; every skill
+# in .claude/skills/ is invocable." Not a list — distinct type so callers
+# can branch cleanly on `is "ALL"` vs receiving a list.
+SKILLS_ALL = "ALL"
+
 
 @dataclass(frozen=True)
 class RoutingConfig:
@@ -42,6 +57,23 @@ class RoutingConfig:
     default_fallback: str
     model_by_channel: dict[str, str]
     default_model: str
+    # Phase-1 scoping additions.
+    scoping_enabled: bool
+    tools_by_channel: dict[str, tuple[str, ...]]
+    tools_default_dm: tuple[str, ...]
+    tools_default_fallback: tuple[str, ...]
+    mcp_by_channel: dict[str, tuple[str, ...]]
+    mcp_default_dm: tuple[str, ...]
+    mcp_default_fallback: tuple[str, ...]
+    skills_always: tuple[str, ...]
+    # Per-channel skills: either a tuple of skill names or the "ALL" sentinel.
+    # ALL means the channel inherits universal-surface semantics (same as
+    # `defaults.dm: ALL`) — every skill in `.claude/skills/` is invocable and
+    # the engine emits no skill-scope rule. Used today for #ideation, where
+    # cross-domain prompting is the point.
+    skills_by_channel: dict[str, tuple[str, ...] | str]
+    skills_default_dm: tuple[str, ...] | str
+    skills_default_fallback: tuple[str, ...]
 
 
 class ChannelRouter:
@@ -118,6 +150,26 @@ class ChannelRouter:
                     )
                 model_by_channel[name] = alias
 
+        # --- Phase-1 scoping blocks (tools / mcp_servers / skills). ---
+        # Missing blocks default to "scoping disabled" semantics so older
+        # configs keep working unchanged.
+        scoping_enabled = bool(raw.get("scoping_enabled", False))
+
+        tools_by_channel, tools_dm, tools_fallback = ChannelRouter._parse_scope_block(
+            raw.get("tools"), known_channels=clean_channels, block_name="tools"
+        )
+        mcp_by_channel, mcp_dm, mcp_fallback = ChannelRouter._parse_scope_block(
+            raw.get("mcp_servers"),
+            known_channels=clean_channels,
+            block_name="mcp_servers",
+        )
+
+        skills_always, skills_by_channel, skills_dm, skills_fallback = (
+            ChannelRouter._parse_skills_block(
+                raw.get("skills"), known_channels=clean_channels
+            )
+        )
+
         return RoutingConfig(
             channels=clean_channels,
             by_id=clean_by_id,
@@ -125,7 +177,185 @@ class ChannelRouter:
             default_fallback=str(default_fallback),
             model_by_channel=model_by_channel,
             default_model=default_model,
+            scoping_enabled=scoping_enabled,
+            tools_by_channel=tools_by_channel,
+            tools_default_dm=tools_dm,
+            tools_default_fallback=tools_fallback,
+            mcp_by_channel=mcp_by_channel,
+            mcp_default_dm=mcp_dm,
+            mcp_default_fallback=mcp_fallback,
+            skills_always=skills_always,
+            skills_by_channel=skills_by_channel,
+            skills_default_dm=skills_dm,
+            skills_default_fallback=skills_fallback,
         )
+
+    @staticmethod
+    def _parse_scope_block(
+        raw_block: Any,
+        known_channels: dict[str, str],
+        block_name: str,
+    ) -> tuple[dict[str, tuple[str, ...]], tuple[str, ...], tuple[str, ...]]:
+        """Parse a `tools:` or `mcp_servers:` block. Both share the same shape:
+
+            <block>:
+              by_channel:
+                <channel>: [item, item]
+              defaults:
+                dm:       [...]
+                fallback: [...]
+
+        Validates that every channel under `by_channel` is a known channel
+        name (matches `channels:` map). Empty / missing block → empty
+        everything (scoping is a no-op for that dimension).
+        """
+        if raw_block is None:
+            return {}, (), ()
+        if not isinstance(raw_block, dict):
+            raise ValueError(
+                f"channel-routing.yaml: {block_name} must be a mapping, "
+                f"got {type(raw_block).__name__}"
+            )
+
+        by_channel_raw: Any = raw_block.get("by_channel") or {}
+        if not isinstance(by_channel_raw, dict):
+            raise ValueError(
+                f"channel-routing.yaml: {block_name}.by_channel must be a mapping"
+            )
+
+        by_channel: dict[str, tuple[str, ...]] = {}
+        for chan, items in by_channel_raw.items():
+            chan_str = str(chan)
+            if chan_str not in known_channels:
+                raise ValueError(
+                    f"channel-routing.yaml: {block_name}.by_channel.{chan_str!r} "
+                    f"is not in `channels:` — fix the typo or add the channel"
+                )
+            if not isinstance(items, list):
+                raise ValueError(
+                    f"channel-routing.yaml: {block_name}.by_channel.{chan_str} "
+                    f"must be a list, got {type(items).__name__}"
+                )
+            by_channel[chan_str] = tuple(str(x) for x in items)
+
+        defaults_raw: Any = raw_block.get("defaults") or {}
+        if not isinstance(defaults_raw, dict):
+            raise ValueError(
+                f"channel-routing.yaml: {block_name}.defaults must be a mapping"
+            )
+
+        def _list_field(name: str) -> tuple[str, ...]:
+            v = defaults_raw.get(name) or []
+            if not isinstance(v, list):
+                raise ValueError(
+                    f"channel-routing.yaml: {block_name}.defaults.{name} must be "
+                    f"a list, got {type(v).__name__}"
+                )
+            return tuple(str(x) for x in v)
+
+        return by_channel, _list_field("dm"), _list_field("fallback")
+
+    @staticmethod
+    def _parse_skills_block(
+        raw_block: Any,
+        known_channels: dict[str, str],
+    ) -> tuple[
+        tuple[str, ...],
+        dict[str, tuple[str, ...]],
+        tuple[str, ...] | str,
+        tuple[str, ...],
+    ]:
+        """Parse the `skills:` block — distinct from tools/mcp because:
+
+        - `always:` is a flat list, not nested under `by_channel`.
+        - `defaults.dm` may be the literal string `"ALL"` (sentinel), not a list.
+        """
+        if raw_block is None:
+            return (), {}, (), ()
+        if not isinstance(raw_block, dict):
+            raise ValueError(
+                "channel-routing.yaml: skills must be a mapping, got "
+                f"{type(raw_block).__name__}"
+            )
+
+        always_raw: Any = raw_block.get("always") or []
+        if not isinstance(always_raw, list):
+            raise ValueError(
+                "channel-routing.yaml: skills.always must be a list, "
+                f"got {type(always_raw).__name__}"
+            )
+        always = tuple(str(x) for x in always_raw)
+
+        by_channel_raw: Any = raw_block.get("by_channel") or {}
+        if not isinstance(by_channel_raw, dict):
+            raise ValueError(
+                "channel-routing.yaml: skills.by_channel must be a mapping"
+            )
+        by_channel: dict[str, tuple[str, ...] | str] = {}
+        for chan, items in by_channel_raw.items():
+            chan_str = str(chan)
+            if chan_str not in known_channels:
+                raise ValueError(
+                    f"channel-routing.yaml: skills.by_channel.{chan_str!r} is "
+                    f"not in `channels:` — fix the typo or add the channel"
+                )
+            # Tolerate `<channel>:` with no list (None) — treat as base-only.
+            if items is None:
+                by_channel[chan_str] = ()
+                continue
+            # `ALL` sentinel: the channel inherits universal-surface semantics
+            # (same as `defaults.dm: ALL`). Engine emits no skill-scope rule.
+            if isinstance(items, str):
+                if items != SKILLS_ALL:
+                    raise ValueError(
+                        f"channel-routing.yaml: skills.by_channel.{chan_str} "
+                        f"string must be the {SKILLS_ALL!r} sentinel, "
+                        f"got {items!r}"
+                    )
+                by_channel[chan_str] = SKILLS_ALL
+                continue
+            if not isinstance(items, list):
+                raise ValueError(
+                    f"channel-routing.yaml: skills.by_channel.{chan_str} must "
+                    f"be a list or the {SKILLS_ALL!r} sentinel, got "
+                    f"{type(items).__name__}"
+                )
+            by_channel[chan_str] = tuple(str(x) for x in items)
+
+        defaults_raw: Any = raw_block.get("defaults") or {}
+        if not isinstance(defaults_raw, dict):
+            raise ValueError(
+                "channel-routing.yaml: skills.defaults must be a mapping"
+            )
+
+        dm_value: Any = defaults_raw.get("dm")
+        dm: tuple[str, ...] | str
+        if isinstance(dm_value, str):
+            if dm_value != SKILLS_ALL:
+                raise ValueError(
+                    f"channel-routing.yaml: skills.defaults.dm string must be "
+                    f"the {SKILLS_ALL!r} sentinel, got {dm_value!r}"
+                )
+            dm = SKILLS_ALL
+        elif isinstance(dm_value, list):
+            dm = tuple(str(x) for x in dm_value)
+        elif dm_value is None:
+            dm = ()
+        else:
+            raise ValueError(
+                "channel-routing.yaml: skills.defaults.dm must be a list or "
+                f"the {SKILLS_ALL!r} sentinel, got {type(dm_value).__name__}"
+            )
+
+        fallback_value: Any = defaults_raw.get("fallback") or []
+        if not isinstance(fallback_value, list):
+            raise ValueError(
+                "channel-routing.yaml: skills.defaults.fallback must be a list, "
+                f"got {type(fallback_value).__name__}"
+            )
+        fallback = tuple(str(x) for x in fallback_value)
+
+        return always, by_channel, dm, fallback
 
     def resolve(
         self,
@@ -195,6 +425,83 @@ class ChannelRouter:
                 channel_name, self._config.default_model
             )
         return MODEL_IDS[alias]
+
+    def resolve_tools(
+        self,
+        channel_name: str | None,
+        is_dm: bool,
+    ) -> list[str]:
+        """Return the full built-in tool palette to expose for this channel.
+
+        Result includes the always-on base (`TOOL_BASE`) plus the channel's
+        configured extras. When `scoping_enabled=false` returns the legacy
+        full set so the kill switch is a true revert.
+
+        DMs always get `tools.defaults.dm`. Unknown / unmapped channel
+        names hit `tools.defaults.fallback`.
+        """
+        if not self._config.scoping_enabled:
+            return [*TOOL_BASE, *_LEGACY_TOOL_EXTRAS]
+        if is_dm:
+            extras = self._config.tools_default_dm
+        elif channel_name and channel_name in self._config.tools_by_channel:
+            extras = self._config.tools_by_channel[channel_name]
+        else:
+            extras = self._config.tools_default_fallback
+        return [*TOOL_BASE, *extras]
+
+    def resolve_mcp_servers(
+        self,
+        channel_name: str | None,
+        is_dm: bool,
+    ) -> list[str]:
+        """Return MCP server names that should mount for this channel.
+
+        DMs hit `mcp_servers.defaults.dm` (universal — every server). Unknown
+        channels hit `mcp_servers.defaults.fallback` (typically empty).
+        Kill switch returns the legacy mount set so behaviour matches
+        pre-Phase-1.
+        """
+        if not self._config.scoping_enabled:
+            return list(_LEGACY_MCP_SERVERS)
+        if is_dm:
+            return list(self._config.mcp_default_dm)
+        if channel_name and channel_name in self._config.mcp_by_channel:
+            return list(self._config.mcp_by_channel[channel_name])
+        return list(self._config.mcp_default_fallback)
+
+    def resolve_skills(
+        self,
+        channel_name: str | None,
+        is_dm: bool,
+    ) -> list[str] | Literal["ALL"]:
+        """Return the skill allowlist for this channel.
+
+        Returns either:
+        - The string `"ALL"` (sentinel) — no allowlist, every skill in
+          `.claude/skills/` is invocable. Kill switch + DM default both
+          map here so the universal-surface promise holds.
+        - A list of skill names — the channel's `always + by_channel` extras.
+          The engine appends a system-prompt rule naming this list as the
+          only invocable subset.
+        """
+        if not self._config.scoping_enabled:
+            return "ALL"
+        if is_dm:
+            dm_default = self._config.skills_default_dm
+            if dm_default == SKILLS_ALL:
+                return "ALL"
+            assert isinstance(dm_default, tuple)
+            return [*self._config.skills_always, *dm_default]
+        if channel_name and channel_name in self._config.skills_by_channel:
+            extras = self._config.skills_by_channel[channel_name]
+            # ALL sentinel under by_channel = universal surface for that channel.
+            if extras == SKILLS_ALL:
+                return "ALL"
+            assert isinstance(extras, tuple)
+        else:
+            extras = self._config.skills_default_fallback
+        return [*self._config.skills_always, *extras]
 
     def resolve_override(self, target: str) -> Path:
         """Resolve a user-supplied save-to target to an absolute vault folder.

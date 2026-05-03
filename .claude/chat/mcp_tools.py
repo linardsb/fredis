@@ -211,12 +211,54 @@ GMAIL_TOOLS = [
     _gmail_create_draft,
 ]
 
+# Server-name → (build_fn, tools) — the engine selects a subset per channel.
+# Today only `fredis` (Gmail) exists; future MCP servers (calendar, hubspot,
+# drive, sheets, docs) register here without further engine changes.
+_SERVER_SPECS: dict[str, tuple[str, list[Any]]] = {
+    SERVER_NAME: (SERVER_NAME, GMAIL_TOOLS),
+}
+
 
 def build_server() -> Any:
-    """Build the in-process MCP server with all Fredis tools."""
+    """Build the default in-process MCP server (the Gmail-tools `fredis` server).
+
+    Kept for back-compat with existing callers that mount a single server.
+    Per-channel scoping uses `build_server_registry()` and `tool_names_for_servers()`.
+    """
     return create_sdk_mcp_server(name=SERVER_NAME, tools=GMAIL_TOOLS)
 
 
+def build_server_registry() -> dict[str, Any]:
+    """Build every registered MCP server. Returns ``{server_name: server_instance}``.
+
+    The engine instantiates this once at startup and selects a per-channel
+    subset via `ChannelRouter.resolve_mcp_servers()` on each turn.
+    """
+    return {
+        name: create_sdk_mcp_server(name=name, tools=tools)
+        for name, (_canonical, tools) in _SERVER_SPECS.items()
+    }
+
+
+def tool_names_for_servers(server_names: list[str]) -> list[str]:
+    """Return the MCP tool names exposed by the given server subset.
+
+    Format: ``mcp__<server>__<tool>``. Unknown server names are silently
+    dropped (engine-side validation owns the strict path).
+    """
+    names: list[str] = []
+    for server in server_names:
+        spec = _SERVER_SPECS.get(server)
+        if spec is None:
+            continue
+        _canonical, tools = spec
+        names.extend(f"mcp__{server}__{t.name}" for t in tools)
+    return names
+
+
 def allowed_tool_names() -> list[str]:
-    """MCP tool names the Agent SDK will expose. Format: mcp__<server>__<tool>."""
+    """MCP tool names exposed by the default `fredis` server.
+
+    Back-compat shim for callers that haven't moved to per-channel scoping.
+    """
     return [f"mcp__{SERVER_NAME}__{t.name}" for t in GMAIL_TOOLS]
