@@ -30,46 +30,66 @@ ABOUT THE BRAND (the graphic represents Saulera — encode this in every output)
   founder — engineer-craft, not big-agency veneer.
 - Bridge angle: UK home base, Latvian roots, Argentine family base. The
   brand is at home in three jurisdictions and three currencies. Visuals
-  can subtly nod to this (geometric heritage motifs from Latvian folk
-  weaving applied with Bauhaus discipline) but never literally.
+  can subtly nod to this through composition (off-axis, ascending) but
+  never through literal cultural imagery.
 
 EMOTIONAL READ — the feeling the graphic must evoke:
 - 06:00 not 12:00 — quiet morning optimism, not noon hype
 - Ascending, not declared — the sun is still rising
-- Disciplined, not loud — restraint as the design move
+- Restrained, not loud — a single accent does the work
 - Confident, not corporate — built-it-themselves energy
 - Optimistic, not naïve — Deep Ocean anchor keeps it serious
-- Forward-motion held by structure — momentum disciplined by geometry
+- Engineer-craft — the graphic looks shipped, not pitched
 
-VISUAL LINEAGE — design reference points:
-- Otl Aicher (1972 Munich Olympics signage, ERCO catalogues)
-- El Lissitzky (Constructivist geometric tension)
-- Anton Stankowski (Deutsche Bank logo, SDR identity — primitives only)
-- Massimo Vignelli (NYC subway map, Unimark grid systems)
-- Dieter Rams (Braun product photography — tone, restraint, function)
-- Saul Bass (title sequences — geometric storytelling)
+VISUAL LINEAGE — modern AI-era design references (this is the bar to clear):
+- Linear (linear.app) — geometric restraint, dark anchor + single signature
+  accent, type-led, off-axis composition, zero decoration
+- Vercel (vercel.com) — brutalist-modern minimalism, type plus monochrome
+  plus one signal colour, hard edges
+- Anthropic (anthropic.com — Pentagram 2024 identity rebrand) — geometric
+  off-axis sun-coded marks, warm earth anchor, restrained accent. Closest
+  spiritual cousin to Saulera; study how Anthropic uses negative space
+- Stripe homepage editorial illustration — flat geometric vector
+  illustration commissioned for warmth-with-precision (Owen Davey-style
+  AI-era flat illustration, but never naïve or playful)
+- Cursor (cursor.com) and Perplexity (perplexity.ai) — engineer-craft
+  directness, monochrome with single accent, zero ornamental moves
+- Modern editorial flat-illustration: Owen Davey, Justin Tran, Tim Lahan —
+  flat geometric AI-era editorial restraint
+- Apple Intelligence press visuals (2024–2025) — geometric primitives,
+  off-axis, one accent, no rays / no neural-net imagery
 
 WHAT THE GRAPHIC MUST NEVER SIGNAL:
 - Bro-tech, VC-glossy, hyper-modern Silicon Valley aesthetic
-- Cute mascots, illustrated characters, friendly robots
+- Cute mascots, illustrated characters, friendly robots, anthropomorphism
 - Corporate stock tropes (diverse-hands-on-laptop, abstract handshake,
   globe-with-network-lines, person-pointing-at-floating-data)
 - Generic AI tropes (neural networks, brain icons, chatbot bubbles,
   glowing data orbs, circuit boards, binary streams, robot heads,
-  hexagon-grid AI patterns, "tech blue" gradient backgrounds)
+  hexagon-grid AI patterns, "tech blue" gradient backgrounds, latent-space
+  starfield clouds, generative blob shapes)
 - Big-agency over-polish (over-rendered, over-shadowed, over-considered)
 - Greeting-card warmth (soft pastels, friendly curves, hand-drawn feel)
 - Y2K / cyberpunk / neon / vaporwave / synthwave aesthetics
-- Religious / spiritual / mystical sun symbolism (mandalas, sun-kings,
-  rays-of-glory, halos, divine light)
+- Mystical sun symbolism (mandalas, rays-of-glory, halos, divine light)
+- Modernist-revival historicism — Bauhaus, Constructivist, Swiss poster,
+  mid-century retro. Saulera lives in 2026, not 1972. The composition
+  may BE disciplined and geometric, but it must read CONTEMPORARY, not
+  as a historicist quote
+- Iridescent / oil-slick / chromatic-aberration palettes
+- AI-imagery clichés specifically: glowing CPU chips, holographic
+  interfaces, blue-circuit-board backgrounds, robotic hands reaching
+  toward human hands, "AI" letters as the subject, prompt-bar UI mockups
+  as illustrations
 
 WHAT THE GRAPHIC SHOULD SIGNAL:
 - Quiet confidence — restraint as the move
 - Sunrise / new beginning (without literal landscape painting)
-- Geometric discipline (Bauhaus / Constructivist lineage)
+- Modern AI-tooling polish — looks like it shipped from a 2026 product
+  studio, not a 1970s graphic-design archive
 - Momentum held by structure
-- Heritage + forward-motion co-existing in one composition
-- The exact tone of "we built this and it works" — engineer-output, not marketing
+- Engineer-output, not marketing-output
+- Single-accent discipline — like Linear, like Vercel, like Anthropic
 
 TYPOGRAPHY (if any text appears):
 - Display / wordmark: Homizio 500, lowercase only
@@ -78,11 +98,12 @@ TYPOGRAPHY (if any text appears):
 - The wordmark "saulera" is the only permitted brand text inside graphics
 - Never set the wordmark in any other typeface
 
-STYLE: Bauhaus modernist geometric illustration in the lineage of Otl Aicher
-1972 Munich Olympics signage and early El Lissitzky / Constructivist
-composition. Flat colour, hard vector edges, no gradients, no drop shadow,
-no glow, no 3D, no glassmorphism, no photorealism, no texture, no noise,
-no grain.
+STYLE: Modern AI-era flat geometric editorial illustration. The aesthetic
+register sits between Linear's product-marketing graphics, Anthropic's
+2024 Pentagram identity, and Stripe's commissioned editorial illustration.
+Flat colour, hard vector edges, no gradients (unless explicitly specified),
+no drop shadow, no glow, no 3D, no glassmorphism, no photorealism, no
+texture, no noise, no grain. Contemporary, not modernist-revival.
 
 Palette — use ONLY these, no other colours allowed:
 - Deep Ocean #264653 (anchor — text, dark UI, wordmark)
@@ -127,7 +148,8 @@ Output: clean vector-ready flat illustration, hard edges, scalable.
 ### A. Hero illustration (1920×1080)
 
 ```
-Subject: abstract sunrise rendered as Bauhaus geometry. Background
+Subject: abstract sunrise rendered as modern AI-era geometric primitives
+(Linear / Anthropic register, not 1970s modernist). Background
 fill: Warm Stone #EAE6DE covering full canvas. Composition: one solid
 Vermillion Rise #D94E2A circle, diameter 320px, positioned at upper
 LEFT third of canvas (cx=560, cy=380 — above optical centre). Below
@@ -153,7 +175,8 @@ Warm Stone #EAE6DE background. Empty upper-right quadrant.
 ```
 Variant — "ops automation":
 Four Dawn Teal #2A7E8F solid rectangles in a non-grid arrangement
-(deliberately misaligned, like Mondrian early-period). Sizes vary
+(deliberately misaligned, modern editorial flat-illustration register —
+think Stripe homepage editorial, Linear product graphics). Sizes vary
 80–180px. One Vermillion Rise #D94E2A circle diameter 120px anchoring
 upper-right corner area (cx=600, cy=200). Warm Stone background.
 ```
@@ -222,8 +245,8 @@ Three stages, left to right, asymmetrically spaced (not equal gaps —
 30% / 25% / 45% of canvas). Each stage: one Dawn Teal #2A7E8F filled
 rectangle (varying heights 200–320px) anchored at the bottom. ONE of
 the three rectangles has a Vermillion Rise #D94E2A solid circle
-floating above it (current focus). Connecting elements: thin Bauhaus
-Black #264653 horizontal line at y=600 running across all three
+floating above it (current focus). Connecting elements: thin Deep Ocean
+#264653 horizontal line at y=600 running across all three
 rectangles. Warm Stone background. No labels, no arrows.
 ```
 

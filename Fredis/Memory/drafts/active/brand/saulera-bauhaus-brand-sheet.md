@@ -9,18 +9,18 @@ service: brand
 
 **Wordmark:** saulera
 **Domain:** saulera.com (acquired 2026-05-01)
-**Brand metaphor:** *Saulera = a new day starting. Sunrise upon, a new era begins.* The brand carries that literally — sunrise palette pulled from Latvian and Argentinean dawn landscapes, Bauhaus typography for discipline.
+**Brand metaphor:** *Saulera = a new day starting. Sunrise upon, a new era begins.* The brand carries that literally — sunrise palette pulled from Latvian and Argentinean dawn landscapes, modern AI-era visual register (Linear / Anthropic / Stripe lineage, not 1970s modernist).
 **Positioning bet:** AI-agentic build studio for small-and-medium businesses. The "sunrise era" of small-business AI ops — warm, optimistic, disciplined. Differentiated from cold enterprise-blue AI tooling on one side and hand-wavy AI consulting on the other.
 
 ---
 
 ## 1. Palette — canonical Saulera tokens (final, v2 — 2026-05-03)
 
-**The shift:** earlier draft enforced strict Bauhaus "no yellow" theory — sun is the red disc, never amber. The brand is now richer than that: a literal sunrise has both the vermillion disc *and* the amber horizon-glow that spreads behind it. Saulera embraces the full dawn stack — vermillion as the disc, amber as the spreading first light, dawn teal as the cool zenith, deep ocean as the receding night, warm stone as the ground.
+**The shift:** earlier draft enforced a strict "no yellow" rule on theoretical grounds — sun is the red disc, never amber. The brand is now richer than that: a literal sunrise has both the vermillion disc *and* the amber horizon-glow that spreads behind it. Saulera embraces the full dawn stack — vermillion as the disc, amber as the spreading first light, dawn teal as the cool zenith, deep ocean as the receding night, warm stone as the ground. Visual register is contemporary AI-era (Linear, Anthropic, Stripe), not modernist-revival.
 
 | Role | Hex | Name | Usage |
 |------|------|------|-------|
-| Anchor | `#264653` | Deep Ocean | Headers, body text, dark UI, wordmark — replaces Bauhaus Black |
+| Anchor | `#264653` | Deep Ocean | Headers, body text, dark UI, wordmark |
 | Signature | `#D94E2A` | Vermillion Rise | The sun — disc, primary CTA fills, hero accent |
 | Counterweight | `#2A7E8F` | Dawn Teal | Secondary CTAs, infographic counter-tone, link colour |
 | Horizon glow | `#F59E0B` | Amber | Fill-only accent — gradient stops, hero highlights, badge / callout backgrounds. **NEVER text.** |
@@ -89,9 +89,9 @@ Refine after the first three client conversations. Tone register: confident, low
 The metaphor isn't decorative — it determines every brand decision:
 
 - **Vermillion disc = the sun, just risen.** The specific oxidised-red two minutes after horizon-break, before atmospheric scatter washes it out.
-- **Amber = the horizon glow** spreading behind and above the disc. The first-light warmth that earlier drafts banned on Bauhaus theory grounds — restored as a fill-only accent because real sunrises have it and the brand should not be more disciplined than reality.
+- **Amber = the horizon glow** spreading behind and above the disc. The first-light warmth earlier drafts banned on theoretical grounds — restored as a fill-only accent because real sunrises have it and the brand should not be more disciplined than reality.
 - **Dawn Teal = the cool side of the sky** before full light. Calm that precedes momentum — counterweight to vermillion's energy.
-- **Deep Ocean anchor** — the residue of night, the discipline holding the optimism. Replaces Bauhaus Black — softer, still serious, still 06:00-coded.
+- **Deep Ocean anchor** — the residue of night, the discipline holding the optimism. Softer than pure black, still serious, still 06:00-coded.
 - **Asymmetric disc upward** reads as *ascending* — the sun is still rising, not noon-overhead.
 - **Lowercase always** — quiet morning register, not midday corporate shout.
 - **Audience read:** SMB owner waking up to AI's possibility. The brand promises a disciplined start to a real new day, not a hype cycle.
