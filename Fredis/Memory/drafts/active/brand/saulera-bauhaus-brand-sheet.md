@@ -16,14 +16,13 @@ service: brand
 
 ## 1. Palette — canonical Saulera tokens (final, v2 — 2026-05-03)
 
-**The shift:** earlier draft enforced a strict "no yellow" rule on theoretical grounds — sun is the red disc, never amber. The brand is now richer than that: a literal sunrise has both the vermillion disc *and* the amber horizon-glow that spreads behind it. Saulera embraces the full dawn stack — vermillion as the disc, amber as the spreading first light, dawn teal as the cool zenith, deep ocean as the receding night, warm stone as the ground. Visual register is contemporary AI-era (Linear, Anthropic, Stripe), not modernist-revival.
+**The shift:** earlier drafts split the sun into two tones — a vermillion-red disc and a separate amber horizon-glow. The final palette collapses both into one warm signature: Vermillion Rise `#F59E0B`. The disc and the spreading first-light read as the same warmth at 06:00; the palette honours that rather than fighting it on theoretical grounds. Six tokens — Deep Ocean as the receding night, Vermillion Rise as the warm signature, Dawn Teal as the cool zenith, Warm Stone as the ground, Light Cream as the surface, Warm Grey as the borders. Visual register is contemporary AI-era (Linear, Anthropic, Stripe), not modernist-revival.
 
 | Role | Hex | Name | Usage |
 |------|------|------|-------|
 | Anchor | `#264653` | Deep Ocean | Headers, body text, dark UI, wordmark |
-| Signature | `#D94E2A` | Vermillion Rise | The sun — disc, primary CTA fills, hero accent |
+| Signature | `#F59E0B` | Vermillion Rise | The sun — disc, primary CTA fills, hero accent. **Fill-only — never text.** |
 | Counterweight | `#2A7E8F` | Dawn Teal | Secondary CTAs, infographic counter-tone, link colour |
-| Horizon glow | `#F59E0B` | Amber | Fill-only accent — gradient stops, hero highlights, badge / callout backgrounds. **NEVER text.** |
 | Background | `#EAE6DE` | Warm Stone | Page background, light mode |
 | Surface | `#F4F1EA` | Light Cream | Cards, panels (one layer above background) |
 | Border | `#C8C0B0` | Warm Grey | Dividers, input borders, muted edges |
@@ -31,25 +30,22 @@ service: brand
 **WCAG contrast:**
 - Deep Ocean on Warm Stone — 9.5:1 ✓ AAA (body text)
 - Deep Ocean on Light Cream — 10:1 ✓ AAA
-- Deep Ocean on Amber — 5.0:1 ✓ AA Large (headlines on amber callouts only)
-- Deep Ocean on Vermillion Rise — 4.7:1 ✓ AA Large (CTA labels safe)
+- Deep Ocean on Vermillion Rise — 5.0:1 ✓ AA body (CTA labels safe)
 - Dawn Teal on Warm Stone — 4.8:1 ✓ AA body
 - Dawn Teal on Light Cream — 5.0:1 ✓ AA body
-- Vermillion Rise on Warm Stone — 3.4:1 ✗ AA Large only (headlines, icons — not body)
-- Amber on Warm Stone — 1.9:1 ✗ FAILS at any size — **fill-only, never type**
+- Vermillion Rise on Warm Stone — 1.7:1 ✗ FAILS at any size — **fill-only, never type**
 
 **Practical rules:**
 - **Body text** = Deep Ocean on Warm Stone or Light Cream
-- **CTAs** = Deep Ocean label on Vermillion Rise fill (Large only)
-- **Amber** = fill-only — gradient stops, hero glow band, badge backgrounds with Deep Ocean text overlay (Large only). Never body, never outline, never glow
-- **Dawn Teal** = body-safe — links and secondary CTAs
+- **CTAs** = Deep Ocean label on Vermillion Rise fill (5.0:1 AA, body-safe)
+- **Vermillion Rise** = fill-only — disc, CTA fill, hero glow, callout backgrounds with Deep Ocean text overlay. Never body, never outline, never as text colour
+- **Dawn Teal** = body-safe — links, secondary CTAs, body emphasis
 - **Vermillion Rise** = restraint colour — single signature mark per composition
 
-**Usage proportions (60/25/10/5):**
+**Usage proportions (60/30/10):**
 - 60% Warm Stone or Deep Ocean (ground)
-- 25% the opposite anchor (text on stone, stone on ocean)
-- 10% Vermillion Rise + Dawn Teal combined (signal)
-- 5% Amber (horizon-glow accents — hero / callouts only, never decoration)
+- 30% the opposite anchor (text on stone, stone on ocean)
+- 10% Vermillion Rise + Dawn Teal combined (signal — Vermillion 7%, Dawn Teal 3%)
 
 
 
@@ -89,7 +85,7 @@ Refine after the first three client conversations. Tone register: confident, low
 The metaphor isn't decorative — it determines every brand decision:
 
 - **Vermillion disc = the sun, just risen.** The specific oxidised-red two minutes after horizon-break, before atmospheric scatter washes it out.
-- **Amber = the horizon glow** spreading behind and above the disc. The first-light warmth earlier drafts banned on theoretical grounds — restored as a fill-only accent because real sunrises have it and the brand should not be more disciplined than reality.
+- **Vermillion as the warm-amber disc** — the sun and the horizon-glow collapsed into one signature tone (`#F59E0B`). Earlier drafts treated them as separate tokens; the final palette unifies them because at 06:00 the disc and the spreading first-light read as the same warmth, not two colours.
 - **Dawn Teal = the cool side of the sky** before full light. Calm that precedes momentum — counterweight to vermillion's energy.
 - **Deep Ocean anchor** — the residue of night, the discipline holding the optimism. Softer than pure black, still serious, still 06:00-coded.
 - **Asymmetric disc upward** reads as *ascending* — the sun is still rising, not noon-overhead.

@@ -277,8 +277,8 @@ Every generated graphic should read as **06:00 (sunrise, quiet, ascending)** not
 Other approval checks before using a generated graphic:
 - [ ] Is the disc above optical centre? (If centred → reject)
 - [ ] Are there gradients, glows, or shadows? (If yes → reject — the prompt failed)
-- [ ] If amber appears, is it a flat fill block only? (Gradients/glows/rays of amber → reject. Amber as type colour → reject.)
-- [ ] Any other yellow/gold/orange outside the specified Amber `#F59E0B`? (If yes → reject)
+- [ ] If Vermillion appears, is it a flat fill block only? (Gradients/glows/rays of vermillion → reject. Vermillion as type colour → reject.)
+- [ ] Any other yellow/gold/orange outside the specified Vermillion Rise `#F59E0B`? (If yes → reject)
 - [ ] Could this graphic appear on 50 other AI startup sites unchanged? (If yes → push the asymmetry harder, regenerate)
 - [ ] Are there more than 4 primitive shapes? (If yes → reject — too busy)
 - [ ] Does it have any text other than "saulera"? (If yes → reject)
