@@ -107,9 +107,8 @@ texture, no noise, no grain. Contemporary, not modernist-revival.
 
 Palette — use ONLY these, no other colours allowed:
 - Deep Ocean #264653 (anchor — text, dark UI, wordmark)
-- Vermillion Rise #D94E2A (the sun / signal red — sparingly)
+- Vermillion Rise #F59E0B (the sun / signal red — sparingly)
 - Dawn Teal #2A7E8F (cool counterweight)
-- Amber #F59E0B (horizon-glow accent — FILL ONLY, never text/outline)
 - Warm Stone #EAE6DE (background / ground default)
 - Light Cream #F4F1EA (secondary surface only)
 - Warm Grey #C8C0B0 (borders, dividers)
@@ -124,9 +123,9 @@ Composition rules:
 - Lowercase only if any text appears
 
 NEGATIVE — must NOT appear:
-- Yellow, gold, orange, ochre, mustard outside the specified Amber #F59E0B
-  (Amber is a permitted fill, but only as a flat block — no amber gradients,
-  no amber outlines, no amber rays, and never as type colour)
+- Yellow, gold, orange, ochre, mustard outside the specified Vermillion Rise
+  #F59E0B (Vermillion is a permitted fill, but only as a flat block — no
+  gradients, no outlines, no rays, and never as type colour)
 - Glow, halo, sun rays, light beams, lens flare
 - Gradients of any kind unless explicitly specified in the suffix
 - Drop shadow, inner shadow, bevel, emboss, 3D depth, perspective
@@ -151,7 +150,7 @@ Output: clean vector-ready flat illustration, hard edges, scalable.
 Subject: abstract sunrise rendered as modern AI-era geometric primitives
 (Linear / Anthropic register, not 1970s modernist). Background
 fill: Warm Stone #EAE6DE covering full canvas. Composition: one solid
-Vermillion Rise #D94E2A circle, diameter 320px, positioned at upper
+Vermillion Rise #F59E0B circle, diameter 320px, positioned at upper
 LEFT third of canvas (cx=560, cy=380 — above optical centre). Below
 the disc: one horizontal Dawn Teal #2A7E8F band, 60px tall, spanning
 full width at y=720. One Deep Ocean #264653 thin horizontal line,
@@ -165,7 +164,7 @@ Pick the variant matching the service:
 
 ```
 Variant — "AI agents":
-Solid Vermillion Rise #D94E2A circle diameter 240px at cx=300, cy=300.
+Solid Vermillion Rise #F59E0B circle diameter 240px at cx=300, cy=300.
 Three Dawn Teal #2A7E8F straight lines, each 6px stroke, radiating
 asymmetrically DOWNWARD from the disc (NOT sun rays — diagonal
 connection lines, angles roughly -30°, -50°, -70° from horizontal).
@@ -177,7 +176,7 @@ Variant — "ops automation":
 Four Dawn Teal #2A7E8F solid rectangles in a non-grid arrangement
 (deliberately misaligned, modern editorial flat-illustration register —
 think Stripe homepage editorial, Linear product graphics). Sizes vary
-80–180px. One Vermillion Rise #D94E2A circle diameter 120px anchoring
+80–180px. One Vermillion Rise #F59E0B circle diameter 120px anchoring
 upper-right corner area (cx=600, cy=200). Warm Stone background.
 ```
 
@@ -185,13 +184,13 @@ upper-right corner area (cx=600, cy=200). Warm Stone background.
 Variant — "advisory / strategy":
 One thick Deep Ocean #264653 quarter-circle arc, stroke 24px,
 sitting bottom-left (centre at 0,800, radius 480px, sweep from 0° to
-90°). One Vermillion Rise #D94E2A solid circle diameter 160px upper-
+90°). One Vermillion Rise #F59E0B solid circle diameter 160px upper-
 right (cx=620, cy=200). Warm Stone background. Two-element composition.
 ```
 
 ```
 Variant — "discovery":
-Vertical pairing — one Vermillion Rise #D94E2A solid circle diameter
+Vertical pairing — one Vermillion Rise #F59E0B solid circle diameter
 180px at cx=400, cy=280 (upper portion). Below it, one Dawn Teal
 #2A7E8F half-circle (filled, flat side up) diameter 240px at cx=400,
 cy=560. Warm Stone background. Reads as sun + horizon.
@@ -211,7 +210,7 @@ intersecting black/teal boundary). No text.
 ```
 Warm Stone #EAE6DE background. Lowercase wordmark "saulera" set in
 Homizio 500, fill Deep Ocean #264653, baseline y=380, x=80
-(left-aligned). Vermillion Rise #D94E2A solid circle diameter 180px
+(left-aligned). Vermillion Rise #F59E0B solid circle diameter 180px
 at cx=1000, cy=200 (upper right). One Dawn Teal #2A7E8F straight line,
 4px stroke, connecting wordmark end to disc edge diagonally. No other
 elements.
@@ -221,7 +220,7 @@ elements.
 
 ```
 Warm Stone #EAE6DE background. One Dawn Teal #2A7E8F horizontal line,
-2px stroke, at y=36 spanning full width. One Vermillion Rise #D94E2A
+2px stroke, at y=36 spanning full width. One Vermillion Rise #F59E0B
 solid circle diameter 24px at cx=520, cy=36 (intersecting the line).
 Nothing else. Pure breathing-room divider.
 ```
@@ -230,7 +229,7 @@ Nothing else. Pure breathing-room divider.
 
 ```
 Single solid silhouette icon, ONE geometric primitive only, two-colour
-max. Use either: Deep Ocean #264653 + Vermillion Rise #D94E2A OR
+max. Use either: Deep Ocean #264653 + Vermillion Rise #F59E0B OR
 Dawn Teal #2A7E8F alone. No outlines, no strokes — solid filled
 silhouettes only. Asymmetric placement within 80×80 bounds. Examples:
 filled disc upper-left, filled half-circle bottom, single thick
@@ -244,7 +243,7 @@ Transparent background.
 Three stages, left to right, asymmetrically spaced (not equal gaps —
 30% / 25% / 45% of canvas). Each stage: one Dawn Teal #2A7E8F filled
 rectangle (varying heights 200–320px) anchored at the bottom. ONE of
-the three rectangles has a Vermillion Rise #D94E2A solid circle
+the three rectangles has a Vermillion Rise #F59E0B solid circle
 floating above it (current focus). Connecting elements: thin Deep Ocean
 #264653 horizontal line at y=600 running across all three
 rectangles. Warm Stone background. No labels, no arrows.
