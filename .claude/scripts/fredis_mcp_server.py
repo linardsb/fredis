@@ -54,10 +54,23 @@ def _configure_logging() -> logging.Logger:
     return logger
 
 
-def build_server() -> FastMCP:
+def build_server(allowed_hosts: list[str] | None = None) -> FastMCP:
     """Construct a FastMCP instance with all tools registered (7 read +
-    ``propose_draft`` write)."""
-    mcp: FastMCP = FastMCP(name="fredis")
+    ``propose_draft`` write).
+
+    ``allowed_hosts`` whitelists Host header values for FastMCP's DNS-rebinding
+    protection — required when the streamable-http transport is fronted by a
+    hostname (e.g. Tailscale Serve). The stdio path leaves it ``None``; the
+    streamable-http path threads ``FREDIS_MCP_ALLOWED_HOSTS`` from env.
+    """
+    fastmcp_kwargs: dict[str, Any] = {"name": "fredis"}
+    if allowed_hosts:
+        from mcp.server.transport_security import TransportSecuritySettings
+
+        fastmcp_kwargs["transport_security"] = TransportSecuritySettings(
+            allowed_hosts=allowed_hosts,
+        )
+    mcp: FastMCP = FastMCP(**fastmcp_kwargs)
 
     @mcp.tool(
         description=(
@@ -236,7 +249,13 @@ def _run_streamable_http(logger: logging.Logger) -> int:
 
     from fredis_mcp_auth import bearer_auth_app
 
-    mcp = build_server()
+    hosts_raw = (os.getenv("FREDIS_MCP_ALLOWED_HOSTS", "") or "").strip()
+    allowed_hosts: list[str] | None = (
+        [h.strip() for h in hosts_raw.split(",") if h.strip()]
+        if hosts_raw
+        else None
+    )
+    mcp = build_server(allowed_hosts=allowed_hosts)
     app = mcp.streamable_http_app()
     wrapped = bearer_auth_app(app, expected_token=token, logger=logger)
 

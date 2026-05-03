@@ -219,7 +219,7 @@ def test_run_streamable_http_invokes_uvicorn_with_wrapped_app(
     # Stub mcp.streamable_http_app() so we don't pay the real FastMCP cost.
     sentinel_inner_app = object()
 
-    def fake_build_server() -> Any:
+    def fake_build_server(**kwargs: Any) -> Any:
         class _M:
             def streamable_http_app(self) -> Any:
                 return sentinel_inner_app
@@ -256,3 +256,82 @@ def test_run_streamable_http_invokes_uvicorn_with_wrapped_app(
     # Defence: uvicorn access log must be off (avoids logging tokens that
     # might appear in malformed query strings).
     assert captured["kwargs"]["access_log"] is False
+
+
+def test_run_streamable_http_threads_allowed_hosts_env_to_build_server(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """FREDIS_MCP_ALLOWED_HOSTS (comma-separated) must reach build_server as
+    a parsed list. Required when fronted by Tailscale Serve so FastMCP's
+    DNS-rebinding protection accepts the tailnet hostname."""
+    monkeypatch.setenv("FREDIS_MCP_AUTH_TOKEN", "secret-test-token")
+    monkeypatch.setenv("FREDIS_MCP_BIND", "127.0.0.1")
+    monkeypatch.setenv("FREDIS_MCP_PORT", "4747")
+    monkeypatch.setenv(
+        "FREDIS_MCP_ALLOWED_HOSTS",
+        "127.0.0.1, localhost ,fredis-vps.tail5d589c.ts.net,",
+    )
+
+    captured_kwargs: dict[str, Any] = {}
+
+    def fake_build_server(**kwargs: Any) -> Any:
+        captured_kwargs.update(kwargs)
+
+        class _M:
+            def streamable_http_app(self) -> Any:
+                return object()
+
+        return _M()
+
+    monkeypatch.setattr(server, "build_server", fake_build_server)
+
+    import sys
+    import types
+
+    fake_uvicorn = types.ModuleType("uvicorn")
+    fake_uvicorn.run = lambda *a, **k: None  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "uvicorn", fake_uvicorn)
+
+    server._run_streamable_http(logging.getLogger("test"))
+
+    # Whitespace-trimmed, blanks dropped, order preserved.
+    assert captured_kwargs.get("allowed_hosts") == [
+        "127.0.0.1",
+        "localhost",
+        "fredis-vps.tail5d589c.ts.net",
+    ]
+
+
+def test_run_streamable_http_passes_none_when_allowed_hosts_unset(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """No FREDIS_MCP_ALLOWED_HOSTS env => build_server gets None (= preserve
+    FastMCP default behaviour). Stdio path is unaffected by this test."""
+    monkeypatch.setenv("FREDIS_MCP_AUTH_TOKEN", "secret-test-token")
+    monkeypatch.setenv("FREDIS_MCP_BIND", "127.0.0.1")
+    monkeypatch.setenv("FREDIS_MCP_PORT", "4747")
+    monkeypatch.delenv("FREDIS_MCP_ALLOWED_HOSTS", raising=False)
+
+    captured_kwargs: dict[str, Any] = {}
+
+    def fake_build_server(**kwargs: Any) -> Any:
+        captured_kwargs.update(kwargs)
+
+        class _M:
+            def streamable_http_app(self) -> Any:
+                return object()
+
+        return _M()
+
+    monkeypatch.setattr(server, "build_server", fake_build_server)
+
+    import sys
+    import types
+
+    fake_uvicorn = types.ModuleType("uvicorn")
+    fake_uvicorn.run = lambda *a, **k: None  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "uvicorn", fake_uvicorn)
+
+    server._run_streamable_http(logging.getLogger("test"))
+
+    assert captured_kwargs.get("allowed_hosts") is None
