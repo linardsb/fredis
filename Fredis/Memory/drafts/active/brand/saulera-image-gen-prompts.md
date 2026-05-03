@@ -7,18 +7,82 @@ service: brand
 
 # Saulera — image-generation prompt pack
 
-How to use: every prompt = **Master Style Prefix** + **Module Suffix**. The prefix locks the palette, geometry, and negative rules so AI tools can't drift into yellow / gradient / generic-tech-illustration territory. The suffix specifies the surface.
+How to use: every prompt = **Master Style Prefix** + **Module Suffix**. The prefix locks the brand context, palette, geometry, type, and negative rules so AI tools can't drift into yellow / gradient / generic-tech-illustration territory. The suffix specifies the surface.
 
 ---
 
 ## 1. Master Style Prefix (paste at the top of every prompt)
 
 ```
-Style: Saulera brand system — Bauhaus modernist geometric illustration
-in the lineage of Otl Aicher 1972 Munich Olympics signage and early
-El Lissitzky / Constructivist composition. Flat colour, hard vector
-edges, no gradients, no drop shadow, no glow, no 3D, no glassmorphism,
-no photorealism, no texture, no noise, no grain.
+ABOUT THE BRAND (the graphic represents Saulera — encode this in every output):
+- What Saulera is: an AI-agentic build studio, not a consultancy. We design
+  and ship AI agents that run inside small and medium businesses to handle
+  the daily operational work — email, ops, admin, customer flows, invoicing,
+  scheduling — so the owner gets their hours back and the business compounds.
+- Who we serve: solo operators and small teams running real businesses
+  (services, e-commerce, ops-heavy SMBs) across the UK, Latvia, and Argentina.
+  Owners who want disciplined automation built around how their business
+  actually works, not slide-deck AI consulting.
+- Mission: turn daily operations into compounding momentum — agents built
+  around the work owners actually do, not the work consultants imagine.
+- Founder context: 12 years of MarTech / email-engineering depth, now
+  applied to AI-agentic operations. The graphic should feel made-by-the-
+  founder — engineer-craft, not big-agency veneer.
+- Bridge angle: UK home base, Latvian roots, Argentine family base. The
+  brand is at home in three jurisdictions and three currencies. Visuals
+  can subtly nod to this (geometric heritage motifs from Latvian folk
+  weaving applied with Bauhaus discipline) but never literally.
+
+EMOTIONAL READ — the feeling the graphic must evoke:
+- 06:00 not 12:00 — quiet morning optimism, not noon hype
+- Ascending, not declared — the sun is still rising
+- Disciplined, not loud — restraint as the design move
+- Confident, not corporate — built-it-themselves energy
+- Optimistic, not naïve — Deep Ocean anchor keeps it serious
+- Forward-motion held by structure — momentum disciplined by geometry
+
+VISUAL LINEAGE — design reference points:
+- Otl Aicher (1972 Munich Olympics signage, ERCO catalogues)
+- El Lissitzky (Constructivist geometric tension)
+- Anton Stankowski (Deutsche Bank logo, SDR identity — primitives only)
+- Massimo Vignelli (NYC subway map, Unimark grid systems)
+- Dieter Rams (Braun product photography — tone, restraint, function)
+- Saul Bass (title sequences — geometric storytelling)
+
+WHAT THE GRAPHIC MUST NEVER SIGNAL:
+- Bro-tech, VC-glossy, hyper-modern Silicon Valley aesthetic
+- Cute mascots, illustrated characters, friendly robots
+- Corporate stock tropes (diverse-hands-on-laptop, abstract handshake,
+  globe-with-network-lines, person-pointing-at-floating-data)
+- Generic AI tropes (neural networks, brain icons, chatbot bubbles,
+  glowing data orbs, circuit boards, binary streams, robot heads,
+  hexagon-grid AI patterns, "tech blue" gradient backgrounds)
+- Big-agency over-polish (over-rendered, over-shadowed, over-considered)
+- Greeting-card warmth (soft pastels, friendly curves, hand-drawn feel)
+- Y2K / cyberpunk / neon / vaporwave / synthwave aesthetics
+- Religious / spiritual / mystical sun symbolism (mandalas, sun-kings,
+  rays-of-glory, halos, divine light)
+
+WHAT THE GRAPHIC SHOULD SIGNAL:
+- Quiet confidence — restraint as the move
+- Sunrise / new beginning (without literal landscape painting)
+- Geometric discipline (Bauhaus / Constructivist lineage)
+- Momentum held by structure
+- Heritage + forward-motion co-existing in one composition
+- The exact tone of "we built this and it works" — engineer-output, not marketing
+
+TYPOGRAPHY (if any text appears):
+- Display / wordmark: Homizio 500, lowercase only
+- Body labels: Montserrat Ace Light 300, lowercase
+- Mono / code labels: Ace Light 300, lowercase
+- The wordmark "saulera" is the only permitted brand text inside graphics
+- Never set the wordmark in any other typeface
+
+STYLE: Bauhaus modernist geometric illustration in the lineage of Otl Aicher
+1972 Munich Olympics signage and early El Lissitzky / Constructivist
+composition. Flat colour, hard vector edges, no gradients, no drop shadow,
+no glow, no 3D, no glassmorphism, no photorealism, no texture, no noise,
+no grain.
 
 Palette — use ONLY these, no other colours allowed:
 - Deep Ocean #264653 (anchor — text, dark UI, wordmark)
@@ -123,7 +187,7 @@ intersecting black/teal boundary). No text.
 
 ```
 Warm Stone #EAE6DE background. Lowercase wordmark "saulera" set in
-Josefin Sans 700, fill Deep Ocean #264653, baseline y=380, x=80
+Homizio 500, fill Deep Ocean #264653, baseline y=380, x=80
 (left-aligned). Vermillion Rise #D94E2A solid circle diameter 180px
 at cx=1000, cy=200 (upper right). One Dawn Teal #2A7E8F straight line,
 4px stroke, connecting wordmark end to disc edge diagonally. No other
