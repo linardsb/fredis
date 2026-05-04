@@ -206,15 +206,29 @@ Pre-revenue + solo means the site is a **closer**, not a content marketing fortr
 
 ---
 
-#### Card 5 — VTV · AI-agentic public-transport optimisation (Riga)
+#### Card 5 — VTV · Unified CMS and AI agent service for Riga city-bus operations
 
-*Source: pending — repo URL `github.com/linardsb/VTV` returned 404, repo may be private or under a different account. **Confirm the right URL or push public before launch.***
+*Source: local repo (`/Users/Berzins/Desktop/VTV`) — README provided 2026-05-04. **Push to a public GitHub repo before launch** so the case-study card can link to source like the other four.*
 
-- **What it is** *(placeholder, refine once repo accessible)***.** An AI-agentic system for public-transport route and schedule optimisation in the Latvian municipal context. Inbound interest in 2026 from former Latvian Transport Ministers (Šlesers, Krištopans) — name them on the public site only with their explicit permission.
-- **Tech stack** *(to confirm from repo).*
-- **Agentic capabilities** *(to confirm from repo — expected: route optimisation agents, demand-prediction modelling, schedule-conflict resolution).*
-- **Screenshots to capture** *(to define once UI surface known).*
-- **Why it matters for Saulera.** Civic-tech / mobility scale — proof Saulera can build agentic systems for public-sector clients with regulated requirements, not only commercial SMBs. Completes the spectrum: personal AI (Fredis) → SMB tool (Email Hub) → consumer commerce (GERBONI) → consumer mobile (UGOKI) → public-sector mobility (VTV).
+- **What it is.** A unified transit operations platform for Riga's municipal bus system — a FastAPI + Pydantic AI agent service paired with a Next.js 16 / Turborepo CMS frontend. GTFS-compliant, swappable LLM provider, bilingual (Latvian + English), 4-role RBAC. The CMS embeds an OpenAI-compatible chat sidebar that consumes the agent service via `/v1/chat/completions` (streaming + non-streaming).
+- **Tech stack.**
+  - **Backend.** Python 3.12+ · FastAPI 0.120+ · Pydantic AI 1.58+ · SQLAlchemy 2.0 async · PostgreSQL 18 + asyncpg · Alembic · Pydantic 2.0 · MyPy + Pyright (strict) · Ruff · pytest · `uv` · vertical slice architecture.
+  - **Frontend.** Next.js 16 (App Router) · React 19 · Tailwind CSS v4 + design tokens · shadcn/ui + CVA · Auth.js v5 (4-role RBAC) · `next-intl` (Latvian + English) · Turborepo + pnpm workspaces · `@hey-api/openapi-ts` for typed SDK client generation.
+  - **Test discipline.** 75 tests executing in under 1.2 seconds.
+- **Agentic capabilities.**
+  - **Single Pydantic AI agent with 9 tools** — the LLM picks tools from one unified registry; no routing logic, no agent-orchestration overhead.
+  - **Five read-only transit tools** — `query_bus_status`, `get_route_schedule`, `search_stops`, `get_adherence_report`, `check_driver_availability`. Read-only by design: AI advises, humans decide.
+  - **Four Obsidian-vault tools** — `obsidian_query_vault` (search / find-by-tags / list / recent / glob), `obsidian_manage_notes` (CRUD), `obsidian_manage_folders`, `obsidian_bulk_operations` (move / tag / delete / update-frontmatter / create with `dry_run` previews).
+  - **Swappable LLM provider** — single env var switches between Anthropic Claude, Ollama (local zero-cost), OpenAI, Groq, OpenRouter, or any OpenAI-compatible API. Optional fallback chain (e.g. local primary → cloud fallback).
+  - **Safety constraints baked in:** read-only transit tools, `confirm: true` required on vault deletes, `dry_run` previews for bulk operations, path-traversal sandboxing on the vault, monthly cloud-LLM spending cap.
+  - **OpenAI-compatible streaming chat endpoint** — drop-in replacement for any frontend that already speaks OpenAI's chat-completion API.
+- **Screenshots to capture.**
+  - CMS dashboard with the bilingual UI (LV / EN toggle visible).
+  - Embedded chat sidebar mid-conversation showing a transit query (*"What's the on-time performance for route 13 this week?"*) with the agent's tool-call trace.
+  - Routes / Stops / Schedules / GTFS management screens.
+  - RBAC role assignment screen showing the 4-role model.
+  - Architecture diagram (the README's Next.js CMS ↔ FastAPI agent service ASCII diagram, redrawn cleanly).
+- **Why it matters for Saulera.** Civic / mobility scale, regulated-sector requirements (GTFS compliance, RBAC, safety guardrails on tool execution), bilingual delivery (Latvian + English) — direct evidence Saulera can ship agentic systems for **public-sector and regulated clients**, not only commercial SMBs. The swappable LLM strategy is also a real client conversation point — *"we won't lock you into one vendor"*. Completes the spectrum across all five cards: personal AI (Fredis) → SMB platform (Email Hub) → consumer commerce (GERBONI) → consumer mobile (UGOKI) → public-sector mobility (VTV).
 
 ---
 
@@ -297,8 +311,8 @@ Each of these is a "phase 2 if signal supports it" — not a launch blocker.
 
 ## Open questions for Linards
 
-1. **VTV repo access.** `github.com/linardsb/VTV` returns 404 and isn't visible in your public repo list. Confirm the correct URL, push it public, or paste the tech stack + agentic-capabilities notes so the card can be filled in.
-2. **VTV case study naming.** Šlesers / Krištopans are listed in USER.md as inbound interest. Do you have explicit permission to name them publicly? If not, frame as "former Latvian transport ministers" without names.
+1. **VTV public push.** Card now written from the README you pasted (2026-05-04). For consistency with the other four cards, the Results page card should link to a public source repo. Push VTV to `github.com/linardsb/VTV` (or equivalent) before launch, or accept the asymmetry of one card without a public source link.
+2. **VTV case study naming.** Šlesers / Krištopans are listed in USER.md as inbound interest. Do you have explicit permission to name them publicly? If not, frame as "former Latvian transport ministers" without names — or omit the inbound-interest line entirely from the public card and keep it for discovery-call colour only.
 3. **Email Hub housekeeping note.** Will you log a contemporaneous "built on personal time + stack" note (per §5) before launch, or skip and accept the (low) residual risk?
 4. **Screenshot capture.** Do you want me to mock up screenshots from each repo (where I can spin up the local dev environment), or are you handling capture yourself in the live UIs? My recommendation: you capture from your running instances — they'll look real because they are. I'll write captions.
 5. **Bilingual launch.** EN-only on day one, defer LV until requested — agreed? Or LV ready from day one for the Riga lead-gen push?
