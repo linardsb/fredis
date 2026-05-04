@@ -1,3 +1,28 @@
+## Project Overview
+
+Fredis is a personal AI advisor for Linards. This repo is the runtime — a 24-skill stack, an Obsidian vault for persistent memory (`Fredis/Memory/`), heartbeat / reflection / synthesis SDK loops, and Slack / Gmail / Google Workspace / HubSpot / GitHub integrations. **Nothing is auto-sent**: every output lands in `Fredis/Memory/drafts/active/` and the HubSpot Review pipeline for Linards to action himself (see §Advisor Mode).
+
+## Quick Reference
+
+| Resource | Purpose |
+|----------|---------|
+| `README.md` | Setup, scheduling cron lines, configuration, daily ops |
+| `setup_workspace.py` | One-shot workspace bootstrap (vault skeleton, env wiring) |
+| `master.env.example` | Consolidated env template (Slack, Gmail, HubSpot, OpenAI/Anthropic, …) |
+| `docker-compose.yml` | Local supporting services |
+| `.claude/scripts/CLAUDE.md` | Subsystem detail — heartbeat, chat, memory search/index, reflection, synthesis, vault sync, `query.py` integrations CLI, threat models, MCP/Zapier fallback. **Auto-loads only when Claude's cwd is at or below `.claude/scripts/`** — keep runtime-only detail there so SDK callers running with `cwd=PROJECT_ROOT` don't load it. |
+
+## Behavioral Guardrails
+
+The four principles in `~/.claude/CLAUDE.md` (Think Before Coding, Simplicity First, Surgical Changes, Goal-Driven Execution) apply by default. How they bind in this repo:
+
+- **Think Before Coding → run §Audit Conventions before claiming anything is "open", "still not done", "pending", or "needs fixing".** The four checks (git log since the doc's write time, run the live CLI that proves or disproves the claim, grep the full daily-log window, read SKILL.md + references for any skill the audit touches) prevent re-proposing already-done or explicitly-deferred work.
+- **Simplicity First → consolidate, don't proliferate skills.** New behaviour belongs inside an existing skill bundle (see §Skill Stack — the 24-skill layout already absorbed 20 specialists into 14 bundles in Phase 5.2) or as a shared primitive in `.claude/skills/_shared/`. Spinning up a 25th top-level skill needs explicit approval.
+- **Surgical Changes → `Fredis/Memory/` is read-mostly for code edits.** SOUL.md is hook-blocked (`block-soul-edit.py`); template-residue paths are hook-blocked (`block-template-residue.py`); daily logs are written by hooks/SDK callers, not by hand. To suggest a behaviour change, append to today's daily log — don't edit SOUL.md.
+- **Goal-Driven Execution → before declaring a task done, name the artifact Linards reviews — not "I implemented X".** Drafts go to `Fredis/Memory/drafts/active/<skill>/`; the matching HubSpot ticket in the Fredis Review pipeline is the inbox; the `[DRAFT]` Slack notice is the heads-up. No artifact = task isn't done.
+
+When uncertain about a phase boundary, deferred scope, or whether a feature has already shipped, **stop and check `.agent/plans/` + `.agent/audits/` + grep the daily logs** before proceeding. Audit Conventions exists because every shortcut around it has cost tokens and trust.
+
 ## Advisor Mode
 
 Fredis is an **advisor**, not an agent with send-authority. Heartbeats and scheduled runs draft into `Fredis/Memory/drafts/active/` — Linards reviews and sends from Gmail/Slack himself. Automated sending is disabled across every external channel (Slack messages, email, social platforms). See `SOUL.md` for the full never-send boundary.
@@ -114,5 +139,14 @@ Subsystem implementation detail is split out of this file so every SDK caller (h
 - **`docs/vps-deployment-and-vault-sync.md`** — VPS deployment + vault-sync operational detail.
 - **`docs/phase10-deploy-progress.md`** — Phase 10 deployment log.
 - **`docs/llm-and-vps-swapping.md`** — how to swap front-end clients (easy, post-OB1-Phase-1) vs swapping the autonomous-services LLM (hard, full SDK rewrite). Read first before changing which LLM talks to Fredis.
+
+## Compact instructions
+
+When compacting, preserve:
+- Active task + plan path under `.agent/plans/`
+- Modified files + outcome of any tool runs
+- Active draft path under `Fredis/Memory/drafts/active/<skill>/` (and matching HubSpot ticket id, if any)
+- Skill currently invoked + voice mode (e.g. `solo-founder`, `startup-cto`, `product-manager`)
+- Decisions worth promoting to `MEMORY.md` (don't write SOUL.md — blocked by `PreToolUse` hook; append to today's daily log instead)
 
 Before looking up anything with a date, check the current date first.
