@@ -13,7 +13,8 @@ brand_anchor: drafts/active/brand/saulera-bauhaus-brand-sheet.md
 - **5 pages** at launch. Not 3, not 8.
 - **Single primary CTA** across the site: *"Book a 30-min build review."* Every page funnels here.
 - **Positioning angle:** *"AI-agentic operations, built by someone who has actually shipped at scale — not pitched at it."* Differentiates from cold enterprise AI tooling on one side and hand-wavy AI consulting on the other (consistent with brand sheet).
-- **One real risk to settle before you ship:** Email Innovation Hub as a case study triggers the UK CDPA 1988 s.11(2) / Patents 1977 s.39 IP overhang. See §5 — **needs `ip-overhang-guard` clearance before it goes public**.
+- **Proof depth (revised — much stronger than v0):** five real agentic systems shipped or shipping — Fredis (this advisor), Email Innovation Hub (9-agent email platform), GERBONI (AI-assisted commerce), UGOKI (AI-coached mobile health), VTV (transport optimisation, repo access pending). All five carry through to the Results page (§4).
+- **IP status:** Email Hub cleared per Linards's confirmation (built on personal time + stack — see §5). One housekeeping note to log for defensive hygiene.
 - **One open scope decision:** EN-only at launch vs EN+LV bilingual. Recommendation: EN-only on day one, add LV when the first Riga prospect actually asks for it.
 
 ---
@@ -111,42 +112,127 @@ Pre-revenue + solo means the site is a **closer**, not a content marketing fortr
 
 ---
 
-### 4. Results (`/results`) — *proof, with honesty about what's paid vs built*
+### 4. Results (`/results`) — *proof, built and shipping*
 
-**Goal:** prove engineering depth and product instinct without overstating commercial traction.
+**Goal:** prove agentic-engineering depth across four real systems. Each card has the same shape — *what it is · tech stack · agentic capabilities · screenshots to capture · why it matters for the Saulera pitch.*
 
-**Three case study cards, each ~200–300 words:**
-
-#### Card 1 — VTV: AI-agentic public-transport optimisation (Riga)
-- **What was built:** an AI-agentic system for public-transport route and schedule optimisation, designed for the Latvian municipal context.
-- **What shipped:** live prototype with inbound interest from former Latvian Transport Ministers (named only with their permission — defer until you've checked).
-- **Why it matters:** demonstrates Saulera's capability to build category-specific agentic systems for civic and mobility clients, not just generic "AI workflows".
-
-#### Card 2 — UGOKI: health & wellbeing iOS / Android app
-- **What was built:** end-to-end native mobile MVP for movement and wellbeing tracking.
-- **What shipped:** functional MVP on both platforms, with re-engaged investor interest from Walking Ventures (Tim Jackson) in 2026.
-- **Why it matters:** end-to-end product capability — design, native build, distribution-readiness — not just web tooling.
-
-#### Card 3 — *(third slot reserved — see §5 below)*
-
-**Honesty principle:** for VTV and UGOKI, write the cards as *built / shipping / interest secured* — not as *paid client engagements*. Overclaiming gets caught in the discovery call and burns trust faster than admitting you're early-stage.
+**Five cards. Order matters — strongest first.**
 
 ---
 
-## §5 — IP risk to clear before launch
+#### Card 1 — Fredis · Personal AI advisor and second brain (this system)
 
-**The problem.** USER.md explicitly flags Email Innovation Hub as carrying a UK CDPA 1988 s.11(2) and Patents Act 1977 s.39 IP overhang — work created during employment at Dentsu / Merkle is presumptively the employer's IP unless cleanly carved out. **Putting Email Hub on a public Saulera case studies page advertises that work as Saulera's commercial output, which is exactly the trigger Dentsu's legal team would react to.**
+*Source: this repository (`/root/claude-code-second-brain`). Shipping since early 2026.*
 
-**Recommendation:**
+- **What it is.** A personal AI advisor with a 24-skill stack, persistent Obsidian-vault memory, and Slack / Gmail / Google Workspace / HubSpot / GitHub integrations. Operates in advisor mode — every output goes to a draft for human review, nothing auto-sends.
+- **Tech stack.** Python · Claude Agent SDK · MCP server (FastMCP) · Tailscale Serve HTTPS · bearer-token auth · Obsidian markdown vault for memory · Hetzner VPS deployment · scheduled cron loops (heartbeat / reflection / synthesis).
+- **Agentic capabilities.**
+  - **24-skill stack** with role-based personas (CEO advisor, CTO advisor, security engineer, product manager, etc.) — invoked contextually per request.
+  - **Advisor mode safety boundary** — drafts only, no send-authority on any external channel (Slack, email, social). HubSpot Review pipeline is the inbox.
+  - **Persistent vault memory** with auto-loaded SOUL.md / USER.md / MEMORY.md plus daily logs at session start.
+  - **Heartbeat / reflection / synthesis SDK loops** for proactive scanning, memory consolidation, and weekly intelligence digests.
+  - **Hooks-based safety enforcement** — `PreToolUse` blockers prevent edits to identity files; `SessionEnd` / `PreCompact` snapshot state to daily logs.
+  - **Phase 1B MCP server** with hostname allowlist, path denylist, and `/.well-known/*` bypass — connected end-to-end to Claude Desktop via the `mcp-remote` bridge.
+- **Screenshots to capture.**
+  - Slack DM showing a `[DRAFT]` notice flowing through to a HubSpot Review ticket.
+  - The Obsidian vault tree (`Fredis/Memory/` with SOUL/USER/MEMORY/daily/drafts).
+  - A heartbeat entry in a daily log showing the "scanned / alerted / silenced / remaining" structure.
+  - Architecture diagram (one composite image — 24 skills · vault · integrations · advisor pipeline).
+- **Why it matters for Saulera.** This is the flagship proof. A working agentic advisor with persistent memory, integration breadth, and a non-trivial safety model — exactly the shape of system Saulera proposes to build for SMB clients. *"We don't pitch agentic systems. We run on one."*
 
-1. **Do not include Email Innovation Hub on the public site v1.** Not on the homepage, not on the case studies page, not in About. Even oblique references ("our agentic email work for global brands") carry risk.
-2. **Use the third Results card for one of:**
-   - GERBONI (Latvian heraldry e-commerce) — modest commercial example, your IP, no overhang. Frame as *"built, launched, sold"* — small but real.
-   - A **commissioned anonymous build** if any consulting work has already happened (even unpaid friend-of-friend builds — describe the system, not the client).
-   - **Defer the third card** entirely until the first paid Saulera engagement closes — two cards is fine for v1.
-3. **Run the `ip-overhang-guard` skill before any case study mentioning email, ESP, MarTech, or Merkle / Dentsu work goes live.** Including the About page paragraph mentioning the Merkle / Dentsu role — that's a *biographical* reference, which is generally safe, but the wording should say *"twelve years as an email developer for global brand programmes"* rather than *"twelve years building agentic email systems"* (the latter blurs employer-IP into Saulera's claimed offering).
+---
 
-**Status:** flagged. Do not push the site live with Email Hub on it until this is cleared.
+#### Card 2 — Email Innovation Hub · Centralised email development platform with AI agents
+
+*Source: `github.com/linardsb/merkle-email-hub`. Built on personal time and stack. IP cleared (clean-room — see §5).*
+
+- **What it is.** A centralised email development platform — build, preview, QA, and export production HTML emails from a single workspace. CMS-agnostic, security-first, GDPR-compliant. Designed for email teams of 5–50 developers across multiple ESPs.
+- **Tech stack.** FastAPI (async Python) · Next.js 16 / React 19 · PostgreSQL with `pgvector` · Redis · Maizzle build pipeline (Node sidecar) · Tailwind / shadcn/ui · Docker Compose · Alembic migrations. Vertical Slice Architecture — each feature owns its models / schemas / routes / business logic.
+- **Agentic capabilities.**
+  - **Nine specialised AI agents:** Scaffolder (brief → Maizzle HTML), Dark Mode (CSS injection + Outlook overrides), Content (subject lines / preheaders / CTAs), Outlook Fixer (MSO conditionals + VML backgrounds), Accessibility Auditor (WCAG AA + alt text), Personalisation (Liquid / AMPscript), Code Reviewer, Knowledge (RAG Q&A), Innovation (prototype feasibility).
+  - **AI Orchestrator** routes between Claude and OpenAI providers via configurable provider abstraction.
+  - **RAG pipeline** with `pgvector` embeddings and hybrid search.
+  - **WebSocket real-time chat** wiring the AI agents into the editor surface.
+  - **10-point QA gate system** — HTML validation, CSS support, file size, link validation, spam score, dark mode, accessibility, fallback handling, image optimisation, brand compliance — runs automatically on every build.
+  - **Zero-Trust API**: JWT HS256, RBAC (admin / developer / viewer), Row-Level Security on PostgreSQL, AES-256 secret encryption, full audit trails, brute-force lockout.
+- **Screenshots to capture.**
+  - Editor surface with live preview (desktop + mobile + dark-mode variants side-by-side).
+  - QA gate report — green / yellow / red across the 10 checks for a sample email.
+  - AI agent panel — Scaffolder generating HTML from a brief in real time.
+  - Component library — versioned reusable components.
+  - Approval workflow / audit trail view.
+- **Why it matters for Saulera.** Demonstrates production-grade backend (FastAPI + Postgres + Redis + RAG), modern frontend (Next.js 16 + React 19), and multi-agent orchestration in a single coherent product. Direct evidence Saulera can ship agentic platforms — not just point automations.
+
+---
+
+#### Card 3 — GERBONI · AI-assisted e-commerce for Latvian heraldry merchandise
+
+*Source: `github.com/linardsb/GERBONI`. Live e-commerce.*
+
+- **What it is.** An online shop selling t-shirts featuring the coats of arms (*ģerboņi*) of major Latvian cities, with a 24/7 AI customer-support agent built into the storefront. Cultural-heritage product with a modern AI-native commerce stack.
+- **Tech stack.** Next.js 16 / React 19 · TypeScript · Tailwind CSS 4 (OKLch colour system) · Zustand · Radix UI primitives · FastAPI (Python) backend · SQLAlchemy 2.0 · PostgreSQL 16 · Stripe · Docker Compose · Kubernetes manifests included.
+- **Agentic capabilities.**
+  - **Pydantic AI agent** powered by Claude Sonnet 4 — handles product discovery, order assistance, and customer queries 24/7.
+  - **AI-driven product recommendations** based on browsing history.
+  - **Admin analytics panel** — sales, orders, products, users.
+- **Screenshots to capture.**
+  - Storefront hero showing a coat-of-arms t-shirt against the OKLch palette.
+  - The AI chat agent answering a real customer query inline.
+  - Admin sales-analytics dashboard.
+  - Stripe checkout flow (sanitised — no real customer data).
+- **Why it matters for Saulera.** A small, complete, commerce-grade build with a real revenue surface, real payment integration, and embedded AI as a product feature. Proof that Saulera can ship category-specific commerce tooling end-to-end, not just internal workflows.
+
+---
+
+#### Card 4 — UGOKI · AI-coached health and wellbeing app (iOS + Android)
+
+*Source: `github.com/linardsb/ugoki-iOS-Android-app`. MVP shipped. 2026 re-engagement from Walking Ventures (Tim Jackson).*
+
+- **What it is.** A mobile wellness app combining intermittent fasting, HIIT workouts, and AI coaching for time-constrained professionals. 15–20 minute daily routine targeting sustainable health optimisation.
+- **Tech stack.** Backend: Python 3.12 · FastAPI · SQLAlchemy 2.0 · Pydantic 2.0 · Pydantic AI · Claude 3.5 Sonnet / Haiku. Mobile: Expo SDK 52 · React Native · Tamagui · Zustand · TanStack Query. Infra: Fly.io · PostgreSQL · Cloudflare R2 · Expo Push. Blockchain layer (in progress): Cardano (Preprod) · Blockfrost · Lucid Evolution SDK.
+- **Agentic capabilities.**
+  - **AI Coach** with constitutional AI guardrails, cross-session memory, and skill-based prompt routing — adapts coaching tone and content to each user's history.
+  - **Bloodwork analysis** — biomarker parsing from uploaded blood-test PDFs with trend tracking.
+  - **PubMed research hub** — AI-summarised medical research relevant to the user's goals.
+  - Health-device sync (Apple HealthKit + Google Health Connect) for automated metric collection.
+  - Gamification system (streaks, XP, levels, 21 achievements) wired into the AI's coaching context.
+- **Screenshots to capture.**
+  - Onboarding flow (one-screen overview).
+  - AI Coach conversation showing memory of prior sessions.
+  - Fasting timer in active state + workout video player.
+  - Bloodwork upload + parsed biomarker chart.
+  - Apple HealthKit integration permission screen.
+- **Why it matters for Saulera.** Cross-platform native delivery (iOS + Android via Expo), AI woven into product UX rather than bolted on, plus health-data integrations and an experimental token economy. Evidence Saulera can ship mobile + AI together — a combination most generalist studios cannot.
+
+---
+
+#### Card 5 — VTV · AI-agentic public-transport optimisation (Riga)
+
+*Source: pending — repo URL `github.com/linardsb/VTV` returned 404, repo may be private or under a different account. **Confirm the right URL or push public before launch.***
+
+- **What it is** *(placeholder, refine once repo accessible)***.** An AI-agentic system for public-transport route and schedule optimisation in the Latvian municipal context. Inbound interest in 2026 from former Latvian Transport Ministers (Šlesers, Krištopans) — name them on the public site only with their explicit permission.
+- **Tech stack** *(to confirm from repo).*
+- **Agentic capabilities** *(to confirm from repo — expected: route optimisation agents, demand-prediction modelling, schedule-conflict resolution).*
+- **Screenshots to capture** *(to define once UI surface known).*
+- **Why it matters for Saulera.** Civic-tech / mobility scale — proof Saulera can build agentic systems for public-sector clients with regulated requirements, not only commercial SMBs. Completes the spectrum: personal AI (Fredis) → SMB tool (Email Hub) → consumer commerce (GERBONI) → consumer mobile (UGOKI) → public-sector mobility (VTV).
+
+---
+
+**Honesty principle.** Cards are framed as *built / shipping / in-use* — not as *paid client engagements*. Each card states the source repo URL openly so a prospect can dig in. Overclaiming dies in the discovery call.
+
+---
+
+## §5 — IP overhang status (resolved)
+
+**Status: cleared by Linards (2026-05-04).**
+
+Linards confirmed Email Innovation Hub was built **entirely on personal time and personal stack** — not on Merkle / Dentsu equipment, not during work hours, not as part of normal or specifically-assigned employment duties. Under UK Patents Act 1977 s.39(2) (employee-owned by default where s.39(1)(a) and (1)(b) do not bite) and CDPA 1988 s.11(2) (which only assigns to the employer where work is *in the course of employment*), this profile points to clean employee ownership.
+
+**One housekeeping item to log defensively before launch** — not a blocker, just hygiene if a future challenge ever arrives:
+
+- A short timestamped note in a private file (e.g. `Fredis/Memory/MEMORY.md` or a dated entry in `daily/`) recording: *Email Hub built on personal hardware, outside Merkle / Dentsu working hours, using no employer code, documented design, or proprietary patterns.* Contemporaneous evidence that the work qualifies under s.39(2) is what a solicitor would ask for first if a dispute arose. Costs five minutes. Worth it.
+
+About-page wording remains unchanged from §3 — biographical reference to *"twelve years as a senior email developer at Merkle / Dentsu"* is a factual employment fact, separate from claims of Saulera's productisation.
 
 ---
 
