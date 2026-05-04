@@ -297,12 +297,15 @@ Each of these is a "phase 2 if signal supports it" — not a launch blocker.
 
 ## Open questions for Linards
 
-1. **VTV case study naming.** Šlesers and Krištopans are listed in USER.md as inbound interest. Do you have explicit permission to name them on a public site? If not, frame VTV as "former Latvian transport ministers" without names.
-2. **Email Hub IP clearance.** Confirmed not going on the site v1 — agreed?
-3. **Bilingual launch.** EN-only on day one, defer LV until requested — agreed? Or do you want LV ready for the Riga lead-gen push from day one?
-4. **Booking tool.** Cal.com vs SavvyCal vs HubSpot Meetings? (HubSpot Meetings is free and integrates with the CRM already in use — strongest case unless you have a UX preference.)
-5. **Engagement pricing on the site.** Confirmed: no public pricing v1 (pricing model still open per USER.md). Agreed?
-6. **Founder voice — third-person studio or first-person personal site?** Recommendation: third-person (reads as a studio). Worth a sense-check.
+1. **VTV repo access.** `github.com/linardsb/VTV` returns 404 and isn't visible in your public repo list. Confirm the correct URL, push it public, or paste the tech stack + agentic-capabilities notes so the card can be filled in.
+2. **VTV case study naming.** Šlesers / Krištopans are listed in USER.md as inbound interest. Do you have explicit permission to name them publicly? If not, frame as "former Latvian transport ministers" without names.
+3. **Email Hub housekeeping note.** Will you log a contemporaneous "built on personal time + stack" note (per §5) before launch, or skip and accept the (low) residual risk?
+4. **Screenshot capture.** Do you want me to mock up screenshots from each repo (where I can spin up the local dev environment), or are you handling capture yourself in the live UIs? My recommendation: you capture from your running instances — they'll look real because they are. I'll write captions.
+5. **Bilingual launch.** EN-only on day one, defer LV until requested — agreed? Or LV ready from day one for the Riga lead-gen push?
+6. **Booking tool.** Cal.com vs SavvyCal vs HubSpot Meetings? (HubSpot Meetings is free and integrates with the CRM already in use — strongest case unless you have a UX preference.)
+7. **Engagement pricing on the site.** Confirmed: no public pricing v1 (pricing model still open per USER.md). Agreed?
+8. **Founder voice — third-person studio or first-person personal site?** Recommendation: third-person (reads as a studio). Worth a sense-check.
+9. **Card ordering.** Current order on `/results`: Fredis → Email Hub → GERBONI → UGOKI → VTV. Strongest-first logic. If you'd rather lead with Email Hub (most directly tied to the MarTech buyer Saulera will sell to first), say the word and I'll re-order.
 
 ---
 
@@ -318,13 +321,14 @@ If pressed for time, a stripped v0 (Home + Work + Talk only, three pages) ships 
 
 ---
 
-## Atis £1k gate
+## Atis £1k gate (revised after case-study depth audit)
 
-- **Verdict (Atis would bet £1k on this site converting?):** *not yet*.
-- **What would flip him to yes:**
-  - **At least one paid case study card** with a named client and a measurable outcome ("we cut their invoice triage time from 4h/week to 20min/week"). Without it, the Results page is "interesting projects" rather than "proof of commercial delivery".
-  - **Booking widget is live and the first 5 bookings are real prospects** (not friends being kind). Vanity calendar bookings collapse the whole funnel.
-  - **A pricing anchor somewhere on the site** — even just *"engagements typically £8k–£40k depending on scope"*. Atis would say no-price means no-buyer.
+- **Verdict (Atis would bet £1k on this site converting?):** *closer to yes — call it "yes if"*.
+- **What flipped:** the proof landscape is significantly stronger than the original v0 estimate. Five real agentic systems with public source repositories, modern stacks (FastAPI / Next.js 16 / React 19 / Pydantic AI / Claude integrations), and live functionality is **not** "interesting projects" — it's a build studio that has actually built things. Most early-stage AI consultancies cannot show a single shipped agentic system on their portfolio page. Saulera ships with five.
+- **What still needs to flip Atis fully to yes:**
+  - **At least one named paid client outcome** (commercial validation — *"we cut their invoice triage from 4h/week to 20min/week"*). Built-on-own-time portfolios prove engineering capability; paid outcomes prove commercial fit. Without one, Atis would say *"prove someone wrote a cheque for this"*.
+  - **Booking widget live and the first 5 bookings are real prospects** (not friends being kind). Vanity bookings collapse the funnel.
+  - **A pricing anchor somewhere visible** — even just *"engagements typically £8k–£40k depending on scope"*. No-price reads as no-buyer.
 - **What I'm NOT going to do about it yet (and why):**
-  - **Force the paid case study before launch** — chicken-and-egg. The site is part of how you generate the first paid engagement. Acceptable to launch with built-but-unpaid case studies, provided the framing is honest (§4 honesty principle).
-  - **Push pricing on day one** — pricing model is genuinely undecided per USER.md, and putting a wrong anchor on the site is worse than no anchor. Revisit in v1.1 once first engagement closes.
+  - **Force the paid case study before launch** — chicken-and-egg. The site itself is the conversion surface for the first paid engagement. Five built-but-unpaid systems framed honestly is enough to get the first call booked.
+  - **Push pricing on day one** — pricing model still open per USER.md. A wrong anchor is worse than no anchor. Revisit in v1.1 once the first engagement closes and you've seen what the market will actually pay.
