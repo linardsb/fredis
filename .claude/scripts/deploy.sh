@@ -47,6 +47,18 @@ else
     log "no state file — treating current HEAD ${OLD_HEAD:0:10} as last-deployed"
 fi
 
+# Self-heal a dirty working tree. `git pull --ff-only` aborts if any tracked
+# file is modified (manual VPS edit, errant scp, half-applied patch). Stash
+# with a timestamp-tagged message and DO NOT pop — the operator can inspect
+# `git stash list` and recover anything intentional. Untracked files (??)
+# don't block fast-forward, so they're ignored.
+if ! git diff --quiet || ! git diff --cached --quiet; then
+    stash_msg="deploy-autostash-$(date -u +%Y%m%dT%H%M%SZ)"
+    log "WARNING: dirty working tree on VPS — stashing as '$stash_msg'"
+    git stash push --include-untracked=false --quiet -m "$stash_msg"
+    log "stash created; inspect with: git stash list | grep $stash_msg"
+fi
+
 git fetch --quiet origin main
 git pull --ff-only --quiet origin main
 
