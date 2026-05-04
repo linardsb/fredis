@@ -676,7 +676,7 @@ Respond with ONLY valid JSON (no markdown, no explanation):
 
     result_text = ""
     try:
-        result_text = await asyncio.wait_for(_call_guardrail(), timeout=15.0)
+        result_text = await asyncio.wait_for(_call_guardrail(), timeout=30.0)
     except Exception as e:  # noqa: BLE001
         # Fail closed: guardrail timeout or error means we can't verify the
         # external data. Record verdict=error, warn, and return. The caller
