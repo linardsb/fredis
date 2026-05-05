@@ -3,7 +3,7 @@ title: Saulera — Website Plan v1 (page architecture + draft copy)
 status: Draft for Linards review
 date: 2026-05-04
 service: brand
-brand_anchor: drafts/active/brand/saulera-brand-sheet.md
+brand_anchor: drafts/active/brand/saulera-bauhaus-brand-sheet.md
 ---
 
 # Saulera — Website Plan v1
@@ -284,7 +284,7 @@ About-page wording remains unchanged from §3 — biographical reference to *"tw
 - **Pricing:** never on the public site v1. Surface in discovery call. (Pricing model itself is open per USER.md.)
 
 ### Visual system
-Pulled directly from the existing brand sheet (`drafts/active/brand/saulera-brand-sheet.md`):
+Pulled directly from the existing brand sheet (`https://claude.ai/design/p/019de53a-7398-72b9-b191-0f9e31d9a012`):
 - Palette: Deep Ocean / Vermillion Rise / Dawn Teal / Warm Stone / Light Cream / Warm Grey.
 - Hero motif: vermillion sun on warm-stone, contemporary AI-era register (Linear / Anthropic / Stripe lineage).
 - Typography: TBD in brand sheet — pick one before building.
@@ -346,3 +346,5 @@ If pressed for time, a stripped v0 (Home + Work + Talk only, three pages) ships 
 - **What I'm NOT going to do about it yet (and why):**
   - **Force the paid case study before launch** — chicken-and-egg. The site itself is the conversion surface for the first paid engagement. Five built-but-unpaid systems framed honestly is enough to get the first call booked.
   - **Push pricing on day one** — pricing model still open per USER.md. A wrong anchor is worse than no anchor. Revisit in v1.1 once the first engagement closes and you've seen what the market will actually pay.
+brand_anchor: drafts/active/brand/saulera-brand-sheet.md
+Pulled directly from the existing brand sheet (`drafts/active/brand/saulera-brand-sheet.md`):
