@@ -1,110 +1,129 @@
 ---
-title: Saulera — Brand Sheet (Sunrise + AI consultancy)
+title: Saulera — Brand Sheet (executive summary)
 status: Draft for Linards review
-date: 2026-05-01
+date: 2026-05-04
 service: brand
+canonical_design_system: drafts/active/brand/saulera-design-system.md
 ---
 
-# Saulera — Brand Sheet (Sunrise + AI consultancy)
+# Saulera — Brand Sheet
 
-**Wordmark:** saulera
+> **Editorial summary.** This file holds positioning, mission, voice, and the brand metaphor. For implementation tokens (palette hexes, typography stack, spacing, radius, elevation, motion, components, CSS source), the canonical reference is `saulera-design-system.md` in this folder. Update tokens there, not here.
+
+**Wordmark:** saulera (lowercase always)
 **Domain:** saulera.com (acquired 2026-05-01)
-**Brand metaphor:** *Saulera = a new day starting. Sunrise upon, a new era begins.* The brand carries that literally — sunrise palette pulled from Latvian and Argentinean dawn landscapes, contemporary AI-era visual register (Linear / Anthropic / Stripe lineage).
 **Positioning bet:** AI-agentic build studio for small-and-medium businesses. The "sunrise era" of small-business AI ops — warm, optimistic, disciplined. Differentiated from cold enterprise-blue AI tooling on one side and hand-wavy AI consulting on the other.
 
 ---
 
-## 1. Palette — canonical Saulera tokens (final, v2 — 2026-05-03)
-
-**The shift:** earlier drafts split the sun into two tones — a vermillion-red disc and a separate amber horizon-glow. The final palette collapses both into one warm signature: Vermillion Rise `#F59E0B`. The disc and the spreading first-light read as the same warmth at 06:00; the palette honours that rather than fighting it on theoretical grounds. Six tokens — Deep Ocean as the receding night, Vermillion Rise as the warm signature, Dawn Teal as the cool zenith, Warm Stone as the ground, Light Cream as the surface, Warm Grey as the borders. Visual register is contemporary AI-era (Linear, Anthropic, Stripe).
-
-| Role | Hex | Name | Usage |
-|------|------|------|-------|
-| Anchor | `#264653` | Deep Ocean | Headers, body text, dark UI, wordmark |
-| Signature | `#F59E0B` | Vermillion Rise | The sun — disc, primary CTA fills, hero accent. **Fill-only — never text.** |
-| Counterweight | `#2A7E8F` | Dawn Teal | Secondary CTAs, infographic counter-tone, link colour |
-| Background | `#EAE6DE` | Warm Stone | Page background, light mode |
-| Surface | `#F4F1EA` | Light Cream | Cards, panels (one layer above background) |
-| Border | `#C8C0B0` | Warm Grey | Dividers, input borders, muted edges |
-
-**WCAG contrast:**
-- Deep Ocean on Warm Stone — 9.5:1 ✓ AAA (body text)
-- Deep Ocean on Light Cream — 10:1 ✓ AAA
-- Deep Ocean on Vermillion Rise — 5.0:1 ✓ AA body (CTA labels safe)
-- Dawn Teal on Warm Stone — 4.8:1 ✓ AA body
-- Dawn Teal on Light Cream — 5.0:1 ✓ AA body
-- Vermillion Rise on Warm Stone — 1.7:1 ✗ FAILS at any size — **fill-only, never type**
-
-**Practical rules:**
-- **Body text** = Deep Ocean on Warm Stone or Light Cream
-- **CTAs** = Deep Ocean label on Vermillion Rise fill (5.0:1 AA, body-safe)
-- **Vermillion Rise** = fill-only — disc, CTA fill, hero glow, callout backgrounds with Deep Ocean text overlay. Never body, never outline, never as text colour
-- **Dawn Teal** = body-safe — links, secondary CTAs, body emphasis
-- **Vermillion Rise** = restraint colour — single signature mark per composition
-
-**Usage proportions (60/30/10):**
-- 60% Warm Stone or Deep Ocean (ground)
-- 30% the opposite anchor (text on stone, stone on ocean)
-- 10% Vermillion Rise + Dawn Teal combined (signal — Vermillion 7%, Dawn Teal 3%)
-
-
-
-## 3. Typography
-
-| Role | Family | Weight |
-|------|---------|--------|
-| Display / Headings | Homizio | 500 |
-| Body | Montserrat Ace Light | 300 |
-| Mono / Labels | Ace Light | 300 |
-
-
-**Type scale (4 steps):**
-- Display: 56/64
-- H2: 32/40
-- Body: 17/26
-- Caption: 14/22
-
----
-
-## 4. Voice line — working positioning sentence
-
-> saulera — a new day for small-business operations. ai-agentic builds that turn ops into momentum.
-
-Short form for headers and signatures: *saulera. the sunrise era of small-business ai.*
-
-Refine after the first three client conversations. Tone register: confident, lowercase, no jargon, British English.
-
----
-
-
-
-## 9. Brand metaphor — Sunrise Era
-
-*Saulera = a new day starting. A sunrise is upon, and a new era begins.*
-
-The metaphor isn't decorative — it determines every brand decision:
-
-- **Vermillion disc = the sun, just risen.** The specific oxidised-red two minutes after horizon-break, before atmospheric scatter washes it out.
-- **Vermillion as the warm-amber disc** — the sun and the horizon-glow collapsed into one signature tone (`#F59E0B`). Earlier drafts treated them as separate tokens; the final palette unifies them because at 06:00 the disc and the spreading first-light read as the same warmth, not two colours.
-- **Dawn Teal = the cool side of the sky** before full light. Calm that precedes momentum — counterweight to vermillion's energy.
-- **Deep Ocean anchor** — the residue of night, the discipline holding the optimism. Softer than pure black, still serious, still 06:00-coded.
-- **Asymmetric disc upward** reads as *ascending* — the sun is still rising, not noon-overhead.
-- **Lowercase always** — quiet morning register, not midday corporate shout.
-- **Audience read:** SMB owner waking up to AI's possibility. The brand promises a disciplined start to a real new day, not a hype cycle.
-
-When in doubt about a brand decision, ask: *does this read as 06:00 or 12:00?* Saulera is always 06:00.
-
----
-
-
-
-## 11. Mission
+## 1. Mission
 
 > saulera turns the daily operations of small and medium businesses into compounding momentum — building ai agents for the work owners actually do, not the work consultants imagine.
 
 **Why this line.** Two moves carry the weight: *compounding momentum* names the real outcome (ops that improve the longer agents run, not a one-off automation), and *the work owners actually do, not the work consultants imagine* draws the line between Saulera and generic AI consulting. That second clause is the moat — twelve years of MarTech depth means the agents are built around real workflows, not whiteboard ones.
 
+---
 
+## 2. Voice line
+
+> saulera — a new day for small-business operations. ai-agentic builds that turn ops into momentum.
+
+**Short form (headers, signatures):** *saulera. the sunrise era of small-business ai.*
+
+**Audience read.** SMB owner waking up to AI's possibility. The brand promises a disciplined start to a real new day, not a hype cycle.
+
+**Tone register:** confident, lowercase, no jargon, British English. Quiet morning register.
 
 ---
 
+## 3. Brand metaphor — Sunrise Era
+
+*Saulera = a new day starting. A sunrise is upon, and a new era begins.*
+
+The metaphor isn't decorative — it determines every brand decision:
+
+- **Amber disc = the sun, just risen.** Warm and awake, not yet noon-bright.
+- **Dawn Teal = the cool side of the sky** before full light. Calm that precedes momentum — counterweight to amber's energy.
+- **Deep Ocean anchor** — the cool weight of pre-dawn water; the discipline holding the optimism. Softer than pure black, still serious, still 06:00-coded.
+- **Asymmetric disc upward** reads as *ascending* — the sun is still rising, not noon-overhead. Disc offset upward by 8–12% of diameter (default 10%); never centred. *This single rule separates Saulera from a generic Bauhaus revival.*
+- **Lowercase always** — quiet morning register, not midday corporate shout.
+
+**When in doubt about a brand decision, ask: *does this read as 06:00 or 12:00?* Saulera is always 06:00.**
+
+---
+
+## 4. Palette — at-a-glance
+
+Full token table, hover/active variants, semantic aliases, and the CSS `:root` source live in `saulera-design-system.md` §2 and §12. Summary for editorial reference:
+
+| Role | Hex | Name | Usage |
+|------|-----|------|-------|
+| Anchor | `#264653` | Deep Ocean | Headers, body text, dark surfaces, wordmark |
+| Signature | `#F59E0B` | Amber | Primary CTAs, signal fills, the sun (fill-only — never type) |
+| Counterweight | `#2A7E8F` | Dawn Teal | Secondary CTAs, focus rings, links |
+| Background | `#EAE6DE` | Warm Stone | Default page background |
+| Surface | `#F4F1EA` | Light Cream | Cards, panels |
+| Border | `#C8C0B0` | Warm Grey | Input borders, dividers |
+| Secondary text | `#5A5A5A` | Iron Grey | Captions, muted text |
+
+**Renamed from earlier draft:** "Vermillion Rise" → **Amber**. Same hex (`#F59E0B`); name change reflects the design system finalisation.
+
+**Usage proportion (modified 60/30/10):** 60% Warm Stone or Deep Ocean (ground), 30% the opposite anchor, 10% Amber + Dawn Teal combined (signal — never decoration).
+
+**Hard rules:** no gradients (flat colour bands only); Amber is fill-only, never type; 0px border-radius across the entire system except true circular elements.
+
+---
+
+## 5. Typography — at-a-glance
+
+Full type scale, font-face declarations, and CSS rules live in `saulera-design-system.md` §3 and §12. Summary:
+
+| Role | Family | Weight |
+|------|--------|--------|
+| Display / Headlines / Buttons / Labels | Homizio | 500 (Medium) |
+| Body / UI | Montserrat Ace | 300 / 400 / 500 (500 default for body) |
+
+**Rules:** lowercase always for headlines, CTAs, wordmark (Otl Aicher / 1972 Munich Olympics reference). Never serifs. Never title case. Never ALL CAPS except micro-labels (Homizio uppercased with 0.08em letter-spacing). British English only.
+
+---
+
+## 6. Content & voice rules
+
+- **Lowercase** for headlines, CTAs, wordmark.
+- **No jargon.** *"Compounding momentum"* not *"synergistic acceleration"*.
+- **Specificity over platitude.** *"Turns ops into momentum"* beats *"elevates your business"*.
+- **Active voice.** *"Saulera builds agents for your workflows."*
+- **British English.** Colour, optimise, realised.
+- **No emoji** on core materials (logo, wordmark, business cards, landing page hero). Acceptable in social captions and blog only.
+
+### Copy in the wild
+
+- **Landing hero:** *saulera — a new day for small-business operations. ai-agentic builds that turn ops into momentum.*
+- **Email signature (long):** *saulera. the sunrise era of small-business ai.* / [name] | [role] | saulera.com
+- **Social (short):** *turning small-business ops into compounding momentum — ai agents for the work you actually do, not the work consultants imagine. sunrise era starts now.*
+
+### What copy should always convey
+
+1. **Sunrise metaphor** present but not overwrought (*new day*, *era*, *dawn*, *momentum*).
+2. **Discipline over hype** — engineered, not vacuous.
+3. **SMB-specific** — every claim targets the business owner.
+4. **Outcome-focused** — compounding momentum is the real outcome.
+
+---
+
+## 7. Imagery direction — at-a-glance
+
+Full imagery rules live in `saulera-design-system.md` §11. Summary:
+
+- **Photography:** sunrise / dawn landscapes (Latvian or Argentinean reference), cool / desaturated grading. **Avoid warm golden-hour imagery — too cliché, not Saulera.**
+- **Illustration:** geometric, minimal, single-colour fills (Amber / Teal / Deep Ocean). Never gradients, never shadows.
+- **Texture:** avoid. 1–2% noise layer maximum if unavoidable for print.
+- **Asymmetric disc motif:** primary logo, deck dividers, half-disc-on-horizon for case studies and large-format social. Auseklis (Latvian Morning Star, 8-pointed Bauhaus geometry) reserved for case-study covers and large-format only.
+
+---
+
+## 8. Cross-references
+
+- **Technical implementation (palette hexes, type, spacing, radius, elevation, motion, components, CSS `:root` source, font-face declarations):** `saulera-design-system.md`
+- **Image / logo generation prompts:** `saulera-image-gen-prompts.md`
+- **Website implementation plan (page architecture, copy, case studies):** `saulera-website-plan-v1.md`
