@@ -39,7 +39,7 @@ Pre-revenue + solo means the site is a **closer**, not a content marketing fortr
 
 **Sections (top to bottom):**
 
-1. **Hero** — single-screen, vermillion-rise sun motif (per brand sheet) on warm-stone background.
+1. **Hero** — single-screen, asymmetric Amber sun-disc motif (per design system §8 — disc offset upward 8–12% of diameter, never centred) on Warm Stone background. Sharp 0px corners throughout; no gradients.
    - **Headline:** *Agentic operations, built for businesses that need them to actually run.*
    - **Subhead:** *Twelve years building marketing systems for global brands. Now building the AI workflows that let small and medium businesses operate at the same level — without the enterprise overhead.*
    - **Primary CTA button:** *Book a 30-min build review*
@@ -284,10 +284,12 @@ About-page wording remains unchanged from §3 — biographical reference to *"tw
 - **Pricing:** never on the public site v1. Surface in discovery call. (Pricing model itself is open per USER.md.)
 
 ### Visual system
-Pulled directly from the existing brand sheet (`https://claude.ai/design/p/019de53a-7398-72b9-b191-0f9e31d9a012`):
-- Palette: Deep Ocean / Vermillion Rise / Dawn Teal / Warm Stone / Light Cream / Warm Grey.
-- Hero motif: vermillion sun on warm-stone, contemporary AI-era register (Linear / Anthropic / Stripe lineage).
-- Typography: TBD in brand sheet — pick one before building.
+Pulled from the canonical design system (`drafts/active/brand/saulera-design-system.md`) and brand sheet (`saulera-brand-sheet.md`):
+- **Palette (7 tokens):** Deep Ocean `#264653` · Amber `#F59E0B` (with hover `#D98708` / active `#B97208`) · Dawn Teal `#2A7E8F` · Warm Stone `#EAE6DE` · Light Cream `#F4F1EA` · Warm Grey `#C8C0B0` · Iron Grey `#5A5A5A`.
+- **Hard rules:** 0px border-radius across the entire system (sharp architectural edges) · no gradients (flat colour bands only) · Amber is fill-only, never text · lowercase always for headlines / CTAs / wordmark.
+- **Hero motif:** asymmetric Amber sun-disc on Warm Stone, contemporary AI-era register (Linear / Anthropic / Stripe lineage). Disc offset upward 8–12% of diameter, never centred.
+- **Typography:** Homizio 500 (display, headlines, buttons, labels — uppercase 0.08em letter-spacing on buttons / labels only) · Montserrat Ace 300/400/500 (body / UI, 500 default). Self-host both font families from `fonts/`.
+- **CSS source-of-truth:** the `:root` variable block in `saulera-design-system.md` §12 — copy verbatim into the Next.js project as `app/styles/tokens.css` and import once in the root layout.
 
 ### Tech stack recommendation
 - **Framework:** Next.js (App Router) on Vercel — 12-factor deploys, edge-hosted, free tier covers pre-revenue traffic.
@@ -347,4 +349,5 @@ If pressed for time, a stripped v0 (Home + Work + Talk only, three pages) ships 
   - **Force the paid case study before launch** — chicken-and-egg. The site itself is the conversion surface for the first paid engagement. Five built-but-unpaid systems framed honestly is enough to get the first call booked.
   - **Push pricing on day one** — pricing model still open per USER.md. A wrong anchor is worse than no anchor. Revisit in v1.1 once the first engagement closes and you've seen what the market will actually pay.
 brand_anchor: drafts/active/brand/saulera-brand-sheet.md
+design_system: drafts/active/brand/saulera-design-system.md
 Pulled directly from the existing brand sheet (`drafts/active/brand/saulera-brand-sheet.md`):
