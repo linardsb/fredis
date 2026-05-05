@@ -9,14 +9,14 @@ service: brand
 
 **Wordmark:** saulera
 **Domain:** saulera.com (acquired 2026-05-01)
-**Brand metaphor:** *Saulera = a new day starting. Sunrise upon, a new era begins.* The brand carries that literally — sunrise palette pulled from Latvian and Argentinean dawn landscapes, modern AI-era visual register (Linear / Anthropic / Stripe lineage, not 1970s modernist).
+**Brand metaphor:** *Saulera = a new day starting. Sunrise upon, a new era begins.* The brand carries that literally — sunrise palette pulled from Latvian and Argentinean dawn landscapes, contemporary AI-era visual register (Linear / Anthropic / Stripe lineage).
 **Positioning bet:** AI-agentic build studio for small-and-medium businesses. The "sunrise era" of small-business AI ops — warm, optimistic, disciplined. Differentiated from cold enterprise-blue AI tooling on one side and hand-wavy AI consulting on the other.
 
 ---
 
 ## 1. Palette — canonical Saulera tokens (final, v2 — 2026-05-03)
 
-**The shift:** earlier drafts split the sun into two tones — a vermillion-red disc and a separate amber horizon-glow. The final palette collapses both into one warm signature: Vermillion Rise `#F59E0B`. The disc and the spreading first-light read as the same warmth at 06:00; the palette honours that rather than fighting it on theoretical grounds. Six tokens — Deep Ocean as the receding night, Vermillion Rise as the warm signature, Dawn Teal as the cool zenith, Warm Stone as the ground, Light Cream as the surface, Warm Grey as the borders. Visual register is contemporary AI-era (Linear, Anthropic, Stripe), not modernist-revival.
+**The shift:** earlier drafts split the sun into two tones — a vermillion-red disc and a separate amber horizon-glow. The final palette collapses both into one warm signature: Vermillion Rise `#F59E0B`. The disc and the spreading first-light read as the same warmth at 06:00; the palette honours that rather than fighting it on theoretical grounds. Six tokens — Deep Ocean as the receding night, Vermillion Rise as the warm signature, Dawn Teal as the cool zenith, Warm Stone as the ground, Light Cream as the surface, Warm Grey as the borders. Visual register is contemporary AI-era (Linear, Anthropic, Stripe).
 
 | Role | Hex | Name | Usage |
 |------|------|------|-------|

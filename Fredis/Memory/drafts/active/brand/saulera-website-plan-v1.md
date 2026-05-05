@@ -3,7 +3,7 @@ title: Saulera — Website Plan v1 (page architecture + draft copy)
 status: Draft for Linards review
 date: 2026-05-04
 service: brand
-brand_anchor: drafts/active/brand/saulera-bauhaus-brand-sheet.md
+brand_anchor: drafts/active/brand/saulera-brand-sheet.md
 ---
 
 # Saulera — Website Plan v1
@@ -284,7 +284,7 @@ About-page wording remains unchanged from §3 — biographical reference to *"tw
 - **Pricing:** never on the public site v1. Surface in discovery call. (Pricing model itself is open per USER.md.)
 
 ### Visual system
-Pulled directly from the existing brand sheet (`drafts/active/brand/saulera-bauhaus-brand-sheet.md`):
+Pulled directly from the existing brand sheet (`drafts/active/brand/saulera-brand-sheet.md`):
 - Palette: Deep Ocean / Vermillion Rise / Dawn Teal / Warm Stone / Light Cream / Warm Grey.
 - Hero motif: vermillion sun on warm-stone, contemporary AI-era register (Linear / Anthropic / Stripe lineage).
 - Typography: TBD in brand sheet — pick one before building.
