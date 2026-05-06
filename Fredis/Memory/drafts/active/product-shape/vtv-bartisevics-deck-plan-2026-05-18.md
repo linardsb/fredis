@@ -1,5 +1,5 @@
 ---
-title: VTV pitch to Vladislavs Bartaševičs — 5-slide deck plan
+title: Kā modernizēt Rīgas Satiksmes operācijas — VTV pieeja
 audience: Vladislavs Bartaševičs, Rīga (city hall meeting)
 date_of_meeting: 2026-05-18 (Monday)
 location: Rīga city hall
@@ -9,7 +9,7 @@ draft_owner: Linards
 created: 2026-05-06
 ---
 
-# VTV — Bartaševičs deck plan
+# VTV — Kā modernizēt Rīgas Satiksmes operācijas — VTV pieeja
 
 ## TL;DR
 
