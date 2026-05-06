@@ -13,7 +13,7 @@ created: 2026-05-06
 
 ## TL;DR
 
-Five-slide deck framed around a single thesis: **Rīgas Satiksme has publicly admitted (April 2026) that its ticketing + payment stack is outdated and fragmented; the modernisation procurement window is open right now; VTV is the only Latvian-built, AI-agentic, GTFS-compliant, bilingual, sovereign-deployable option in front of the city.** The deck confirms the problem (S1), grounds it in the as-is (S2), shows the target architecture as a diagram (S3), walks the 12-month delivery journey (S4), and closes with a MECE decision matrix (S5) so Bartaševičs can defend the choice in Council.
+Five-slide deck framed around a single thesis: **Rīgas Satiksme has publicly admitted (April 2026) that its ticketing + payment stack is outdated and fragmented; the modernisation procurement window is open right now; VTV is the only Latvian-built, AI-agentic, GTFS-compliant, bilingual, sovereign-deployable option in front of the city.** The deck confirms the problem (S1), grounds it in the as-is (S2), shows the target architecture as a diagram (S3), walks the 12-month delivery journey (S4), and closes with a decision matrix (S5) so Bartaševičs can defend the choice in Council.
 
 Two warnings up-front:
 
@@ -147,11 +147,13 @@ flowchart TB
 - **Phase 3 · Hand-off · Months 9–12.** Knowledge transfer to RS staff, EU GTFS-RT audit pass, source-code escrow option for the city, post-hand-off retainer for tier-2 support.
 - **Governance throughout.** Bi-weekly Council steering review, GDPR + IP review at each phase gate, kill-switch at any gate if KPI thresholds (defined in Phase 0) are not met. *Politically safe by design — no irreversible commitments before Phase-0 evidence.*
 
-## Slide 5 — MECE: how Bartaševičs should choose
+## Slide 5 — Decision: the four realistic paths
 
-**Slide title:** *The decision space, decomposed (MECE)*
+**Slide title:** *The four realistic paths — scored on what Council will ask*
 
-> Mutually exclusive, collectively exhaustive — every realistic modernisation path Riga could take, evaluated on the four criteria the Council will be asked about.
+**Sub-line under title:** *Every modernisation option, compared on four criteria.*
+
+> The table is built to be exhaustive (no realistic path is missing) and non-overlapping (each path is one choice, not a mix). The framework is the discipline; the slide is the answer. Don't name the framework on the slide.
 
 | Path | Speed | Cost | IP / sovereignty | LV-language native | Political narrative |
 |---|---|---|---|---|---|
@@ -166,7 +168,7 @@ flowchart TB
 - **D — Latvian-built specialist (VTV).** Speed of B, sovereignty of A, with a Latvian-language native UX and on-prem AI option. Fits the political narrative without depending on it.
 - **Recommended path:** D, sequenced behind a fixed-price Phase-0 discovery sprint. Phase-0 carries near-zero political risk and gives Bartaševičs evidence to defend the choice in Council.
 
-> **Note:** This MECE deliberately frames the *partner-choice* decision, not the *operational-problem* decomposition. If Bartaševičs reframes the meeting around "what are the operational gaps", a second MECE tree (Demand-side / Supply-side / Decision-side / Compliance-side / Workforce-side) is on standby in speaker notes.
+> **Note:** S5 deliberately frames the *partner-choice* decision, not the *operational-problem* breakdown. If Bartaševičs reframes the meeting around "what are the operational gaps", a second decomposition (Demand-side / Supply-side / Decision-side / Compliance-side / Workforce-side) is on standby in speaker notes.
 
 ## Slide 6 (optional) — The ask
 
@@ -186,7 +188,7 @@ flowchart TB
 - **S2.** Stay quantitative on the *fragmentation* claim (RS own statement) and qualitative on cost. Do not put € figures on the slide.
 - **S3.** Diagram first, words second. The single-agent / 9-tools / swappable-LLM story is the differentiator — say it slowly.
 - **S4.** Anchor on Phase-0. Phase-0 is the only commitment being asked for today. Everything after is gated.
-- **S5.** The MECE table is the slide. Read down the right-hand column. Stop on path D and ask: "Anything missing from this decomposition?"
+- **S5.** The decision table is the slide. Read down the right-hand column. Stop on path D and ask: "Anything missing from this list?" — closing question still tests for completeness without naming the framework. If asked *"how did you arrive at these four?"*, name the rigour then: forced exhaustive coverage, no overlap, every realistic path appears exactly once.
 - **S6.** End on the smallest possible ask. Phase-0 SoW is in the appendix.
 
 ## Visual / brand notes
@@ -216,7 +218,7 @@ This is the **plan**. Building the actual `.pptx` requires the `content-artifact
 - [Make Riga Great Again? The Latvian Municipal Election Race — GSSC, June 2025](https://www.gssc.lt/en/publication/make-riga-great-again/) — for Bartaševičs's LPV list placement
 - [Rīga needs a new public transport payment system — LSM, 29 April 2026](https://eng.lsm.lv/article/economy/transport/29.04.2026-riga-needs-a-new-public-transport-payment-system.a645047/) — RS market-study quote (S1, S2)
 - [Rīgas satiksme procurements page](https://www.rigassatiksme.lv/en/about-us/procurements/) — live tender index
-- [MECE framework — MBA Crystal Ball](https://www.mbacrystalball.com/blog/strategy/mece-framework/) — S5 framing reference
+- [MECE framework — MBA Crystal Ball](https://www.mbacrystalball.com/blog/strategy/mece-framework/) — background discipline used to build S5; framework is intentionally not named on the slide
 - [Top 10 Optibus Alternatives — G2, 2026](https://www.g2.com/products/optibus/competitors/alternatives) — competition table
 - [Top 10 HASTUS Alternatives — G2, 2026](https://www.g2.com/products/hastus/competitors/alternatives)
 - [Rīgas Satiksme — Wikipedia](https://en.wikipedia.org/wiki/R%C4%ABgas_Satiksme) — RS scope + history
