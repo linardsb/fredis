@@ -6,6 +6,7 @@ subject: Re: Linards Berzins CV
 context: Sandra Bell (Markit Placements) sent the Braze CRM Specialist JD at Schmack (£60K DOE, hybrid London/Monument 2 days, option to work from Stockholm office). She asked 5 questions — salary expectations, notice, location, hybrid OK, visa status — plus requested a few lines on relevant experience. Linards initiated this thread by sending his CV at 16:48; Sandra replied at 16:57. He has a settlement agreement in progress with Dentsu so notice/availability needs his own input.
 created: 2026-06-01T17:00:00+01:00
 status: draft
+gmail_draft_id: r5471703978890294823
 service: personal
 ---
 
