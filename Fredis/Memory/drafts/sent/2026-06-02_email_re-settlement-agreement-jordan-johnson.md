@@ -24,7 +24,7 @@ Wish you all the best moving forward.
 Kind regards,
 Jordan
 
-## Draft Reply
+## Actual Reply
 
 Hi Jordan,
 
@@ -34,3 +34,4 @@ Appreciate everything you and the team did to get this over the line.
 
 All the best,
 Linards
+
