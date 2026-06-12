@@ -6,9 +6,17 @@ from pathlib import Path
 
 import pytest
 
+from config import ONBOARDING_FILE
 from interview_parser import parse_interview
 
 FIXTURE = Path(__file__).parent / "fixtures" / "mini_interview.md"
+
+# The real interview lives under .agent/plans/, which is gitignored by design —
+# absent in CI checkouts and fresh worktrees. Skip rather than fail there.
+requires_interview_file = pytest.mark.skipif(
+    not ONBOARDING_FILE.exists(),
+    reason=".agent/plans/ is gitignored — real interview file not present",
+)
 
 
 @pytest.fixture(scope="module")
@@ -79,6 +87,7 @@ def test_answer_line_offsets_are_consistent(fixture_path: Path) -> None:
         assert q.answer_end_line >= q.answer_start_line + 1
 
 
+@requires_interview_file
 def test_real_interview_parses() -> None:
     """The actual onboarding interview file parses to expected counts."""
     from config import ONBOARDING_FILE
@@ -92,6 +101,7 @@ def test_real_interview_parses() -> None:
     assert any(s.letter == "AA" for s in iv.sections)
 
 
+@requires_interview_file
 def test_part_attached_to_section_at_open_not_flush() -> None:
     """A section must be tagged with the Part it was opened under.
 

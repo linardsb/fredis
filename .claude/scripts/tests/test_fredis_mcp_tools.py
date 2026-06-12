@@ -545,7 +545,7 @@ def test_propose_draft_happy_path(fake_vault: Path) -> None:
 def test_propose_draft_invalid_source_makes_no_fs_call(fake_vault: Path) -> None:
     before = _vault_snapshot(fake_vault)
     out = tools.propose_draft(
-        source="../../etc",  # type: ignore[arg-type]
+        source="../../etc",  # type: ignore[arg-type, unused-ignore]
         title="malicious",
         body="x",
     )
@@ -562,7 +562,7 @@ def test_propose_draft_invalid_type_rejected(fake_vault: Path) -> None:
         source="chatgpt",
         title="t",
         body="b",
-        type="evil-type",  # type: ignore[arg-type]
+        type="evil-type",  # type: ignore[arg-type, unused-ignore]
     )
     assert out == {"ok": False, "error": "invalid type"}
 

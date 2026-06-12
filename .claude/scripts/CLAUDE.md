@@ -534,6 +534,18 @@ Notes:
 
 ---
 
+## CI & Local Fallback
+
+`.github/workflows/ci.yml` runs the same trio (ruff, mypy, pytest) on every push/PR that touches `.claude/scripts/**`, `.claude/chat/**`, or the workflow itself — vault-sync commits never trigger it. The local mirror is `bash .claude/scripts/check.sh`.
+
+When GitHub Actions is unavailable (billing/quota — detected as the most recent completed run having executed zero steps), the pre-push hook runs `check.sh` locally before allowing a code push; vault-only pushes always skip instantly. Ported from merkle-email-hub `scripts/ci-local-fallback.sh`. Bypass with `git push --no-verify`; force with `LOCAL_CI=1`, skip with `LOCAL_CI=0`. Install once per dev machine:
+
+```bash
+cp .claude/scripts/ci-local-fallback.sh .git/hooks/pre-push && chmod +x .git/hooks/pre-push
+```
+
+---
+
 ## Threat Models
 
 Per-agent threat models colocated with code at `.claude/scripts/threat-models/` — one page per SDK caller (`heartbeat.md`, `chat.md`, `reflection.md`, `memory_flush.md`) using the §7 checklist from `.claude/skills/security-engineering/references/agent-guardrails.md`. Revisit when `allowed_tools` changes, a new integration is added to the gather path, or a new hook is registered. Start with the README index.
