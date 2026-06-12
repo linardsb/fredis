@@ -141,6 +141,7 @@ These are the day-one rules — synthesised from J5. The brain should respect th
 - **Year 10 Geography field trip — 15–16 Jun 2026** (Matis, Sackville School). Letter received 2026-04-30 — likely needs consent + payment.
 - **Ashdown Park dinner — Sat 20 Jun 2026.** Dietary requirements confirmed; thread resolved.
 - **Bartaševičs meeting — Mon 18 May 2026** (VTV). Slide S3 of pitch deck needs correction before then — still says "one agent, no router" but architecture has moved to router + 4 domain agents (`unified`, `transit`, `knowledge`, `vault`).
+- **Phase 4 green-light check — Mon 15 Jun 2026.** Phase 3 (`a020ff5`) shipped 12 Jun; the ≥3-day observation window for the `/consolidate` directive pre-gate ends ~15 Jun. Remind Linards: review whether the nudge wording + thresholds landed right in live threads, then say "go Phase 4" (or retune first). See `TODO.md` § Phase 4 pre-gate. Remove this entry once Phase 4 starts.
 
 ## Preferences Confirmed
 
