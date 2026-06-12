@@ -20,6 +20,7 @@ from __future__ import annotations
 import asyncio
 import io
 import os
+import re
 import shutil
 import sys
 import time
@@ -57,6 +58,7 @@ from config import (
     LOCAL_TZ,
     OWNER_NAME,
     PROJECT_ROOT,
+    STALE_DRAFT_DAYS,
     ensure_directories,
     get_today_log_path,
     is_within_active_hours,
@@ -915,9 +917,11 @@ def gather_active_drafts_context() -> str:
     if not DRAFTS_ACTIVE_DIR.exists():
         return "No active drafts directory found."
 
+    stale_note = gather_stale_drafts_summary()
     draft_files = sorted(DRAFTS_ACTIVE_DIR.glob("*.md"))
     if not draft_files:
-        return "No active drafts pending review."
+        base = "No active drafts pending review."
+        return f"{base}\n\n{stale_note}" if stale_note else base
 
     lines: list[str] = []
     now = now_local()
@@ -952,7 +956,73 @@ def gather_active_drafts_context() -> str:
             f"source_id: {meta.get('source_id', '?')}{age_str}"
         )
 
-    return "\n".join(lines)
+    body = "\n".join(lines)
+    return f"{body}\n\n{stale_note}" if stale_note else body
+
+
+def _draft_date(f: Path) -> datetime | None:
+    """Best-effort creation date: frontmatter created/date → filename prefix → mtime."""
+    meta = _parse_draft_frontmatter(f)
+    for key in ("created", "date"):
+        val = meta.get(key, "")[:10]
+        if val:
+            try:
+                return datetime.strptime(val, "%Y-%m-%d").replace(tzinfo=LOCAL_TZ)
+            except ValueError:
+                pass
+    m = re.match(r"(\d{4}-\d{2}-\d{2})", f.name)
+    if m:
+        try:
+            return datetime.strptime(m.group(1), "%Y-%m-%d").replace(tzinfo=LOCAL_TZ)
+        except ValueError:
+            pass
+    try:
+        return datetime.fromtimestamp(f.stat().st_mtime, tz=LOCAL_TZ)
+    except OSError:
+        return None
+
+
+# Subdirectories under drafts/active/ that hold living documents rather than
+# pending drafts — excluded from stale-draft reporting.
+STALE_DRAFT_EXCLUDE_DIRS = {"research", "memory-synthesis"}
+
+
+def gather_stale_drafts_summary(threshold_days: int | None = None) -> str:
+    """One-line digest note for active drafts older than STALE_DRAFT_DAYS.
+
+    Read-only and recursive: unlike expire_old_drafts(), which deliberately
+    touches only top-level reply drafts, this scans skill subfolders too so
+    long-lived drafts surface in the digest instead of rotting silently.
+    Returns "" when nothing is stale.
+    """
+    days = STALE_DRAFT_DAYS if threshold_days is None else threshold_days
+    if not DRAFTS_ACTIVE_DIR.exists():
+        return ""
+
+    now = now_local()
+    stale: list[tuple[int, str]] = []
+    for f in sorted(DRAFTS_ACTIVE_DIR.rglob("*.md")):
+        rel = f.relative_to(DRAFTS_ACTIVE_DIR)
+        if rel.parts and rel.parts[0] in STALE_DRAFT_EXCLUDE_DIRS:
+            continue
+        if f.name.startswith(("_", "README")):
+            continue
+        created = _draft_date(f)
+        if created is None:
+            continue
+        age_days = int((now - created).total_seconds() // 86400)
+        if age_days > days:
+            stale.append((age_days, str(rel)))
+
+    if not stale:
+        return ""
+    stale.sort(reverse=True)
+    oldest = ", ".join(f"{path} ({age}d)" for age, path in stale[:3])
+    return (
+        f"NOTE: {len(stale)} active draft(s) older than {days} days — "
+        f"oldest: {oldest}. Worth surfacing to {OWNER_NAME or 'the owner'} "
+        f"for review or archive."
+    )
 
 
 def gather_habits_context() -> str:
@@ -1310,10 +1380,31 @@ def _save_heartbeat_thread(channel_id: str, thread_ts: str, alert_text: str) -> 
 # MAIN HEARTBEAT FUNCTION
 # =============================================================================
 
+# Appended to the heartbeat prompt in --brief mode (07:00 UK fredis-brief
+# timer). Mirrors SOUL.md "What a Good Morning Looks Like".
+BRIEF_OVERRIDE_TEMPLATE = """
+
+## MORNING BRIEF OVERRIDE (this run)
+
+This is the 07:00 morning brief for {owner}, not an alert check. Override the response format above:
+
+- ALWAYS produce a response. NEVER return HEARTBEAT_OK.
+- One screen, three things that move today — ruthlessly prioritised, not a data dump.
+
+Format (~150 words max):
+- **Top 3 today:** the three items that most change what {owner} does today — a waiting client reply (>18h is risking the relationship), the first meeting with 2 lines on who and the open thread, the most consequential queued or overdue item.
+- **Calendar:** today's events, one line each.
+- **Drafts/queue:** anything in drafts/active or the review queue waiting on {owner}'s decision.
+- **One signal:** ONE overnight item (AI/agentic, UK or LV market/policy) worth 5 minutes — headline + why it matters. Omit if nothing clears the bar.
+
+End with: Priority: NORMAL
+"""
+
 
 async def run_heartbeat(
     test_mode: bool = False,
     summary_mode: bool = False,
+    brief_mode: bool = False,
 ) -> str | None:
     """
     Run a single heartbeat check with state diffing.
@@ -1331,6 +1422,8 @@ async def run_heartbeat(
         summary_mode: If True, produce an afternoon recap regardless of threshold
             (always sends, never returns HEARTBEAT_OK). Used by the 17:00 UK
             daily summary timer.
+        brief_mode: If True, produce the 07:00 UK morning brief (always sends,
+            never returns HEARTBEAT_OK). Used by the fredis-brief timer.
 
     Returns:
         Response summary from the agent, or None if HEARTBEAT_OK
@@ -1350,7 +1443,7 @@ async def run_heartbeat(
     # Check if within active hours (unless test mode or summary mode).
     # Summary mode is scheduled at a fixed time (17:00 UK) and should fire even
     # if manually invoked outside active hours.
-    if not test_mode and not summary_mode and not is_within_active_hours():
+    if not test_mode and not summary_mode and not brief_mode and not is_within_active_hours():
         print(f"[{now_local()}] Outside active hours, skipping heartbeat")
         log_hook_execution(
             "heartbeat", "scheduled", "SKIP", time.time() - _start, "outside active hours"
@@ -1760,6 +1853,10 @@ Format (~200 words max):
 End with: Priority: NORMAL
 """
 
+    # Morning brief override — the 07:00 UK brief always produces a digest.
+    if brief_mode:
+        heartbeat_prompt += BRIEF_OVERRIDE_TEMPLATE.format(owner=owner)
+
     # Run the agent - Claude reasons over pre-fetched data
     response_text = ""
 
@@ -1897,8 +1994,8 @@ End with: Priority: NORMAL
 
     save_state(state, HEARTBEAT_STATE_FILE)
 
-    # Summary mode always sends — bypass the silent HEARTBEAT_OK path.
-    if "HEARTBEAT_OK" in response_text and not summary_mode:
+    # Summary and brief modes always send — bypass the silent HEARTBEAT_OK path.
+    if "HEARTBEAT_OK" in response_text and not summary_mode and not brief_mode:
         # Nothing to report
         append_to_daily_log(
             "HEARTBEAT_OK - Nothing needs attention",
@@ -1915,8 +2012,9 @@ End with: Priority: NORMAL
             response_text, "Heartbeat", "Heartbeats", source="claude-reasoning"
         )
 
+        alert_title = "Morning Brief" if brief_mode else "Second Brain Alert"
         if not test_mode:
-            slack_result = send_toast_notification("Second Brain Alert", response_text)
+            slack_result = send_toast_notification(alert_title, response_text)
 
             # Record the Slack message so thread replies can start a conversation
             if slack_result and slack_result.get("ts"):
@@ -1926,7 +2024,7 @@ End with: Priority: NORMAL
                     alert_text=response_text,
                 )
         else:
-            send_console_notification("Second Brain Alert (TEST)", response_text)
+            send_console_notification(f"{alert_title} (TEST)", response_text)
 
         print(f"[{now_local()}] Heartbeat alert: {response_text[:100]}...")
         log_hook_execution(
@@ -1950,6 +2048,11 @@ def main() -> None:
 
     test_mode = "--test" in sys.argv
     summary_mode = "--summary" in sys.argv
+    brief_mode = "--brief" in sys.argv
+
+    if summary_mode and brief_mode:
+        print("Use only one of --summary / --brief")
+        sys.exit(2)
 
     if test_mode:
         print("Running in TEST MODE (no notifications, ignoring active hours)")
@@ -1959,7 +2062,12 @@ def main() -> None:
     if summary_mode:
         print("Running in SUMMARY MODE (always sends afternoon recap)")
 
-    result = asyncio.run(run_heartbeat(test_mode=test_mode, summary_mode=summary_mode))
+    if brief_mode:
+        print("Running in BRIEF MODE (always sends morning brief)")
+
+    result = asyncio.run(
+        run_heartbeat(test_mode=test_mode, summary_mode=summary_mode, brief_mode=brief_mode)
+    )
 
     if result:
         print(f"\nHeartbeat result:\n{result}")

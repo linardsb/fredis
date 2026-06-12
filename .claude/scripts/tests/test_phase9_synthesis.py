@@ -238,11 +238,20 @@ def test_synthesis_aborts_on_injection_in_logs(
 
     monkeypatch.setattr(claude_agent_sdk, "query", _must_not_be_called, raising=False)
 
+    alerts: list[tuple[str, str]] = []
+    monkeypatch.setattr(
+        memory_synthesis,
+        "send_loop_failure_alert",
+        lambda loop, reason: alerts.append((loop, reason)),
+    )
+
     result = asyncio.run(memory_synthesis.run_synthesis(test_mode=False, days=7))
     assert result is None
 
     state = json.loads(state_file.read_text(encoding="utf-8"))
     assert state["result"] == "aborted_on_memory_injection"
+    # The abort pages the owner via Slack (June 2026: weeks of silent aborts)
+    assert alerts and alerts[0][0] == "synthesis"
 
 
 def test_iso_week_slug_format() -> None:

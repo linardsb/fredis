@@ -31,6 +31,7 @@ from config import (
     ensure_directories,
     now_local,
 )
+from notifications import send_loop_failure_alert
 from sanitize import TRUST_BOUNDARY_INSTRUCTION, check_injection_patterns, wrap_external_data
 from shared import append_to_daily_log, file_lock, load_state, save_state
 
@@ -131,6 +132,12 @@ async def _run_synthesis_inner(test_mode: bool, days: int) -> str | None:
             "Memory Maintenance",
             source="synthesis-aborted",
         )
+        if not test_mode:
+            send_loop_failure_alert(
+                "synthesis",
+                f"Aborted on injection pattern(s): {flag_summary}. "
+                "No weekly synthesis draft was produced.",
+            )
         return None
 
     wrapped_logs = wrap_external_data(log_bundle, "daily_logs")
@@ -283,7 +290,13 @@ def main() -> None:
         print(f"Project root: {PROJECT_ROOT}")
         print(f"Synthesis dir: {MEMORY_SYNTHESIS_DIR}")
 
-    result = asyncio.run(run_synthesis(test_mode=args.test, days=args.days))
+    try:
+        result = asyncio.run(run_synthesis(test_mode=args.test, days=args.days))
+    except Exception as exc:
+        # The scheduler only sees an exit code — page the owner before dying.
+        if not args.test:
+            send_loop_failure_alert("synthesis", f"Crashed: {exc}")
+        raise
 
     if result:
         try:

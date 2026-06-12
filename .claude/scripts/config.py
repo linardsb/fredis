@@ -138,6 +138,8 @@ GATE_BREACH_TEMPLATE = SCRIPTS_DIR / "templates" / "gate_breach.md.tmpl"
 GATE_BREACH_DRAFTS_DIR = DRAFTS_ACTIVE_DIR / "launch-governance" / "metrics-gate"
 HABITS_FILE = MEMORY_DIR / "HABITS.md"
 DRAFT_EXPIRY_HOURS = int(os.getenv("DRAFT_EXPIRY_HOURS", "24"))
+# Stale-draft digest note threshold — reporting only, nothing is moved.
+STALE_DRAFT_DAYS = int(os.getenv("STALE_DRAFT_DAYS", "14"))
 
 # === Onboarding (Phase 1 personalisation) ===
 ONBOARDING_FILE = PROJECT_ROOT / ".agent" / "plans" / "phase1-onboarding-interview.md"

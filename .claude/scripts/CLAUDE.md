@@ -19,6 +19,10 @@ First-run personalisation is a TUI + skill pair that converts the 103-question i
 
 The heartbeat is a scheduled script that proactively checks the user's draft inbox, HubSpot CRM scans (overdue invoices, silent contacts, stale deals), GitHub Projects lane kill-gate breaches, calendar, email, Slack, market/policy/AI research signals, and habit pillars using the Claude Agent SDK. It runs every 120 minutes during active hours (Europe/London, 05:00–20:00) and sends a Slack DM + native macOS notification when something needs attention.
 
+Three scheduled modes share the same pipeline: the plain 2-hourly heartbeat, `--summary` (17:00 UK transparency recap, `fredis-summary.timer`), and `--brief` (07:00 UK morning brief, `fredis-brief.timer`). Summary and brief always produce a digest — never a silent `HEARTBEAT_OK` — and the 2-hourly cadence itself never changes. The active-drafts context also appends a stale-draft note (recursive scan of skill subfolders, threshold `STALE_DRAFT_DAYS`, default 14; `research/` and `memory-synthesis/` excluded) so long-lived drafts surface in the digest instead of rotting silently.
+
+A deterministic companion, `meeting_prep.py` (`fredis-meeting-prep.timer`, every 10 min 05:00–20:00 UK), sends a Slack prep pack ~15 minutes before each calendar event — event details + memory-search hits for attendees + last Gmail thread. No Claude call; per-event dedupe state in `.claude/data/state/meeting-prep-state.json`.
+
 **Location:** `.claude/scripts/`
 
 ### Key Files
@@ -73,6 +77,8 @@ Verdicts:
 - `fail` → heartbeat blocked, Slack alert sent, data never reaches the main agent
 
 The 3-layer sanitization system (`sanitize.py`) also wraps all external data in XML trust boundaries (`<external_data>` tags) and escapes markdown structure (headings, code fences, horizontal rules) to prevent content from breaking Claude's context formatting.
+
+**False-positive guards (June 2026 incident).** `check_injection_patterns` strips the system's own line-exact `<external_data>` wrapper tags before scanning (the wrapper's closing tag used to flag `xml_escape_attempt` on every pass); the `dan_jailbreak` regex matches the upper-case acronym only (the name "Dan" in the guardrail's own abort entries re-triggered it daily); and reflection/synthesis abort entries log pattern names only, never the matched text. Any reflection/synthesis abort or crash also fires a Slack alert via `notifications.send_loop_failure_alert` — the memory loops never fail silently again.
 
 ---
 

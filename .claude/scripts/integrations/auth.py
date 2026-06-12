@@ -46,7 +46,7 @@ def get_google_credentials() -> Any:
     # Refresh if expired
     if creds and creds.expired and creds.refresh_token:
         try:
-            creds.refresh(Request())
+            creds.refresh(Request())  # type: ignore[no-untyped-call, unused-ignore]
             # Save refreshed token
             token_json: str = creds.to_json()  # type: ignore[no-untyped-call]
             GOOGLE_TOKEN_FILE.write_text(token_json, encoding="utf-8")
