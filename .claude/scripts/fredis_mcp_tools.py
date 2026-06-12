@@ -30,7 +30,9 @@ from config import (
     MEMORY_DIR,
     MEMORY_FILE,
     SOUL_FILE,
-    USER_FILE,
+)
+from config import (
+    USER_FILE as USER_FILE,  # explicit re-export — tests monkeypatch tools.USER_FILE
 )
 from db import get_memory_db
 from fredis_mcp_auth import is_path_denied
