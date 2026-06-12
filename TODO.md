@@ -8,20 +8,12 @@
 
 - [x] **Phase 0** — Per-channel tool / MCP / skill / model scoping (`7905b0b`, 2026-05-03)
 - [x] **Phase A** — Token & turn-count surfacing + nudge (`44c8d82`, 2026-05-03)
+- [x] **Phase 3** — Metric verification + patch + min-tier-gap guard (`a020ff5`, 2026-06-12) — verification refuted the input_tokens-only fix; shipped per-call AssistantMessage usage instead. 35-turn smoke + `[thread-nudge]` log check pending first live turns (observation window for Phase 4 starts now)
+- [x] **Phase 3a** — Plugin-skills bloat measurement (2026-06-12) — closed, no action: VPS `enabledPlugins: null` (zero injection); worst case ~3.1k tokens < 5k threshold; `[scoping] skills=12` matches YAML (9 + 3 always-on)
 
 ---
 
 ## Pending — sequential
-
-- [ ] **Phase 3** — Metric verification + patch + min-tier-gap guard (~½ day) — **BLOCKS Phase 4**
-  - 3.1 Verification (read-only, no code) — Agent SDK `Usage` semantics + production DB cross-check
-  - 3.2 Patch `_extract_context_tokens` to use `input_tokens` only; add `NUDGE_MIN_TURNS_BETWEEN_TIERS = 3`; schema columns for soft/hard turn-count
-  - 3.3 Tests
-  - 3.4 Post-deploy verification on Saulera + smoke thread
-  - 3.5 Docs in `.claude/scripts/CLAUDE.md`
-
-- [ ] **Phase 3a** — Plugin-skills bloat measurement (~30 min, parallel with Phase 3)
-  - Investigation; conditional doc updates only if plugins add >5k tokens/turn
 
 - [ ] **Phase 4** — `/consolidate` directive (~4h)
   - **Pre-gate:** Phase 3 shipped + ≥3 days observation + Linards green-light
