@@ -100,6 +100,24 @@ def send_slack_notification(
         return None
 
 
+def send_loop_failure_alert(loop_name: str, reason: str) -> None:
+    """Best-effort Slack alert when a scheduled loop (reflection, synthesis)
+    aborts or crashes.
+
+    The June 2026 reflection outage went unnoticed for 12 days because abort
+    entries only landed in the daily logs nobody reads in real time. This
+    routes the failure to the owner's Slack channel. Never raises — alerting
+    must not compound the original failure.
+    """
+    try:
+        send_slack_notification(
+            f"Fredis loop failure: {loop_name}",
+            f"{reason}\nSee today's daily log and the VPS journal for detail.",
+        )
+    except Exception as e:
+        print(f"Loop-failure alert failed ({loop_name}): {e}")
+
+
 def send_console_notification(title: str, message: str) -> None:
     """Send notification to console (fallback/testing)."""
     print(f"\n{'=' * 60}")

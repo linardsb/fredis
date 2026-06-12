@@ -70,10 +70,13 @@ INJECTION_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ),
     (
         "dan_jailbreak",
-        re.compile(
-            r"\bDAN\b|do\s+anything\s+now",
-            re.IGNORECASE,
-        ),
+        # \bDAN\b is deliberately case-sensitive: the ordinary name "Dan"
+        # appears in legitimate content — and appeared in this guardrail's own
+        # abort log entries, which re-triggered the pattern on every
+        # reflection/synthesis pass through early June 2026 in a
+        # self-sustaining loop. Real DAN-jailbreak text uses the upper-case
+        # acronym; the spelled-out phrase stays case-insensitive.
+        re.compile(r"\bDAN\b|(?i:do\s+anything\s+now)"),
     ),
     (
         "pretend_roleplay",
@@ -105,15 +108,32 @@ INJECTION_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ),
 ]
 
+# Lines that are exactly the trust-boundary wrapper emitted by
+# wrap_external_data(). check_injection_patterns() strips these before
+# scanning: formatted heartbeat context and daily logs legitimately embed
+# whole wrapped blocks, so the wrapper's own closing tag fired
+# xml_escape_attempt on every scan (the May–June 2026 false-positive run
+# that silently disabled reflection and synthesis). Stripping is safe
+# because escape_markdown_structure() HTML-escapes any external_data tag
+# found in raw external content before it can reach a prompt — only inline
+# variants (which still match below) could attempt a real boundary escape.
+_SYSTEM_WRAPPER_LINE = re.compile(
+    r'^(?:<external_data source="[^"\n]*" trust="[^"\n]*">|</external_data>)[ \t]*$',
+    re.MULTILINE,
+)
+
 
 def check_injection_patterns(text: str) -> list[tuple[str, str]]:
     """Scan text for known injection patterns.
 
-    Returns list of (pattern_name, matched_text) tuples.
+    The system's own line-exact <external_data> wrapper tags are ignored
+    (see _SYSTEM_WRAPPER_LINE). Returns list of (pattern_name, matched_text)
+    tuples.
     """
+    scannable = _SYSTEM_WRAPPER_LINE.sub("", text)
     flags: list[tuple[str, str]] = []
     for name, pattern in INJECTION_PATTERNS:
-        match = pattern.search(text)
+        match = pattern.search(scannable)
         if match:
             flags.append((name, match.group()))
     return flags

@@ -1,0 +1,16 @@
+[Unit]
+Description=Fredis meeting-prep tick (deterministic, no LLM call)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=__REPO_ROOT__/.claude/scripts
+ExecStart=/bin/bash __REPO_ROOT__/.claude/scripts/run_meeting_prep.sh
+Environment="PATH=/root/.local/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="CLAUDE_PROJECT_DIR=__REPO_ROOT__"
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

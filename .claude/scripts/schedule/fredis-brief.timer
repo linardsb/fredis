@@ -1,0 +1,10 @@
+[Unit]
+Description=Trigger Fredis morning brief at 07:00 Europe/London
+
+[Timer]
+OnCalendar=*-*-* 07:00:00 Europe/London
+Persistent=true
+Unit=fredis-brief.service
+
+[Install]
+WantedBy=timers.target

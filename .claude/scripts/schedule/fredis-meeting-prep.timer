@@ -1,0 +1,11 @@
+[Unit]
+Description=Trigger Fredis meeting prep every 10 min, 05:00-20:00 Europe/London
+
+[Timer]
+OnCalendar=*-*-* 05..19:00/10:00 Europe/London
+# A missed prep tick is useless after the fact — do not catch up on boot.
+Persistent=false
+Unit=fredis-meeting-prep.service
+
+[Install]
+WantedBy=timers.target

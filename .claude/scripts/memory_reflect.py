@@ -39,6 +39,7 @@ from config import (
     get_today_log_path,
     now_local,
 )
+from notifications import send_loop_failure_alert
 from sanitize import TRUST_BOUNDARY_INSTRUCTION, check_injection_patterns, wrap_external_data
 from shared import append_to_daily_log, file_lock, load_state, save_state, validate_bash_command
 
@@ -326,7 +327,12 @@ async def _run_reflection_inner(test_mode: bool = False, days: int = 1) -> str |
     # for confirmed pattern matches.
     injection_flags = check_injection_patterns(log_context)
     if injection_flags:
-        flag_summary = ", ".join(f"{name}={matched[:30]}" for name, matched in injection_flags)
+        # Pattern names only — never echo the matched text. The abort entry
+        # below lands in today's daily log, which tomorrow's pass scans, so
+        # quoting the match made aborts self-sustaining (June 2026
+        # dan_jailbreak loop: the only "Dan" left in the logs was the
+        # previous day's abort message).
+        flag_summary = ", ".join(name for name, _ in injection_flags)
         print(
             f"[{now_local()}] Reflection aborted: "
             f"injection patterns in daily log ({flag_summary})"
@@ -344,6 +350,12 @@ async def _run_reflection_inner(test_mode: bool = False, days: int = 1) -> str |
             "Memory Maintenance",
             source="reflection-aborted",
         )
+        if not test_mode:
+            send_loop_failure_alert(
+                "reflection",
+                f"Aborted on injection pattern(s): {flag_summary}. "
+                "MEMORY.md was not updated this pass.",
+            )
         return None
 
     # Load current files
@@ -557,7 +569,13 @@ def main() -> None:
         print(f"Project root: {PROJECT_ROOT}")
         print(f"Reviewing last {args.days} day(s) of logs")
 
-    result = asyncio.run(run_reflection(test_mode=args.test, days=args.days))
+    try:
+        result = asyncio.run(run_reflection(test_mode=args.test, days=args.days))
+    except Exception as exc:
+        # The scheduler only sees an exit code — page the owner before dying.
+        if not args.test:
+            send_loop_failure_alert("reflection", f"Crashed: {exc}")
+        raise
 
     if result:
         try:
