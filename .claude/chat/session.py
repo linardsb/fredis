@@ -32,15 +32,21 @@ class Session:
     summary_folder_override: str | None = None
     # Phase A (thread-consolidation): per-turn token usage + single-fire
     # nudge flags. ``last_turn_context_tokens`` = ``usage.input_tokens +
-    # cache_read_input_tokens + cache_creation_input_tokens`` from the latest
-    # ResultMessage — i.e. the *current* attention surface, not a running
-    # sum (each turn's input already includes prior turns once the SDK
-    # resumes the session). The two ``nudged_*_at`` fields hold ISO
-    # timestamps when the soft / hard threshold fired so each fires at most
-    # once per thread.
+    # cache_read_input_tokens + cache_creation_input_tokens`` from the last
+    # main-thread AssistantMessage of the turn — i.e. the *current* attention
+    # surface of the final API call. NOT from ResultMessage: its usage sums
+    # those fields across every internal call of the turn, multiply-counting
+    # cache reads (Phase 3 verification, 2026-06-12). The two ``nudged_*_at``
+    # fields hold ISO timestamps when the soft / hard threshold fired so each
+    # fires at most once per thread.
     last_turn_context_tokens: int = 0
     nudged_soft_at: str | None = None
     nudged_hard_at: str | None = None
+    # Phase 3: turn number (message_count after increment) at which each tier
+    # fired — lets the hard tier hold off until the soft fire is at least
+    # NUDGE_MIN_TURNS_BETWEEN_TIERS turns old. NULL on legacy rows.
+    nudged_soft_turn_count: int | None = None
+    nudged_hard_turn_count: int | None = None
 
 
 @dataclass
@@ -81,7 +87,9 @@ class SQLiteSessionStore:
                     summary_folder_override TEXT,
                     last_turn_context_tokens INTEGER DEFAULT 0,
                     nudged_soft_at TEXT,
-                    nudged_hard_at TEXT
+                    nudged_hard_at TEXT,
+                    nudged_soft_turn_count INTEGER,
+                    nudged_hard_turn_count INTEGER
                 );
                 CREATE INDEX IF NOT EXISTS idx_platform_thread
                     ON chat_sessions(platform, channel_id, thread_id);
@@ -118,6 +126,16 @@ class SQLiteSessionStore:
                 conn.execute(
                     "ALTER TABLE chat_sessions ADD COLUMN nudged_hard_at TEXT"
                 )
+            if "nudged_soft_turn_count" not in cols:
+                conn.execute(
+                    "ALTER TABLE chat_sessions ADD COLUMN "
+                    "nudged_soft_turn_count INTEGER"
+                )
+            if "nudged_hard_turn_count" not in cols:
+                conn.execute(
+                    "ALTER TABLE chat_sessions ADD COLUMN "
+                    "nudged_hard_turn_count INTEGER"
+                )
 
     def _row_to_session(self, row: sqlite3.Row) -> Session:
         """Convert a database row to a Session object."""
@@ -134,6 +152,12 @@ class SQLiteSessionStore:
         ) or 0
         soft_at = row["nudged_soft_at"] if "nudged_soft_at" in keys else None
         hard_at = row["nudged_hard_at"] if "nudged_hard_at" in keys else None
+        soft_turn = (
+            row["nudged_soft_turn_count"] if "nudged_soft_turn_count" in keys else None
+        )
+        hard_turn = (
+            row["nudged_hard_turn_count"] if "nudged_hard_turn_count" in keys else None
+        )
         return Session(
             session_id=row["session_id"],
             agent_session_id=row["agent_session_id"],
@@ -150,6 +174,8 @@ class SQLiteSessionStore:
             last_turn_context_tokens=int(last_tokens),
             nudged_soft_at=soft_at,
             nudged_hard_at=hard_at,
+            nudged_soft_turn_count=soft_turn,
+            nudged_hard_turn_count=hard_turn,
         )
 
     def get(self, platform: str, channel_id: str, thread_id: str) -> Session | None:
@@ -180,8 +206,9 @@ class SQLiteSessionStore:
                        (session_id, agent_session_id, platform, channel_id, thread_id,
                         user_id, created_at, updated_at, message_count, total_cost_usd,
                         status, summary_folder_override,
-                        last_turn_context_tokens, nudged_soft_at, nudged_hard_at)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        last_turn_context_tokens, nudged_soft_at, nudged_hard_at,
+                        nudged_soft_turn_count, nudged_hard_turn_count)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (
                         session.session_id,
                         session.agent_session_id,
@@ -198,6 +225,8 @@ class SQLiteSessionStore:
                         session.last_turn_context_tokens,
                         session.nudged_soft_at,
                         session.nudged_hard_at,
+                        session.nudged_soft_turn_count,
+                        session.nudged_hard_turn_count,
                     ),
                 )
         except sqlite3.IntegrityError:
@@ -210,7 +239,8 @@ class SQLiteSessionStore:
                 """UPDATE chat_sessions
                    SET agent_session_id = ?, updated_at = ?, message_count = ?,
                        total_cost_usd = ?, status = ?, summary_folder_override = ?,
-                       last_turn_context_tokens = ?, nudged_soft_at = ?, nudged_hard_at = ?
+                       last_turn_context_tokens = ?, nudged_soft_at = ?, nudged_hard_at = ?,
+                       nudged_soft_turn_count = ?, nudged_hard_turn_count = ?
                    WHERE session_id = ?""",
                 (
                     session.agent_session_id,
@@ -222,6 +252,8 @@ class SQLiteSessionStore:
                     session.last_turn_context_tokens,
                     session.nudged_soft_at,
                     session.nudged_hard_at,
+                    session.nudged_soft_turn_count,
+                    session.nudged_hard_turn_count,
                     session.session_id,
                 ),
             )
@@ -329,7 +361,9 @@ class PostgresSessionStore:
                 summary_folder_override TEXT,
                 last_turn_context_tokens INTEGER DEFAULT 0,
                 nudged_soft_at TEXT,
-                nudged_hard_at TEXT
+                nudged_hard_at TEXT,
+                nudged_soft_turn_count INTEGER,
+                nudged_hard_turn_count INTEGER
             )
         """)
         # Phase 11.1 + Phase A migrations — add new columns on existing
@@ -349,6 +383,14 @@ class PostgresSessionStore:
         cur.execute("""
             ALTER TABLE chat_sessions
                 ADD COLUMN IF NOT EXISTS nudged_hard_at TEXT
+        """)
+        cur.execute("""
+            ALTER TABLE chat_sessions
+                ADD COLUMN IF NOT EXISTS nudged_soft_turn_count INTEGER
+        """)
+        cur.execute("""
+            ALTER TABLE chat_sessions
+                ADD COLUMN IF NOT EXISTS nudged_hard_turn_count INTEGER
         """)
         cur.execute("""
             CREATE INDEX IF NOT EXISTS idx_platform_thread
@@ -371,16 +413,19 @@ class PostgresSessionStore:
     def _row_to_session(self, row: tuple[Any, ...]) -> Session:
         """Convert a database row to a Session object.
 
-        Column layout after Phase 11.1 + Phase A migrations:
+        Column layout after Phase 11.1 + Phase A + Phase 3 migrations:
         ``(id, session_id, agent_session_id, platform, channel_id, thread_id,
         user_id, created_at, updated_at, message_count, total_cost_usd,
         status, summary_folder_override, last_turn_context_tokens,
-        nudged_soft_at, nudged_hard_at)``.
+        nudged_soft_at, nudged_hard_at, nudged_soft_turn_count,
+        nudged_hard_turn_count)``.
         """
         override = row[12] if len(row) > 12 else None
         last_tokens = int(row[13]) if len(row) > 13 and row[13] is not None else 0
         soft_at = row[14] if len(row) > 14 else None
         hard_at = row[15] if len(row) > 15 else None
+        soft_turn = row[16] if len(row) > 16 else None
+        hard_turn = row[17] if len(row) > 17 else None
         return Session(
             session_id=row[1],
             agent_session_id=row[2],
@@ -401,6 +446,8 @@ class PostgresSessionStore:
             last_turn_context_tokens=last_tokens,
             nudged_soft_at=soft_at,
             nudged_hard_at=hard_at,
+            nudged_soft_turn_count=soft_turn,
+            nudged_hard_turn_count=hard_turn,
         )
 
     def get(self, platform: str, channel_id: str, thread_id: str) -> Session | None:
@@ -427,8 +474,10 @@ class PostgresSessionStore:
                    (session_id, agent_session_id, platform, channel_id, thread_id,
                     user_id, created_at, updated_at, message_count, total_cost_usd,
                     status, summary_folder_override,
-                    last_turn_context_tokens, nudged_soft_at, nudged_hard_at)
-                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                    last_turn_context_tokens, nudged_soft_at, nudged_hard_at,
+                    nudged_soft_turn_count, nudged_hard_turn_count)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                           %s, %s)""",
                 (
                     session.session_id,
                     session.agent_session_id,
@@ -445,6 +494,8 @@ class PostgresSessionStore:
                     session.last_turn_context_tokens,
                     session.nudged_soft_at,
                     session.nudged_hard_at,
+                    session.nudged_soft_turn_count,
+                    session.nudged_hard_turn_count,
                 ),
             )
         except psycopg.errors.UniqueViolation:
@@ -457,7 +508,8 @@ class PostgresSessionStore:
             """UPDATE chat_sessions
                SET agent_session_id = %s, updated_at = %s, message_count = %s,
                    total_cost_usd = %s, status = %s, summary_folder_override = %s,
-                   last_turn_context_tokens = %s, nudged_soft_at = %s, nudged_hard_at = %s
+                   last_turn_context_tokens = %s, nudged_soft_at = %s, nudged_hard_at = %s,
+                   nudged_soft_turn_count = %s, nudged_hard_turn_count = %s
                WHERE session_id = %s""",
             (
                 session.agent_session_id,
@@ -469,6 +521,8 @@ class PostgresSessionStore:
                 session.last_turn_context_tokens,
                 session.nudged_soft_at,
                 session.nudged_hard_at,
+                session.nudged_soft_turn_count,
+                session.nudged_hard_turn_count,
                 session.session_id,
             ),
         )

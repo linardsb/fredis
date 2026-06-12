@@ -111,8 +111,9 @@ def test_sqlite_migration_idempotent_on_existing_db(tmp_path: Path) -> None:
 
 
 def test_sqlite_phase_a_nudge_fields_roundtrip(tmp_path: Path) -> None:
-    """Phase A: ``last_turn_context_tokens`` + ``nudged_*_at`` round-trip
-    through INSERT, SELECT, and UPDATE; defaults are 0 / None."""
+    """Phase A + Phase 3: ``last_turn_context_tokens``, ``nudged_*_at`` and
+    ``nudged_*_turn_count`` round-trip through INSERT, SELECT, and UPDATE;
+    defaults are 0 / None."""
     store = SQLiteSessionStore(tmp_path / "c.db")
     s = _make_session()
     store.create(s)
@@ -122,25 +123,33 @@ def test_sqlite_phase_a_nudge_fields_roundtrip(tmp_path: Path) -> None:
     assert fresh.last_turn_context_tokens == 0
     assert fresh.nudged_soft_at is None
     assert fresh.nudged_hard_at is None
+    assert fresh.nudged_soft_turn_count is None
+    assert fresh.nudged_hard_turn_count is None
 
-    # Set all three, persist, re-read.
+    # Soft fires: timestamp + turn count persist together.
     fresh.last_turn_context_tokens = 125_500
     fresh.nudged_soft_at = "2026-05-03T14:00:00"
+    fresh.nudged_soft_turn_count = 30
     store.update(fresh)
     got = store.get("slack", "C1", "T1")
     assert got is not None
     assert got.last_turn_context_tokens == 125_500
     assert got.nudged_soft_at == "2026-05-03T14:00:00"
+    assert got.nudged_soft_turn_count == 30
     assert got.nudged_hard_at is None
+    assert got.nudged_hard_turn_count is None
 
-    # Hard fires later — must persist alongside the existing soft stamp.
+    # Hard fires later — must persist alongside the existing soft stamps.
     got.nudged_hard_at = "2026-05-03T15:30:00"
+    got.nudged_hard_turn_count = 34
     got.last_turn_context_tokens = 195_000
     store.update(got)
     final = store.get("slack", "C1", "T1")
     assert final is not None
     assert final.nudged_soft_at == "2026-05-03T14:00:00"
+    assert final.nudged_soft_turn_count == 30
     assert final.nudged_hard_at == "2026-05-03T15:30:00"
+    assert final.nudged_hard_turn_count == 34
     assert final.last_turn_context_tokens == 195_000
 
 
@@ -205,6 +214,8 @@ def test_sqlite_phase_a_migration_adds_columns_to_legacy_db(tmp_path: Path) -> N
     assert "last_turn_context_tokens" in cols
     assert "nudged_soft_at" in cols
     assert "nudged_hard_at" in cols
+    assert "nudged_soft_turn_count" in cols
+    assert "nudged_hard_turn_count" in cols
 
     got = store.get("slack", "CL", "TL")
     assert got is not None
@@ -212,6 +223,8 @@ def test_sqlite_phase_a_migration_adds_columns_to_legacy_db(tmp_path: Path) -> N
     assert got.last_turn_context_tokens == 0
     assert got.nudged_soft_at is None
     assert got.nudged_hard_at is None
+    assert got.nudged_soft_turn_count is None
+    assert got.nudged_hard_turn_count is None
 
 
 def test_sqlite_update_mutates_fields(tmp_path: Path) -> None:

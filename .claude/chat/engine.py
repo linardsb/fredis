@@ -101,11 +101,18 @@ _INBOUND_FLAG_NOTE = (
 # a thread crosses 30 turns OR ~120k tokens of current context; hard fires
 # the first time it crosses 50 turns OR ~180k tokens. The token figure is
 # the *current* attention surface (input + cache reads + cache creation
-# from the latest ResultMessage), not a running sum across turns.
+# from the last main-thread AssistantMessage's per-call usage — NOT from
+# ResultMessage, whose usage sums those fields across every internal call
+# of the turn and so multiply-counts cache reads; Phase 3 verification,
+# 2026-06-12).
 NUDGE_SOFT_TURNS = 30
 NUDGE_SOFT_TOKENS = 120_000
 NUDGE_HARD_TURNS = 50
 NUDGE_HARD_TOKENS = 180_000
+# Phase 3 — hard may not fire until the soft fire is at least this many
+# turns old, so the user gets a real window to act on soft before the
+# escalation lands (the Saulera anti-pattern: hard one turn after soft).
+NUDGE_MIN_TURNS_BETWEEN_TIERS = 3
 
 
 def compute_thread_nudge(
@@ -113,6 +120,7 @@ def compute_thread_nudge(
     last_turn_context_tokens: int,
     nudged_soft_at: str | None,
     nudged_hard_at: str | None,
+    nudged_soft_turn_count: int | None = None,
 ) -> tuple[str, bool, bool]:
     """Decide whether a degradation nudge fires this turn (pure, testable).
 
@@ -124,10 +132,14 @@ def compute_thread_nudge(
         prior_message_count: ``message_count`` from the persisted Session
             BEFORE this turn's increment. Current turn count is +1.
         last_turn_context_tokens: ``input + cache_read + cache_creation`` from
-            the latest ``ResultMessage.usage``; 0 when usage is missing.
+            the last main-thread ``AssistantMessage``'s per-call usage; 0 when
+            usage is missing.
         nudged_soft_at: ISO timestamp set when the soft nudge previously
             fired for this thread; ``None`` means it has not fired yet.
         nudged_hard_at: as above, for the hard nudge.
+        nudged_soft_turn_count: turn number at which soft fired; hard holds
+            off until at least ``NUDGE_MIN_TURNS_BETWEEN_TIERS`` turns later.
+            ``None`` (soft never fired, or legacy row) imposes no hold.
 
     Returns:
         ``(text, fire_soft, fire_hard)``. ``text`` is the markdown to append
@@ -144,6 +156,15 @@ def compute_thread_nudge(
         current_turns >= NUDGE_HARD_TURNS
         or last_turn_context_tokens >= NUDGE_HARD_TOKENS
     ):
+        # Phase 3 min-tier-gap guard: a soft fire within the last
+        # NUDGE_MIN_TURNS_BETWEEN_TIERS turns suppresses hard this turn —
+        # it re-qualifies on a later turn (nudged_hard_at stays None).
+        if (
+            nudged_soft_at is not None
+            and nudged_soft_turn_count is not None
+            and current_turns - nudged_soft_turn_count < NUDGE_MIN_TURNS_BETWEEN_TIERS
+        ):
+            return "", False, False
         text = (
             f"\n\n_(thread at {current_turns} turns / ~{tokens_k}k tokens — "
             "context is now degrading. Strongly recommend \"consolidate\" "
@@ -172,7 +193,13 @@ def compute_thread_nudge(
 
 
 def _extract_context_tokens(usage: dict[str, Any] | None) -> int:
-    """Sum ``input + cache_read + cache_creation`` from a ResultMessage usage dict.
+    """Sum ``input + cache_read + cache_creation`` from a per-call usage dict.
+
+    Feed this the last main-thread ``AssistantMessage.usage`` of the turn —
+    a single API call's usage, where the three-field sum IS the attention
+    surface. Never feed it ``ResultMessage.usage``: that sums the fields
+    across every internal call of the turn, multiply-counting cache reads
+    (observed 7-8x the real context size in production; Phase 3, 2026-06-12).
 
     Returns 0 when ``usage`` is None or none of the keys are present — Phase A
     treats missing usage as "don't update" (caller should not overwrite the
@@ -749,8 +776,12 @@ class ConversationEngine:
         session_id_from_sdk: str | None = None
         cost_usd: float | None = None
         first_yield = True
-        # Phase A — captured at ResultMessage time, applied during persistence.
+        # Phase A — decided at ResultMessage time, applied during persistence.
+        # Phase 3: token source is the last main-thread AssistantMessage's
+        # per-call usage (subagent calls excluded via parent_tool_use_id) —
+        # ResultMessage.usage sums across internal calls and over-counts.
         last_turn_context_tokens = 0
+        last_call_usage: dict[str, Any] | None = None
         nudge_text = ""
         fire_soft = False
         fire_hard = False
@@ -758,6 +789,9 @@ class ConversationEngine:
         try:
             async for sdk_message in query(prompt=message.text, options=options):
                 if isinstance(sdk_message, AssistantMessage):
+                    usage = getattr(sdk_message, "usage", None)
+                    if usage and getattr(sdk_message, "parent_tool_use_id", None) is None:
+                        last_call_usage = usage
                     # Reset on each new AssistantMessage (keep only the latest turn)
                     response_text = ""
                     for block in sdk_message.content:
@@ -785,11 +819,12 @@ class ConversationEngine:
 
                     # Phase A: track current context size + decide whether
                     # to append a degradation nudge to the final yield.
-                    # `getattr` (not direct attr) so tests / older SDK
-                    # mocks without `usage` degrade to "no token signal"
-                    # instead of crashing the turn.
+                    # Phase 3: token source is the per-call usage captured
+                    # from the last main-thread AssistantMessage above; when
+                    # none carried usage (tests / older SDK mocks) this
+                    # degrades to "no token signal" instead of crashing.
                     last_turn_context_tokens = _extract_context_tokens(
-                        getattr(sdk_message, "usage", None)
+                        last_call_usage
                     )
                     prior_count = existing.message_count if existing else 0
                     nudge_text, fire_soft, fire_hard = compute_thread_nudge(
@@ -797,6 +832,9 @@ class ConversationEngine:
                         last_turn_context_tokens=last_turn_context_tokens,
                         nudged_soft_at=existing.nudged_soft_at if existing else None,
                         nudged_hard_at=existing.nudged_hard_at if existing else None,
+                        nudged_soft_turn_count=(
+                            existing.nudged_soft_turn_count if existing else None
+                        ),
                     )
                     if nudge_text:
                         print(
@@ -892,8 +930,10 @@ class ConversationEngine:
                     existing.last_turn_context_tokens = last_turn_context_tokens
                 if fire_soft and existing.nudged_soft_at is None:
                     existing.nudged_soft_at = now_iso
+                    existing.nudged_soft_turn_count = existing.message_count
                 if fire_hard and existing.nudged_hard_at is None:
                     existing.nudged_hard_at = now_iso
+                    existing.nudged_hard_turn_count = existing.message_count
                 self.session_store.update(existing)
             else:
                 # Phase A: brand-new session. Hard fires on turn 1 are only
@@ -915,6 +955,8 @@ class ConversationEngine:
                     last_turn_context_tokens=last_turn_context_tokens,
                     nudged_soft_at=now_iso if fire_soft else None,
                     nudged_hard_at=now_iso if fire_hard else None,
+                    nudged_soft_turn_count=1 if fire_soft else None,
+                    nudged_hard_turn_count=1 if fire_hard else None,
                 )
                 self.session_store.create(session)
 

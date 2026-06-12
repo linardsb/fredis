@@ -4,7 +4,9 @@ The nudge decision function is pure — these tests pin its behaviour:
   - single-fire per threshold per thread,
   - hard supersedes soft (and consumes the soft slot to avoid re-fire),
   - threshold is OR (turns OR tokens, either alone is enough),
-  - missing usage / new sessions never fire negatively.
+  - missing usage / new sessions never fire negatively,
+  - Phase 3: hard holds off until the soft fire is at least
+    NUDGE_MIN_TURNS_BETWEEN_TIERS turns old (min-tier-gap guard).
 """
 
 from __future__ import annotations
@@ -19,6 +21,7 @@ sys.path.insert(0, str(_CHAT_DIR))
 from engine import (  # noqa: E402
     NUDGE_HARD_TOKENS,
     NUDGE_HARD_TURNS,
+    NUDGE_MIN_TURNS_BETWEEN_TIERS,
     NUDGE_SOFT_TOKENS,
     NUDGE_SOFT_TURNS,
     _extract_context_tokens,
@@ -166,6 +169,68 @@ def test_hard_never_fires_soft_text_when_both_would_qualify() -> None:
     assert hard is True
     assert "degrading" in text.lower()
     assert "before context gets noisy" not in text
+
+
+# ---------------------------------------------------------------------------
+# Phase 3 — min-tier-gap guard
+# ---------------------------------------------------------------------------
+
+
+def test_hard_suppressed_when_soft_fired_within_min_gap() -> None:
+    """Soft fired on turn 30; hard qualifies on turn 31 — held back until the
+    soft fire is NUDGE_MIN_TURNS_BETWEEN_TIERS turns old (Saulera anti-pattern)."""
+    text, soft, hard = compute_thread_nudge(
+        prior_message_count=30,  # current turn 31
+        last_turn_context_tokens=NUDGE_HARD_TOKENS,
+        nudged_soft_at="2026-05-03T14:00:00",
+        nudged_hard_at=None,
+        nudged_soft_turn_count=30,
+    )
+    assert (text, soft, hard) == ("", False, False)
+
+
+def test_hard_fires_once_min_gap_elapsed() -> None:
+    """Same thread three turns later — the guard releases and hard fires."""
+    soft_turn = 30
+    current_prior = soft_turn + NUDGE_MIN_TURNS_BETWEEN_TIERS - 1  # current = 33
+    text, soft, hard = compute_thread_nudge(
+        prior_message_count=current_prior,
+        last_turn_context_tokens=NUDGE_HARD_TOKENS,
+        nudged_soft_at="2026-05-03T14:00:00",
+        nudged_hard_at=None,
+        nudged_soft_turn_count=soft_turn,
+    )
+    assert "degrading" in text.lower()
+    assert soft is False
+    assert hard is True
+
+
+def test_hard_unheld_when_soft_turn_count_unknown() -> None:
+    """Legacy rows (soft fired before the turn-count column existed) carry
+    NULL — no gap info, so hard keeps its pre-Phase-3 behaviour."""
+    text, _soft, hard = compute_thread_nudge(
+        prior_message_count=30,
+        last_turn_context_tokens=NUDGE_HARD_TOKENS,
+        nudged_soft_at="2026-05-03T14:00:00",
+        nudged_hard_at=None,
+        nudged_soft_turn_count=None,
+    )
+    assert "degrading" in text.lower()
+    assert hard is True
+
+
+def test_hard_from_cold_not_held_by_gap_guard() -> None:
+    """No prior soft fire — the guard only applies after soft has fired."""
+    text, soft, hard = compute_thread_nudge(
+        prior_message_count=NUDGE_HARD_TURNS - 1,
+        last_turn_context_tokens=NUDGE_HARD_TOKENS,
+        nudged_soft_at=None,
+        nudged_hard_at=None,
+        nudged_soft_turn_count=None,
+    )
+    assert "degrading" in text.lower()
+    assert soft is True
+    assert hard is True
 
 
 # ---------------------------------------------------------------------------
