@@ -354,6 +354,52 @@ def _dispatch_review_tickets(data: dict[str, Any]) -> None:
             heartbeat_run_id=run_id,
         ))
 
+    # saulera contact-form leads — client lane, urgency=this_week. The message
+    # is attacker-controlled (public web form), so it's defended two ways:
+    # (1) fetched here, NOT via _fetch_raw_data, so it never joins the `data`
+    #     dict that builds Claude's reasoning prompt; and
+    # (2) name + message are run through sanitize_external_text before they
+    #     reach the ticket subject / Slack notice / draft body, so injection
+    #     patterns are flagged and markdown structure escaped even on the
+    #     human-facing surfaces.
+    # Deduped on the Gmail message id so each lead tickets exactly once.
+    from sanitize import sanitize_external_text
+
+    try:
+        from saulera_leads import fetch_saulera_leads
+
+        saulera_leads = fetch_saulera_leads(hours_ago=6)
+    except Exception as e:
+        saulera_leads = []
+        print(f"[{now_local()}] saulera lead fetch failed: {e}", file=sys.stderr)
+    for lead in saulera_leads:
+        safe_name = sanitize_external_text(lead.name, "gmail")
+        safe_message = sanitize_external_text(lead.message, "gmail")
+        subject = f"New saulera lead: {safe_name}"
+        body = (
+            f"Name: {safe_name}\n"
+            f"Email: {lead.email}\n"
+            f"Received: {lead.received_at:%Y-%m-%d %H:%M}\n"
+            f"Gmail message id: {lead.message_id}\n\n"
+            f"Message:\n{safe_message}\n\n"
+            f"Next: reply to {lead.email} — run the draft-reply skill, or "
+            f'`query.py gmail create-draft --to "{lead.email}" '
+            f'--subject "Re: your enquiry" --body "..."`.'
+        )
+        draft_path = write_heartbeat_draft(
+            "saulera-lead", lead.message_id, subject, body
+        )
+        _count(dispatch_ticket(
+            subject=subject,
+            content=body,
+            lane="client",
+            skill_source="heartbeat",
+            urgency="this_week",
+            draft_path=draft_path,
+            heartbeat_run_id=run_id,
+            dedupe_anchor=lead.message_id,
+        ))
+
     if created_count or skipped_count:
         print(
             f"[{now_local()}] Ticket dispatch: {created_count} created, "

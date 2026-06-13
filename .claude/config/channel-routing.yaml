@@ -39,6 +39,10 @@ channels:
   g-docs:               Fredis/Memory/integrations/docs/
   github:               Fredis/Memory/integrations/github/
 
+  # Business (own consultancy)
+  saulera:              Fredis/Memory/saulera/   # add to by_id below after the
+                                                 # channel exists (query.py slack channels)
+
 # Channel-ID → folder map. Wins over `channels:` when a match exists —
 # survives channel renames without config edits. Populated from
 # `query.py slack channels` on 2026-04-22.
@@ -141,6 +145,7 @@ tools:
     finances:             [WebSearch, WebFetch]
     competition:          [WebSearch, WebFetch]
     clients:              [WebSearch, WebFetch]
+    saulera:              [WebSearch, WebFetch]   # prospect/market research
     # Build channels: full palette — engineering work needs Bash + tests.
     email-hub:            [WebSearch, WebFetch, Bash, NotebookEdit]
     vtv:                  [WebSearch, WebFetch, Bash, NotebookEdit]
@@ -160,6 +165,7 @@ mcp_servers:
     # tools are likely to be invoked.
     gmail:    [fredis]
     ideation: [fredis]   # ideation often produces "we should email X" moments
+    saulera:  [fredis]   # lead replies run through Gmail
     # Future MCP servers (calendar, hubspot, drive, sheets, docs) get their
     # own lines when those servers ship — see fredis-ob1-integration.md.
   defaults:
@@ -277,6 +283,15 @@ skills:
       - engineering
     gmail:
       - draft-reply
+    # saulera (own consultancy): lead replies + site content + positioning.
+    saulera:
+      - draft-reply
+      - content-social
+      - content-artifacts
+      - idea-validation
+      - product-shape
+      - executive-leadership
+      - uk-latvia-context
     # calendar, hubspot, g-drive, g-sheets, g-docs: base ("always") only.
   defaults:
     dm:        ALL    # sentinel — every skill in .claude/skills/ is invocable
