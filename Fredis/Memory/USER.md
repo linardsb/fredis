@@ -81,6 +81,7 @@ _Secrets and account IDs live in `.claude/scripts/.env`. This section documents 
 ### Other
 - Linear · Notion · Bookkeeping (Xero/QuickBooks): not connecting; tooling choices unsettled (revisit post-first-client)
 - Claude Code Max 20 subscription (active — primary build environment)
+- **Advisor-model preference (2026-06-12):** never propose Fable as global advisor — "fable uses way more tokens than opus and is as good as opus." Default pairing is Sonnet/Opus main → Opus advisor; when Fable is main, recommend "No advisor" (Opus/Sonnet advisors are weaker than Fable, low value).
 
 ## Proactivity Preferences
 
