@@ -15,8 +15,10 @@ set -euo pipefail
 # Non-interactive SSH sessions (e.g. GitHub Actions via appleboy/ssh-action)
 # don't inherit login-shell PATH, so uv installed under $HOME/.local/bin is
 # invisible. Prepend it here so every invocation path (systemd timer, manual
-# ssh, CI) resolves uv consistently.
-export PATH="$HOME/.local/bin:$PATH"
+# ssh, CI) resolves uv consistently. HOME is unset when invoked from the
+# systemd vault-sync service (no login shell), and `set -u` would abort on a
+# bare $HOME, so fall back to /root (the VPS deploy user).
+export PATH="${HOME:-/root}/.local/bin:$PATH"
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 SCRIPTS_DIR="$REPO_ROOT/.claude/scripts"
