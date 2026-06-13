@@ -93,3 +93,12 @@ if [ "$AHEAD" -gt 0 ]; then
 else
     log "up-to-date"
 fi
+
+# 5. VPS only: react to any code (non-vault) changes the pull just landed.
+#    GitHub Actions deploy is dead (Actions minutes exhausted), so deploy runs
+#    here instead. deploy.sh anchors on its own last-deployed-head and holds its
+#    own flock, so it self-no-ops when nothing changed and is safe to call every
+#    cycle. Gated to Linux so the macs (no systemd) never try to systemctl.
+if [ "$(uname)" = "Linux" ]; then
+    bash "$SCRIPT_DIR/deploy.sh" >>"$LOG" 2>&1 || log "deploy.sh failed (non-fatal)"
+fi

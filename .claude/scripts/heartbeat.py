@@ -460,18 +460,12 @@ def _fetch_raw_data() -> dict[str, Any]:
             data["errors"]["hubspot"] = str(e)
             print(f"[{now_local()}] HubSpot scans error (non-fatal): {e}")
 
-        # GitHub Projects v2 — lane kill-gate breaches. Reuses GITHUB_TOKEN.
-        try:
-            from integrations.github_projects import breached_lane_gates
-
-            data["github_breached_gates"] = breached_lane_gates()
-            print(
-                f"[{now_local()}] GitHub Projects: "
-                f"{len(data['github_breached_gates'])} breached lane gates"
-            )
-        except Exception as e:
-            data["errors"]["github_projects"] = str(e)
-            print(f"[{now_local()}] GitHub Projects error (non-fatal): {e}")
+        # GitHub Projects v2 lane scan retired (2026-06-13): the "Lanes & Features"
+        # board was never seeded, so breached_lane_gates() was a permanent no-op
+        # (and burned a GraphQL call against GITHUB_TOKEN every tick). gates/*.yaml
+        # via surface_gate_breaches() is the single kill-gate mechanism now;
+        # data["github_breached_gates"] stays [] (initialized above) so the
+        # downstream ticket dispatcher no-ops cleanly.
 
         # Dispatch actionable detections to the Fredis Review ticket queue.
         # No-op when HUBSPOT_TICKETS_ENABLED is false (checked inside dispatcher).
