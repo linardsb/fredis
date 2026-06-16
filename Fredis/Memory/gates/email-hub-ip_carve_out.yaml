@@ -1,9 +1,0 @@
-lane: email-hub
-metric: ip_carve_out
-threshold: "Written Merkle/Dentsu response on IP carve-out (or explicit assignment) received"
-deadline: 2026-06-19
-observable_source: 'gmail_search:"from:(@merkle.com OR @dentsu.com) subject:(IP OR carve-out OR assignment)" + Fredis/Memory/drafts/sent/ for outgoing Merkle-letter'
-pre_committed_at: 2026-04-19
-status: open
-rationale: "Email Hub month-2 IP gate agreed 2026-04-19 (lanes.md:22, MEMORY.md J5). Built-outside-Merkle-hours overhang under UK CDPA s.11(2) + Patents Act s.39; no product-specific Email Hub work allowed while open. ip-overhang-guard is the upstream skill — this gate surfaces the breach."
-invalidator: "Written carve-out from Merkle, explicit assignment of rights, or a committed clean-room rebuild plan closes the gate (Email Hub lane unblocks)."
