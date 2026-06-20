@@ -25,7 +25,7 @@ MatchSource = Literal["by_id", "by_name", "dm_default", "fallback"]
 # Alias → concrete Claude model ID. Kept here (not in YAML) so version pins
 # live in code and can be code-reviewed.
 MODEL_IDS: dict[str, str] = {
-    "opus":   "claude-opus-4-7",
+    "opus":   "claude-opus-4-8",
     "sonnet": "claude-sonnet-4-6",
     "haiku":  "claude-haiku-4-5-20251001",
 }

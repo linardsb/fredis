@@ -1904,6 +1904,10 @@ End with: Priority: NORMAL
         async for message in query(
             prompt=heartbeat_prompt,
             options=ClaudeAgentOptions(
+                # Routine 2-hourly scan + draft — Sonnet is sufficient. Opus is
+                # reserved for high-stakes chat channels and memory synthesis.
+                # Pinned so this no longer inherits the VPS CLI default model.
+                model="sonnet",
                 # Working directory - enables skill discovery
                 cwd=str(PROJECT_ROOT),
                 # Load skills and CLAUDE.md from project

@@ -206,6 +206,9 @@ When you complete the archive, respond with one line: `Archived N entries \
         async for message in query(
             prompt=archive_prompt,
             options=ClaudeAgentOptions(
+                # Daily-log curation — Sonnet is sufficient; pinned so it no
+                # longer inherits the VPS CLI default model.
+                model="sonnet",
                 cwd=str(PROJECT_ROOT),
                 setting_sources=["user", "project"],
                 system_prompt={"type": "preset", "preset": "claude_code"},
@@ -473,6 +476,9 @@ If nothing is worth updating in any file, respond with exactly: REFLECTION_OK
         async for message in query(
             prompt=reflection_prompt,
             options=ClaudeAgentOptions(
+                # Daily-log curation — Sonnet is sufficient; pinned so it no
+                # longer inherits the VPS CLI default model.
+                model="sonnet",
                 cwd=str(PROJECT_ROOT),
                 setting_sources=["user", "project"],
                 system_prompt={"type": "preset", "preset": "claude_code"},

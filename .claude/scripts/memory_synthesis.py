@@ -195,6 +195,10 @@ If nothing is worth proposing, respond with exactly: SYNTHESIS_OK
         async for message in query(
             prompt=synthesis_prompt,
             options=ClaudeAgentOptions(
+                # Cross-memory synthesis is high-value reasoning — pin to Opus
+                # (resolves to Opus 4.8 on the current VPS CLI) rather than
+                # inheriting the CLI default model.
+                model="opus",
                 cwd=str(PROJECT_ROOT),
                 setting_sources=["user", "project"],
                 system_prompt={"type": "preset", "preset": "claude_code"},

@@ -110,16 +110,16 @@ models:
     # the model delta. Both channels are low-volume; cost impact is negligible.
     - legal
     - finances
-  # All integration channels promoted to sonnet (default) on 2026-04-23
-  # after #gmail showed Haiku ignored multi-rule prompts (draft routing,
-  # search-before-asking). The same failure mode would bite on the other
-  # write-capable integration channels (#hubspot mutates CRM state,
-  # #g-sheets appends rows). Reliability
-  # matters more than the ~$0.08/msg delta on a small-volume surface.
-  # Re-add a channel name under `haiku` only if its cost becomes material
-  # (thousands of turns/month).
+  # 2026-06-20 — every channel promoted to Opus 4.8 by flipping the default
+  # to `opus` (concrete id pinned in channel_router.MODEL_IDS). The explicit
+  # `opus:` list above is now redundant but kept so high-stakes channels stay
+  # on Opus if the default is ever lowered again. On Claude Max this costs
+  # rate-limit quota, not dollars. Move a channel under `haiku` only if its
+  # volume makes Opus cost material (thousands of turns/month).
+  # (Prior state: integration channels + DMs ran on the sonnet default,
+  # promoted from Haiku on 2026-04-23 after #gmail multi-rule failures.)
   haiku: []
-  default: sonnet
+  default: opus
 
 # Per-channel scoping (tools / MCP / skills). Set `false` to revert every
 # channel to the legacy "everything everywhere" behaviour without a code revert.
