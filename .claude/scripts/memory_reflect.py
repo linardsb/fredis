@@ -201,6 +201,7 @@ When you complete the archive, respond with one line: `Archived N entries \
     )
 
     response_text = ""
+    sdk_succeeded = False
 
     try:
         async for message in query(
@@ -236,17 +237,24 @@ When you complete the archive, respond with one line: `Archived N entries \
                         response_text += block.text
             elif isinstance(message, ResultMessage):
                 print(f"[{now_local()}] Archive pass completed: {message.subtype}")
+                if message.subtype == "success":
+                    sdk_succeeded = True
                 if message.total_cost_usd:
                     print(f"[{now_local()}] Cost: ${message.total_cost_usd:.4f}")
 
     except Exception as e:
-        print(f"[{now_local()}] Archive pass error: {e}")
-        append_to_daily_log(
-            f"**ERROR**: MEMORY.md archive pass failed - {e}",
-            "Reflection",
-            "Memory Maintenance",
-        )
-        return None
+        # Same benign-teardown guard as the reflection pass: a post-success SDK
+        # exit-1 means the archive edits already landed. Only fail on a pre-success
+        # error.
+        if not sdk_succeeded:
+            print(f"[{now_local()}] Archive pass error: {e}")
+            append_to_daily_log(
+                f"**ERROR**: MEMORY.md archive pass failed - {e}",
+                "Reflection",
+                "Memory Maintenance",
+            )
+            return None
+        print(f"[{now_local()}] Ignoring benign SDK teardown after archive success: {e}")
 
     final_lines = count_file_lines(MEMORY_FILE)
     if final_lines > MEMORY_LINE_LIMIT:
@@ -471,6 +479,7 @@ If nothing is worth updating in any file, respond with exactly: REFLECTION_OK
 """
 
     response_text = ""
+    sdk_succeeded = False
 
     try:
         async for message in query(
@@ -507,15 +516,25 @@ If nothing is worth updating in any file, respond with exactly: REFLECTION_OK
                         response_text += block.text
             elif isinstance(message, ResultMessage):
                 print(f"[{now_local()}] Reflection completed: {message.subtype}")
+                if message.subtype == "success":
+                    sdk_succeeded = True
                 if message.total_cost_usd:
                     print(f"[{now_local()}] Cost: ${message.total_cost_usd:.4f}")
 
     except Exception as e:
-        print(f"[{now_local()}] Reflection error: {e}")
-        append_to_daily_log(
-            f"**ERROR**: Reflection failed - {e}", "Reflection", "Memory Maintenance"
-        )
-        return None
+        # The Agent SDK raises a teardown error ("Fatal error in message reader:
+        # Command failed with exit code 1") when the `claude` CLI subprocess exits
+        # non-zero AFTER it has already streamed a successful ResultMessage. By then
+        # the reflection's edits + reasoning are done, so a post-success exception is
+        # benign — note it and fall through to the state save. Only a pre-success
+        # error is a real reflection failure. (Daily regression from 2026-06-18.)
+        if not sdk_succeeded:
+            print(f"[{now_local()}] Reflection error: {e}")
+            append_to_daily_log(
+                f"**ERROR**: Reflection failed - {e}", "Reflection", "Memory Maintenance"
+            )
+            return None
+        print(f"[{now_local()}] Ignoring benign SDK teardown after success: {e}")
 
     # Update state
     state = load_state(REFLECTION_STATE_FILE)

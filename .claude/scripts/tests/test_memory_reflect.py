@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import AsyncIterator
 from pathlib import Path
 
 import pytest
@@ -191,3 +192,112 @@ def test_reflection_prompt_promotes_scope_decisions() -> None:
     # Tag guidance must be present so promoted items land with the right status.
     assert "status: killed" in text, "tag guidance for dropped items missing"
     assert "status: decided" in text, "tag guidance for deferred items missing"
+
+
+def test_reflection_swallows_post_success_sdk_teardown(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A teardown exception AFTER a success ResultMessage is benign: the
+    reflection's edits are already done, so it must not log a failure or page,
+    and must still persist state. Regression guard for the 2026-06-18 SDK
+    'Command failed with exit code 1' teardown error."""
+    import memory_reflect
+
+    state_file = tmp_path / "reflection-state.json"
+    monkeypatch.setattr(memory_reflect, "REFLECTION_STATE_FILE", state_file)
+    monkeypatch.setattr(
+        memory_reflect,
+        "get_recent_logs",
+        lambda days=1: [("2026-06-19", "### Entry (10:00)\n\nNormal day, nothing odd.\n")],
+    )
+    monkeypatch.setattr(memory_reflect, "load_current_memory", lambda: "")
+    monkeypatch.setattr(memory_reflect, "load_user_file", lambda: "")
+    monkeypatch.setattr(memory_reflect, "load_soul_file", lambda: "")
+
+    appended: list[str] = []
+    monkeypatch.setattr(
+        memory_reflect,
+        "append_to_daily_log",
+        lambda content, *a, **kw: appended.append(content),
+    )
+
+    alerts: list[str] = []
+    monkeypatch.setattr(
+        memory_reflect, "send_loop_failure_alert", lambda loop, reason: alerts.append(loop)
+    )
+
+    async def _no_archive(test_mode: bool = False) -> None:
+        return None
+
+    monkeypatch.setattr(memory_reflect, "_archive_memory_overflow", _no_archive)
+
+    class _FakeResult:
+        def __init__(self) -> None:
+            self.subtype: str = "success"
+            self.total_cost_usd: float | None = None
+
+    async def _fake_query(*args: object, **kwargs: object) -> AsyncIterator[object]:
+        yield _FakeResult()
+        raise RuntimeError("Fatal error in message reader: Command failed with exit code 1")
+
+    import claude_agent_sdk
+
+    monkeypatch.setattr(claude_agent_sdk, "ResultMessage", _FakeResult)
+    monkeypatch.setattr(claude_agent_sdk, "query", _fake_query)
+
+    asyncio.run(memory_reflect._run_reflection_inner(test_mode=False, days=1))
+
+    # No failure logged, no Slack page...
+    assert not any("Reflection failed" in c for c in appended)
+    assert alerts == []
+
+    # ...and state WAS persisted (the early `return None` used to skip this).
+    import json
+
+    state = json.loads(state_file.read_text(encoding="utf-8"))
+    assert state["result"] in {"REFLECTION_OK", "promoted"}
+    assert "benign SDK teardown after success" in capsys.readouterr().out
+
+
+def test_archive_swallows_post_success_sdk_teardown(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """The archive pass shares the same benign-teardown guard: a success
+    ResultMessage followed by the SDK exit-1 teardown must not log a failure."""
+    import memory_reflect
+
+    fake_memory = tmp_path / "MEMORY.md"
+    fake_memory.write_text("\n".join(f"line {i}" for i in range(150)) + "\n", encoding="utf-8")
+    monkeypatch.setattr(memory_reflect, "MEMORY_FILE", fake_memory)
+    monkeypatch.setattr(memory_reflect, "MEMORY_LINE_LIMIT", 50)
+    monkeypatch.setattr(memory_reflect, "MEMORY_ARCHIVE_DIR", tmp_path / "archive")
+
+    appended: list[str] = []
+    monkeypatch.setattr(
+        memory_reflect,
+        "append_to_daily_log",
+        lambda content, *a, **kw: appended.append(content),
+    )
+
+    class _FakeResult:
+        def __init__(self) -> None:
+            self.subtype: str = "success"
+            self.total_cost_usd: float | None = None
+
+    async def _fake_query(*args: object, **kwargs: object) -> AsyncIterator[object]:
+        yield _FakeResult()
+        raise RuntimeError("Fatal error in message reader: Command failed with exit code 1")
+
+    import claude_agent_sdk
+
+    monkeypatch.setattr(claude_agent_sdk, "ResultMessage", _FakeResult)
+    monkeypatch.setattr(claude_agent_sdk, "query", _fake_query)
+
+    asyncio.run(memory_reflect._archive_memory_overflow(test_mode=False))
+
+    assert not any("archive pass failed" in c for c in appended)
+    assert "benign SDK teardown after archive success" in capsys.readouterr().out
