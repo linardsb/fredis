@@ -657,6 +657,11 @@ def format_context_with_diff(
 # LLM GUARDRAIL PRE-FILTER
 # =============================================================================
 
+# Consecutive guardrail failures before a Slack alert fires — once per streak,
+# on the Nth failure, not every run. Absorbs isolated transient CLI failures
+# without paging; a genuinely stuck guardrail still surfaces. Resets on success.
+GUARDRAIL_ALERT_AFTER = 3
+
 
 async def run_guardrail_check(context: str, test_mode: bool = False) -> dict[str, Any]:
     """LLM-based pre-filter: evaluate heartbeat context for prompt injection.
@@ -716,21 +721,56 @@ Respond with ONLY valid JSON (no markdown, no explanation):
                         buf += block.text
         return buf
 
+    # Retry on transient SDK/CLI failures. The `claude` CLI subprocess
+    # intermittently exits 1 ("Command failed with exit code 1 / Fatal error in
+    # message reader") under API overload — it succeeds on a later attempt and
+    # works fine locally, so it's a transient, not a code fault. A 30s *timeout*
+    # is a different (hang) failure mode not worth re-waiting, so only the fast
+    # exit-code failures are retried.
     result_text = ""
-    try:
-        result_text = await asyncio.wait_for(_call_guardrail(), timeout=30.0)
-    except Exception as e:  # noqa: BLE001
-        # Fail closed: guardrail timeout or error means we can't verify the
-        # external data. Record verdict=error, warn, and return. The caller
-        # is responsible for stripping external data from the main agent
-        # prompt on this verdict.
-        err_msg = "timeout" if isinstance(e, TimeoutError) else str(e)
-        print(f"[{now_local()}] Guardrail call failed ({err_msg}) — failing closed")
+    guard_error: Exception | None = None
+    for attempt in range(3):
+        try:
+            result_text = await asyncio.wait_for(_call_guardrail(), timeout=30.0)
+            guard_error = None
+            break
+        except TimeoutError as e:
+            guard_error = e
+            break
+        except Exception as e:  # noqa: BLE001
+            guard_error = e
+            if attempt < 2:
+                await asyncio.sleep(2**attempt)  # 1s, 2s
+
+    if guard_error is not None:
+        err = guard_error
+        # Fail closed: we couldn't verify the external data, so the caller
+        # strips it from the main agent prompt regardless of how loud we are
+        # here. Capture the SDK exception detail (type / exit_code / stderr) —
+        # it was being discarded, which is why this stayed opaque for a month.
+        if isinstance(err, TimeoutError):
+            err_msg = "timeout"
+            detail = "timeout after 30s (not retried)"
+        else:
+            err_msg = str(err)
+            detail = (
+                f"{type(err).__name__} exit_code={getattr(err, 'exit_code', None)} "
+                f"stderr={getattr(err, 'stderr', None)!r}"
+            )
+        # Count consecutive failures so an isolated transient doesn't page Slack.
+        prev = load_state(GUARDRAIL_STATE_FILE)
+        consecutive = int(prev.get("consecutive_errors", 0)) + 1
+        print(
+            f"[{now_local()}] Guardrail call failed ({detail}) — failing closed "
+            f"(consecutive={consecutive})"
+        )
         error_state = {
             "last_run": now_local().isoformat(),
             "verdict": "error",
             "flagged_count": 0,
             "summary": f"Guardrail error: {err_msg}",
+            "consecutive_errors": consecutive,
+            "last_error_detail": detail,
         }
         save_state(error_state, GUARDRAIL_STATE_FILE)
         log_hook_execution(
@@ -738,19 +778,26 @@ Respond with ONLY valid JSON (no markdown, no explanation):
             "guardrail",
             "ERROR",
             0.0,
-            f"guardrail-failure: {err_msg}",
+            f"guardrail-failure: {detail}",
         )
         append_to_daily_log(
-            f"**WARNING**: guardrail failed closed — {err_msg}. External data was "
-            f"stripped from the heartbeat prompt for this run.",
+            f"**WARNING**: guardrail failed closed (consecutive #{consecutive}) — "
+            f"{detail}. External data was stripped from the heartbeat prompt for "
+            f"this run.",
             "Heartbeat",
             "Heartbeats",
             source="guardrail",
         )
-        if not test_mode:
+        # Alert Slack only once a streak reaches the threshold — on the Nth
+        # consecutive failure, not every run — so transients stay silent while a
+        # genuinely stuck guardrail still surfaces. Counter resets on success.
+        if not test_mode and consecutive == GUARDRAIL_ALERT_AFTER:
             send_slack_notification(
-                "Guardrail Error — Failed Closed",
-                f"Guardrail check errored ({err_msg}). External data stripped for this heartbeat.",
+                "Guardrail erroring repeatedly",
+                f"The heartbeat guardrail has failed {consecutive} runs in a row "
+                f"(latest: {err_msg}). External data is being stripped each run, "
+                f"so Fredis is running safe but blind to live data until it "
+                f"recovers.",
             )
         return {
             "verdict": "error",
@@ -792,6 +839,7 @@ Respond with ONLY valid JSON (no markdown, no explanation):
         "verdict": verdict,
         "flagged_count": len(flagged_items),
         "summary": summary,
+        "consecutive_errors": 0,
     }
     save_state(guardrail_state, GUARDRAIL_STATE_FILE)
 

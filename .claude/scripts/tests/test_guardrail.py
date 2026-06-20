@@ -241,3 +241,67 @@ class TestGuardrailFailClosed:
         assert any("guardrail" in a for args in logged for a in args)
         # Slack suppressed by test_mode=True
         assert slack_calls == []
+
+    def test_guardrail_alert_throttled_until_threshold(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        tmp_path: Path,
+    ) -> None:
+        """De-noise: isolated guardrail errors stay silent. Slack fires once on
+        the GUARDRAIL_ALERT_AFTER-th consecutive failure; a successful run
+        resets the streak so the per-tick spam can't accumulate."""
+        import claude_agent_sdk
+        from claude_agent_sdk import AssistantMessage, TextBlock
+
+        import heartbeat
+
+        monkeypatch.setattr(heartbeat, "GUARDRAIL_STATE_FILE", tmp_path / "guardrail.json")
+        monkeypatch.setattr(heartbeat, "append_to_daily_log", lambda *a, **k: None)
+        monkeypatch.setattr(heartbeat, "log_hook_execution", lambda *a, **k: None)
+
+        slack_calls: list[tuple[str, str]] = []
+        monkeypatch.setattr(
+            heartbeat,
+            "send_slack_notification",
+            lambda title, body: slack_calls.append((title, body)),
+        )
+
+        # Fail fast: TimeoutError breaks the retry loop without sleeping.
+        async def _raise(*args: Any, **kwargs: Any) -> AsyncGenerator[Any, None]:
+            if False:
+                yield None  # pragma: no cover
+            raise TimeoutError()
+
+        monkeypatch.setattr(claude_agent_sdk, "query", _raise, raising=False)
+        threshold = heartbeat.GUARDRAIL_ALERT_AFTER
+
+        # Failures below the threshold are silent.
+        for _ in range(threshold - 1):
+            asyncio.run(heartbeat.run_guardrail_check("ctx", test_mode=False))
+        assert slack_calls == []
+
+        # The threshold-th consecutive failure fires exactly one alert.
+        asyncio.run(heartbeat.run_guardrail_check("ctx", test_mode=False))
+        assert len(slack_calls) == 1
+        state = json.loads((tmp_path / "guardrail.json").read_text())
+        assert state["consecutive_errors"] == threshold
+
+        # A successful run resets the streak counter to zero.
+        async def _ok(*args: Any, **kwargs: Any) -> AsyncGenerator[Any, None]:
+            yield AssistantMessage(
+                content=[
+                    TextBlock(text='{"verdict": "pass", "flagged_items": [], "summary": null}')
+                ],
+                model="sonnet",
+            )
+
+        monkeypatch.setattr(claude_agent_sdk, "query", _ok, raising=False)
+        asyncio.run(heartbeat.run_guardrail_check("ctx", test_mode=False))
+        state = json.loads((tmp_path / "guardrail.json").read_text())
+        assert state["verdict"] == "pass"
+        assert state["consecutive_errors"] == 0
+
+        # Post-reset, a fresh failure is silent again — no second alert.
+        monkeypatch.setattr(claude_agent_sdk, "query", _raise, raising=False)
+        asyncio.run(heartbeat.run_guardrail_check("ctx", test_mode=False))
+        assert len(slack_calls) == 1
