@@ -264,3 +264,62 @@ def test_iso_week_slug_format() -> None:
     assert year.isdigit()
     assert week.isdigit()
     assert 1 <= int(week) <= 53
+
+
+def test_synthesis_swallows_post_success_sdk_teardown(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A teardown exception after a success ResultMessage must not discard the
+    week's proposals. Synthesis writes its draft AFTER the SDK loop, so the old
+    early-return lost the work. Regression guard for the 2026-06-18 SDK
+    'Command failed with exit code 1' teardown error."""
+    import memory_synthesis
+
+    synthesis_dir, state_file = _seed_synthesis_env(
+        tmp_path, monkeypatch, memory_body="# MEMORY\n\nBody\n"
+    )
+
+    appended: list[str] = []
+    monkeypatch.setattr(
+        memory_synthesis,
+        "append_to_daily_log",
+        lambda content, *a, **kw: appended.append(content),
+    )
+
+    proposal_text = (
+        "### Proposal: Survives teardown\n**Type:** merge\n**Before:** a\n**After:** b\n"
+    )
+
+    import claude_agent_sdk
+
+    class _FakeResult:
+        def __init__(self) -> None:
+            self.subtype: str = "success"
+            self.total_cost_usd: float | None = None
+
+    async def _fake_query(**kwargs: Any) -> Any:
+        yield claude_agent_sdk.AssistantMessage(
+            content=[claude_agent_sdk.TextBlock(text=proposal_text)],
+            model="claude-haiku-4-5-20251001",
+        )
+        yield _FakeResult()
+        raise RuntimeError("Fatal error in message reader: Command failed with exit code 1")
+
+    monkeypatch.setattr(claude_agent_sdk, "ResultMessage", _FakeResult)
+    monkeypatch.setattr(claude_agent_sdk, "query", _fake_query)
+
+    result = asyncio.run(memory_synthesis.run_synthesis(test_mode=False, days=7))
+
+    # The week's proposals were NOT lost — the draft was written despite teardown.
+    assert result is not None and "Proposal" in result
+    draft_files = list(synthesis_dir.glob("*.md"))
+    assert len(draft_files) == 1
+    assert "### Proposal: Survives teardown" in draft_files[0].read_text(encoding="utf-8")
+
+    # No false failure logged; state recorded the draft; teardown noted as benign.
+    assert not any("synthesis failed" in c.lower() for c in appended)
+    state = json.loads(state_file.read_text(encoding="utf-8"))
+    assert state["result"] == "drafted"
+    assert "benign SDK teardown after success" in capsys.readouterr().out

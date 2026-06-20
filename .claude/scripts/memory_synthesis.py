@@ -191,6 +191,7 @@ If nothing is worth proposing, respond with exactly: SYNTHESIS_OK
 """
 
     response_text = ""
+    sdk_succeeded = False
     try:
         async for message in query(
             prompt=synthesis_prompt,
@@ -213,16 +214,26 @@ If nothing is worth proposing, respond with exactly: SYNTHESIS_OK
                         response_text += block.text
             elif isinstance(message, ResultMessage):
                 print(f"[{now_local()}] Synthesis completed: {message.subtype}")
+                if message.subtype == "success":
+                    sdk_succeeded = True
                 if message.total_cost_usd:
                     print(f"[{now_local()}] Cost: ${message.total_cost_usd:.4f}")
     except Exception as e:
-        print(f"[{now_local()}] Synthesis error: {e}")
-        append_to_daily_log(
-            f"**ERROR**: Memory synthesis failed - {e}",
-            "Synthesis",
-            "Memory Maintenance",
-        )
-        return None
+        # Benign-teardown guard (mirrors memory_reflect): the Agent SDK raises
+        # "Command failed with exit code 1" when the `claude` CLI subprocess exits
+        # non-zero AFTER a successful ResultMessage. The proposals are already in
+        # response_text by then; the draft is written below, so fall through rather
+        # than discard the week's work. Only a pre-success error is a real failure.
+        # (Regression from 2026-06-18.)
+        if not sdk_succeeded:
+            print(f"[{now_local()}] Synthesis error: {e}")
+            append_to_daily_log(
+                f"**ERROR**: Memory synthesis failed - {e}",
+                "Synthesis",
+                "Memory Maintenance",
+            )
+            return None
+        print(f"[{now_local()}] Ignoring benign SDK teardown after success: {e}")
 
     response_text = response_text.strip()
 
