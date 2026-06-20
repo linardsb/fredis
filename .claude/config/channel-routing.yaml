@@ -125,14 +125,14 @@ models:
 # channel to the legacy "everything everywhere" behaviour without a code revert.
 # Reload requires a chat-engine restart; YAML is read once at startup.
 #
-# ON (2026-06-20, Linards's security directive): per-channel scoping enforces
-# the designed least-privilege surface so sensitive channels stay locked down —
-# #legal and #finances resolve to web-research tools only (NO Bash/shell, NO
-# Gmail MCP, restricted skills; see the blocks below). It was briefly OFF earlier
-# today for blanket full access, then flipped back ON when Linards asked for
-# legal/finances to be fully secure. Side effect: unmapped channels like
-# #all-ai-agent revert from full access to the web-enabled fallback below — add
-# Bash/NotebookEdit to `tools.defaults.fallback` to re-broaden them.
+# ON (2026-06-20). Per-channel scoping is kept on so sensitive channels can be
+# hardened individually, but Fredis is fully command-capable where Linards wants
+# it: #all-ai-agent (via the full fallback) and the build channels get web +
+# Bash; #legal and #finances ALSO get Bash (Linards: "Fredis should be able to
+# run commands ... make those channels secure as much as possible") but are
+# hardened beyond a default channel — no Gmail MCP, restricted skills. With Bash
+# enabled, the real security boundary is the command guards (validate_bash_command
+# + block-dangerous-commands.py + block-secrets.py), not tool removal.
 scoping_enabled: true
 
 # Per-channel built-in tool palette. Channel name → list of tools BEYOND the
@@ -150,9 +150,14 @@ tools:
     research-policy:      [WebSearch, WebFetch]
     research-materials:   [WebSearch, WebFetch]
     marketing:            [WebSearch, WebFetch]
-    legal:                [WebSearch, WebFetch]
-    finances:             [WebSearch, WebFetch]
     competition:          [WebSearch, WebFetch]
+    # Sensitive channels: command-capable (Linards wants Fredis to run commands
+    # here) but hardened "as secure as possible" (2026-06-20) — no Gmail MCP and
+    # restricted skills (see those blocks below). Bash is protected by the same
+    # guards as everywhere: validate_bash_command + block-dangerous-commands.py
+    # block destructive commands and secret reads.
+    legal:                [WebSearch, WebFetch, Bash, NotebookEdit]
+    finances:             [WebSearch, WebFetch, Bash, NotebookEdit]
     clients:              [WebSearch, WebFetch]
     saulera:              [WebSearch, WebFetch]   # prospect/market research
     # Build channels: full palette — engineering work needs Bash + tests.
@@ -164,11 +169,12 @@ tools:
     # listed here — they hit the fallback list below (base + web, no shell).
   defaults:
     dm:        [WebSearch, WebFetch, Bash, NotebookEdit]   # universal surface
-    # Web search/fetch is the universal baseline (2026-06-20): every unmapped
-    # channel (e.g. #all-ai-agent) plus the integration/people channels get it
-    # so "research this for me" works wherever Linards chats. Bash deliberately
-    # stays OUT of fallback — shell access remains scoped to build channels + DMs.
-    fallback:  [WebSearch, WebFetch]
+    # Full palette is the universal baseline (2026-06-20): every unmapped channel
+    # (e.g. #all-ai-agent — Linards's main channel) plus the integration/people
+    # channels get web + shell, so research AND commands work wherever he chats.
+    # Bash everywhere is protected by validate_bash_command + the project
+    # block-dangerous-commands.py / block-secrets.py PreToolUse hooks.
+    fallback:  [WebSearch, WebFetch, Bash, NotebookEdit]
 
 # Per-channel MCP server mounts. Server names match keys in the engine's
 # server registry (see mcp_tools.py). Missing channel → mcp_servers.defaults.fallback.
