@@ -29,7 +29,7 @@ TL;DR — all hands-on security engineering lives here. Five layered references:
 
 ## Shared assets
 
-- `_shared/lanes.md` — lane-specific threat models (Email Hub employer-IP concerns route via `ip-overhang-guard`)
+- `_shared/lanes.md` — lane-specific threat models
 - `_shared/draft-path-convention.md`
 
 ## Advisor Mode

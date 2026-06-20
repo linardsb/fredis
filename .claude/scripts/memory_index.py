@@ -141,6 +141,21 @@ def _delete_file_chunks(db: MemoryDB, rel_path: str) -> None:
     db.delete_chunks_for_file(rel_path)
 
 
+def contextual_embed_text(rel_path: str, section_title: str, content: str) -> str:
+    """Build the embedding input for a chunk with a synthetic contextual prefix.
+
+    Situates the chunk in its source document (path + section heading) before it
+    is embedded, so the vector channel isn't blind to provenance. This is the
+    cheap, no-egress floor of Anthropic's contextual-retrieval pattern: the
+    keyword (FTS) channel already indexes ``file_path`` + ``section_title`` as
+    columns, so only the semantic channel needs this. The stored chunk
+    ``content`` stays raw — only the text handed to the embedding model is
+    prefixed. The query is embedded without a prefix (the asymmetry is by design).
+    """
+    header = f"{rel_path} > {section_title}" if section_title else rel_path
+    return f"{header}\n\n{content}"
+
+
 def index_file(
     db: MemoryDB,
     file_path: Path,
@@ -175,7 +190,10 @@ def index_file(
     if generate_embeddings:
         from embeddings import embed_batch
 
-        texts = [c.content for c in chunks]
+        texts = [
+            contextual_embed_text(rel_path, c.section_title, c.content)
+            for c in chunks
+        ]
         embeddings = embed_batch(texts)
 
     # Insert chunks and vectors

@@ -8,7 +8,11 @@ import pytest
 
 pytest.importorskip("sqlite_vec")
 
-from memory_index import chunk_markdown, sync_index  # noqa: E402
+from memory_index import (  # noqa: E402
+    chunk_markdown,
+    contextual_embed_text,
+    sync_index,
+)
 
 
 def test_chunk_empty_returns_empty_list() -> None:
@@ -40,6 +44,23 @@ def test_chunk_overlap() -> None:
     # Each chunk spans at least one line.
     for c in chunks:
         assert c.end_line >= c.start_line
+
+
+def test_contextual_embed_text_includes_path_and_section() -> None:
+    out = contextual_embed_text("drafts/sent/atis.md", "Next steps", "body text")
+    assert out == "drafts/sent/atis.md > Next steps\n\nbody text"
+
+
+def test_contextual_embed_text_omits_empty_section() -> None:
+    out = contextual_embed_text("MEMORY.md", "", "body text")
+    assert out == "MEMORY.md\n\nbody text"
+
+
+def test_contextual_embed_text_preserves_raw_content() -> None:
+    # The prefix must not mutate the chunk body — only prepend to it.
+    content = "raw chunk content\nwith newlines"
+    out = contextual_embed_text("a.md", "H", content)
+    assert out.endswith(content)
 
 
 def test_chunk_content_hash_deterministic() -> None:

@@ -4,6 +4,38 @@
 
 ---
 
+## Handoff — 2026-06-14 → for 2026-06-15 (infra / saulera / reflection state)
+
+> Separate concern from the context-management roadmap below. This is the reconciled state of the infra audit, the saulera lead-detector rollout, the reflection/synthesis loop, and the uncommitted `memory_index` change — all verified **live** on 2026-06-14. Delete this block once the open items are cleared.
+
+**Bottom line:** Fredis is fully deployed and healthy. Not blocked on Fredis — every open item is in Linards's hands.
+
+### The one trigger you're waiting on
+**Submit the saulera.com contact form** (the live lead test). The detector is built, deployed to the VPS, wired into the heartbeat, and flag-on — but has **never fired** (0 leads in 168h). It only triggers on a real email from `form@saulera.com` (subject "New enquiry"). After you submit, the next heartbeat tick (≤2h, during 05:00–20:00 UK) creates a HubSpot Review ticket + posts `[DRAFT] New saulera lead: <name>` to **#hubspot**.
+- Verify: `cd .claude/scripts && uv run python query.py hubspot queue`
+- NOTE: the old "create #saulera channel + invite bot" step is **stale/wrong** — leads route to #hubspot, no channel needed.
+
+### Verified done (2026-06-14, live)
+- Infra audit 4 gaps closed (commits `23f58a3`, `a34eb98`): lanes scan retired, VPS deploy chain restored, `pokable.ze` crontab + `ci-fallback` worktree removed.
+- Saulera detector deployed + wired + flag-on (commit `0b82e4f`). Armed, never fired.
+- Reflection loop healed: 06-13 + 06-14 08:00 runs succeeded; 21-day catch-up promoted to MEMORY.md; zero `dan_jailbreak` aborts since the fix.
+- Weekly synthesis ran today (Sun 06-14), drafted **3 proposals** → `Fredis/Memory/drafts/active/memory-synthesis/2026-W24.md` — **review these**.
+- GitHub PAT rate limit recovered (4902/5000).
+- VPS deploy chain working: local `HEAD` = `origin/main` = VPS `HEAD` = `510013f`; deploy marker refreshed via 2-min vault-sync.
+
+### Open — Linards's hands
+- [ ] **Submit saulera form** (the trigger above).
+- [ ] **Fix GitHub Actions billing** — `linardsb` account → Settings → Billing & plans. CI + Actions-deploy still dead (~3s, 0 steps = spending-limit). *Not urgent* — VPS self-deploy chain + local pre-push gate cover it.
+- [ ] **Hand-check live `.env`** (Fredis is hook-blocked from it): stray `UBSPOT` typo + dead `ASANA_*` / `MONDAY_*` keys. Run the grep on your own machine, outside the hook.
+- [ ] **Decide fate of the uncommitted `memory_index.py` change** — contextual-embedding prefix, coded + tested (9 pass, ruff/mypy clean), modified-but-unstaged. Committing only pays off after a full re-embed (`--rebuild` re-embeds the whole vault into the shared VPS Postgres over the tunnel) — a deliberate decision, not a quick commit.
+
+### Open — Fredis/me can do on go-ahead
+- [ ] Delete the stale `MONDAY_*` block from `master.env.example` (lines 69–72) — the only in-repo env residue, not hook-blocked.
+- [ ] Commit + rebuild the `memory_index.py` change — if the decision above is "go".
+- [ ] Surface the 3 synthesis proposals in `2026-W24.md`.
+
+---
+
 ## Shipped
 
 - [x] **Phase 0** — Per-channel tool / MCP / skill / model scoping (`7905b0b`, 2026-05-03)

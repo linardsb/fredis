@@ -16,7 +16,7 @@ One sentence + five Dunford bullets that name: best-fit customer, alternative so
 
 Each lane starts with a weak default that needs sharpening:
 
-- **Email Hub** (pre-IP-clearance context only) — "Workflow tool for ESPs." Too generic; every ESP vendor claims "workflow." Needs: who specifically within an ESP, what narrow workflow.
+- **Email Hub** — "Workflow tool for ESPs." Too generic; every ESP vendor claims "workflow." Needs: who specifically within an ESP, what narrow workflow.
 - **VTV** — "AI for transport." Weak — every transport RFP gets this. Needs: which decision, which operator stage, which measurable outcome.
 - **Cab** — "Bolt replacement in Riga." Weakest — competes directly on the strongest competitor's strongest territory. Needs: a named segment Bolt under-serves (drivers, specific geographic corridor, commission structure, LV-language interface, etc.).
 

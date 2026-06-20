@@ -17,7 +17,7 @@ Cut scope to the single slice that proves core value. Force the "what's the smal
 
 Pre-seeded from portfolio plan + `_shared/lanes.md`:
 
-- **Email Hub** — lovable = a MarTech dev opens one campaign and the tool saves > 2 h on the next one. (Runs only after `ip-overhang-guard` clears the lane.)
+- **Email Hub** — lovable = a MarTech dev opens one campaign and the tool saves > 2 h on the next one.
 - **VTV** — lovable = a transport planner watches the demo and says "I can show this to my director tomorrow." (B2G credibility test, not feature test.)
 - **Cab** — lovable = riders join a waitlist AND a match-simulation demo produces a plausible ride in < 10 s.
 

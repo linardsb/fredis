@@ -59,7 +59,7 @@ Live code in `.claude/scripts/gate_loader.py`:
 
 Per portfolio plan §9:
 
-- `email-hub-ip-answer.yaml` — month 2 IP answer from Merkle → paused if breached.
+- `email-hub-first-revenue.yaml` — first paying customer / signed commitment by the committed date → paused if breached (IP resolved 2026-06-16; kill criteria are revenue-based, not IP).
 - `cab-vtv-traction.yaml` — month 4 VTV B2G conversations → paused if breached.
 - `vtv-loi.yaml` — month 6 signed LOI or paid pilot → pivot or pause if breached.
 

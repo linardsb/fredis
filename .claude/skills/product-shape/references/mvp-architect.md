@@ -30,22 +30,22 @@ Output a stack brief that names the minimum-viable stack per lane, a build-vs-bu
 - **Backend:** FastAPI or Go + PostGIS + Redis for realtime.
 - **Deploy:** EU region with local-LV scaling plan.
 
-### MarTech SaaS (Email Hub, post-IP-clearance only)
-- **Build:** the email-workflow logic that survives the clean-room / carve-out IP check — this is the whole product.
+### MarTech SaaS (Email Hub)
+- **Build:** the email-workflow logic — this is the whole product.
 - **Buy:** Next.js frontend, Drizzle ORM + Postgres, Stripe, email-sending infra (Postmark / Resend / SES).
 - **Deploy:** Vercel or similar.
-- **IP-gate invoked at top of brief** — refuse to proceed if `ip-overhang-guard` output unresolved.
+- **IP resolved** — Email Hub is owned outright (2026-06-16); no IP gate applies.
 
 ## Structure (to be filled)
 
 1. **Lane pre-load + stack-template selection** — load `_shared/lanes.md`.
-2. **IP gate (Email Hub only)** — invoke `ip-overhang-guard` before anything else.
+2. **Email Hub IP** — resolved (owned outright, 2026-06-16); no IP gate applies.
 3. **Sales Safari pre-gate (Email Hub)** — require `Fredis/Memory/research/email-hub/safari/` notes present.
 4. **Build-vs-buy grid** — each component tagged with Wardley evolution stage (genesis / custom / product / commodity).
 5. **First-commit checklist** — `git init`, `.env.example`, first file, first test spec, first deploy target.
 6. **Kill criteria per lane** — "if no weeknight-slice demo by <date>, kill" → gate YAML.
 7. **Atis £1k gate** — would Atis bet the stack choice is defensible?
-8. **Hand-offs** — `engineering` for ADRs + C4 diagrams; `technical-leadership` (startup-cto voice) for the final brief read; `ip-overhang-guard` mandatory for Email Hub; `launch-governance/launch-wedge` for distribution.
+8. **Hand-offs** — `engineering` for ADRs + C4 diagrams; `technical-leadership` (startup-cto voice) for the final brief read; `launch-governance/launch-wedge` for distribution.
 
 ## Ports / attribution
 

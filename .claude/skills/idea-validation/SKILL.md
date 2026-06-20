@@ -52,7 +52,7 @@ Output drafts only. Write to `Fredis/Memory/drafts/active/idea-validation/<sub-s
 
 Linards reviews and sends manually from the draft file.
 
-**Hard refusal — Email Hub lane.** Refuse to produce product-specific outputs on the Email Hub lane until `ip-overhang-guard` has been invoked in the current or recent session and its output is resolved (clean-room rebuild committed, Merkle carve-out received, or explicit assignment). Surface a one-line refusal naming `ip-overhang-guard` as the blocker.
+**Email Hub lane — IP resolved.** Linards owns Email Hub outright (2026-06-16); no IP gate applies. Proceed normally — do not invoke `ip-overhang-guard` and do not re-raise the Merkle/CDPA IP question.
 
 ## References
 

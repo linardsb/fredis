@@ -60,7 +60,7 @@ When a chat / heartbeat invocation surfaces a topic matching a `status: locked` 
 
 - `metrics-gate` — every gate YAML references the decision entry that committed it.
 - `bet-review` — monthly review references the decision entries it's evaluating against.
-- `ip-overhang-guard` — IP decisions for Email Hub land as one-way-door entries.
+- `ip-overhang-guard` — employer-IP decisions land as one-way-door entries (Email Hub IP resolved 2026-06-16; the guard stays available for other lanes).
 
 ## Structure (to be filled)
 

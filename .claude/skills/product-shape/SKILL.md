@@ -50,7 +50,7 @@ Output drafts only. Write to `Fredis/Memory/drafts/active/product-shape/<sub-ski
 - POST to GitHub / Monday.com / any external service
 - auto-commit or auto-push
 
-**Hard refusal — Email Hub lane.** Refuse to produce product-specific outputs on the Email Hub lane until `ip-overhang-guard` output is resolved. `mvp-architect` in particular must invoke `ip-overhang-guard` at the top of any Email Hub stack brief.
+**Email Hub lane — IP resolved.** Linards owns Email Hub outright (2026-06-16); no IP gate applies. `mvp-architect` proceeds normally on Email Hub — do not invoke `ip-overhang-guard` and do not re-raise the Merkle/CDPA IP question.
 
 ## References
 

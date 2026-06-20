@@ -18,7 +18,7 @@ Runs after `idea-validation` + `product-shape` clear. The launch-governance chai
 - **Chris-Lori voice** — `_shared/chris-lori-voice.md`. Bet-review verdicts use Lori rhythm.
 - **Draft path convention** — `_shared/draft-path-convention.md`.
 - **Portfolio kill triggers (pre-seeded 2026-04-19):**
-  - Email Hub — no IP answer by end of month 2 → paused.
+  - Email Hub — first-revenue / commitment based (IP resolved 2026-06-16; no longer IP-gated).
   - Cab — no VTV B2G conversations by end of month 4 → paused.
   - VTV — no signed LOI or paid pilot discussion by end of month 6 → pivot or pause.
 
@@ -47,7 +47,7 @@ Output drafts only. Write to `Fredis/Memory/drafts/active/launch-governance/<sub
 - POST to GitHub / Monday.com / any external service
 - auto-commit or auto-push
 
-**Hard refusal — Email Hub launch-wedge:** refuse to emit a wedge plan for the Email Hub lane until `ip-overhang-guard` output is resolved. The kill trigger already captured in `metrics-gate` for Email Hub (month 2 IP gate) is the canonical lever here — surface breaches, don't design launches.
+**Email Hub launch-wedge — IP resolved.** Linards owns Email Hub outright (2026-06-16); no IP gate applies. Design wedge plans for Email Hub normally; kill criteria are revenue / commitment based, not IP. Do not re-raise the Merkle/CDPA IP question.
 
 ## References
 

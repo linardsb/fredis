@@ -17,11 +17,11 @@ First-10-users plan tied to a specific channel hypothesis. Forces distribution c
 ## Structure (to be filled)
 
 1. **Lane pre-load** — `_shared/lanes.md` + portfolio-plan §5 for distribution context.
-2. **19-channel Bullseye starter** — lane-specific seed (VTV: B2G direct ops + LPV + EU transport-innovation grants; Cab: two-sided cold launch from LV driver network + rider waitlist; Email Hub: deferred pending IP).
+2. **19-channel Bullseye starter** — lane-specific seed (VTV: B2G direct ops + LPV + EU transport-innovation grants; Cab: two-sided cold launch from LV driver network + rider waitlist; Email Hub: targeted outbound to UK/EU agencies + ESPs + warm MarTech network).
 3. **Named-humans contract** — 10-row table. Real name, real role, real channel (email / LinkedIn / phone / personal intro), real next action.
 4. **Do-things-that-don't-scale tactics** — e.g., concierge onboarding, personal handoff, manual service behind a UI stub.
 5. **Pre-code gate** — every wedge draft ends with `wedge_committed_at: <date>` — `metrics-gate` reads this date when setting the kill-by timeline.
-6. **IP-overhang hard refusal** — `ip-overhang-guard` for Email Hub lane before any wedge draft emits.
+6. **Email Hub IP** — resolved (owned outright, 2026-06-16); no IP gate, wedge drafts proceed normally.
 7. **Atis £1k gate** — would Atis bet £1k that this specific 10-named table converts ≥ 2 in 4 weeks?
 8. **Hand-off** — "Next: `metrics-gate` — commit the breach gate on wedge performance."
 

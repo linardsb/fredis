@@ -12,22 +12,19 @@ Source: `docs/product-portfolio-plan.md` §5 + §9, `Fredis/Memory/MEMORY.md` §
 
 - **Category:** B2B MarTech / SaaS (commercial model still TBD — SaaS vs one-off-sale)
 - **Market:** UK + EU agencies, ESPs, CMSs; Merkle/Dentsu-adjacent mid-market as warm segment
-- **Stage:** MVP / pitching (paused)
+- **Stage:** ~95% built, ship-first (active — chosen over VTV, decided 2026-06-16)
 - **Warm-network contacts:** Tim Jackson (Walking Ventures, 2018 context), Gavin Hughes (Ometria — conflict node, keep warm, keep boundary clean)
 - **Sensitive segment / conflict:** Ometria (email-tech peer) — never source recent internal details for pitches
-- **IP-gate status (BLOCKING):** UK CDPA 1988 s.11(2) + Patents Act 1977 s.39 overhang. Built outside
-  Merkle hours but scope + department-head instruction test likely failed. No product-specific work
-  until `ip-overhang-guard` output is resolved (Merkle written carve-out, clean-room rebuild, or
-  explicit assignment).
-- **Kill trigger:** no IP answer from Merkle by end of month 2 → paused indefinitely (agreed 2026-04-19).
-- **Skill hand-off rule:** every `idea-validation`, `product-shape`, `launch-governance` invocation on
-  Email Hub MUST call `ip-overhang-guard` first. Refuse to emit product artefacts while IP-gate open.
+- **IP status:** RESOLVED — Linards owns Email Hub outright (2026-06-16, post-Merkle redundancy). No
+  employer-IP overhang; the prior CDPA/Patents Act gate is cleared. Do not re-raise the Merkle/CDPA IP question.
+- **Kill criteria:** first-revenue / commitment based — set in `.agent/plans/email-hub-product-plan.md` (no longer IP-gated).
+- **Skill hand-off rule:** Email Hub IP is resolved — no `ip-overhang-guard` gate applies; proceed normally.
 
 ## Lane 2 — VTV (B2G public-transport optimisation, Latvia)
 
 - **Category:** B2G (public-sector contract)
 - **Market:** Riga municipality + LV transport operators (Rīgas Satiksme + regional); EU transport-innovation funding as secondary
-- **Stage:** MVP / inbound LPV warm interest (**ships first**)
+- **Stage:** MVP / inbound LPV warm interest (parked — Email Hub ships first, 2026-06-16)
 - **Warm-network contacts:** Šlesers (ex-Transport Minister), Krištopans, wider LPV network; Atis Vīķis (cousin, LV technical partner), Juris Ņefedovs (LV partner)
 - **Distribution caveat:** LPV channel is an accelerator, not a foundation. Must work without LPV influence.
 - **Regulatory layer:** EU Regulation 1370/2007 (public passenger transport services), LV Public Transport Act; procurement rules apply.
@@ -50,7 +47,7 @@ Source: `docs/product-portfolio-plan.md` §5 + §9, `Fredis/Memory/MEMORY.md` §
 
 ## Cross-lane rules
 
-- **VTV first, Cab second, Email Hub gated on IP** — sequencing locked 2026-04-19 (MEMORY.md).
+- **Email Hub ship-first** — IP resolved, ~95% built, decided 2026-06-16. VTV parked (keep LV relationships — Atis, Juris, LPV leads — warm); Cab after VTV.
 - **Paused lanes are paused, not backlogged** — UGOKI, GERBONI, agri×AI, robotics, mycelium, 3d-printing are out of scope for `idea-validation` / `product-shape` / `launch-governance` invocations until a paid-user signal unlocks one.
 - **UK + LV dual-identity positioning is the moat** — MarTech veteran + Latvian-native + AI-agentic build. Skills should surface this where applicable.
 

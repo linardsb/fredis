@@ -7,7 +7,7 @@
 Given a product lane, produce a structured read of:
 - **Category shape** — who's in it, at what stage, with what funding.
 - **Gap hypothesis** — where an underserved segment / unmet job sits.
-- **Regulatory + macro frame** — STEEP-P layer specific to the lane (VTV: EU Reg 1370/2007 + LV Public Transport Act; Cab: EU Mobility Package + LV Road Traffic Law; Email Hub: UK CDPA s.11(2) + Patents Act s.39 — invokes `ip-overhang-guard`).
+- **Regulatory + macro frame** — STEEP-P layer specific to the lane (VTV: EU Reg 1370/2007 + LV Public Transport Act; Cab: EU Mobility Package + LV Road Traffic Law).
 
 Output: one draft at `Fredis/Memory/drafts/active/idea-validation/market-landscape-scan/YYYY-MM-DD-<lane>-scan.md` ending with the Atis-£1k gate + one pre-committed gate YAML for `Fredis/Memory/gates/<lane>.yaml`.
 
