@@ -124,7 +124,13 @@ models:
 # Per-channel scoping (tools / MCP / skills). Set `false` to revert every
 # channel to the legacy "everything everywhere" behaviour without a code revert.
 # Reload requires a chat-engine restart; YAML is read once at startup.
-scoping_enabled: true
+#
+# OFF since 2026-06-20 (Linards's directive): every channel gets the full tool
+# palette (incl. Bash), every skill, and every MCP server — "full access in all
+# channels". The per-channel `tools:`/`mcp_servers:`/`skills:` blocks below are
+# IGNORED while this is false; they're kept intact so flipping back to `true`
+# restores the granular model exactly as it was. To re-scope, set this `true`.
+scoping_enabled: false
 
 # Per-channel built-in tool palette. Channel name → list of tools BEYOND the
 # always-on base palette (Read, Write, Edit, Glob, Grep, Skill — every channel
@@ -151,11 +157,15 @@ tools:
     vtv:                  [WebSearch, WebFetch, Bash, NotebookEdit]
     cab-app:              [WebSearch, WebFetch, Bash, NotebookEdit]
     github:               [WebSearch, WebFetch, Bash]
-    # Integration channels (gmail/calendar/hubspot/g-*) and partners get
-    # base only — they hit the fallback list below.
+    # Integration channels (gmail/calendar/hubspot/g-*) and partners are not
+    # listed here — they hit the fallback list below (base + web, no shell).
   defaults:
     dm:        [WebSearch, WebFetch, Bash, NotebookEdit]   # universal surface
-    fallback:  []                                          # base palette only
+    # Web search/fetch is the universal baseline (2026-06-20): every unmapped
+    # channel (e.g. #all-ai-agent) plus the integration/people channels get it
+    # so "research this for me" works wherever Linards chats. Bash deliberately
+    # stays OUT of fallback — shell access remains scoped to build channels + DMs.
+    fallback:  [WebSearch, WebFetch]
 
 # Per-channel MCP server mounts. Server names match keys in the engine's
 # server registry (see mcp_tools.py). Missing channel → mcp_servers.defaults.fallback.

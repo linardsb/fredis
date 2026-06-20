@@ -6,7 +6,7 @@
 # Triggers (each independent, evaluated against the diff of the pulled range):
 #   - .claude/scripts/pyproject.toml | uv.lock            -> uv sync
 #   - .claude/scripts/schedule/*.service | *.timer        -> re-render into /etc/systemd/system, daemon-reload
-#   - .claude/chat/*.py | .claude/scripts/chat*           -> systemctl restart secondbrain-chat.service
+#   - .claude/chat/*.py | .claude/scripts/chat* | .claude/config/channel-routing.yaml -> systemctl restart secondbrain-chat.service
 #
 # Exit non-zero on any step failure; a concurrent invocation aborts via flock.
 
@@ -99,8 +99,8 @@ if matches '^\.claude/scripts/schedule/.*\.(service|timer)$'; then
     systemctl daemon-reload
 fi
 
-if matches '^(\.claude/chat/.*\.py|\.claude/scripts/chat.*)$'; then
-    log "chat code changed -> restart secondbrain-chat.service"
+if matches '^(\.claude/chat/.*\.py|\.claude/scripts/chat.*|\.claude/config/channel-routing\.yaml)$'; then
+    log "chat code/config changed -> restart secondbrain-chat.service"
     systemctl restart secondbrain-chat.service
 fi
 
