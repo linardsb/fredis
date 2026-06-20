@@ -206,19 +206,24 @@ def list_emails(
 
 
 def get_unread_count() -> int:
-    """Get count of unread emails in inbox."""
+    """Get count of unread emails in the inbox.
+
+    Reads the INBOX label's exact ``messagesUnread`` field rather than trusting
+    a search query's ``resultSizeEstimate``, which Gmail inflates badly at small
+    page sizes (it returned 201 for a true count of 8 at ``maxResults=1``).
+    """
     service = get_gmail_service()
 
-    result: dict[str, Any] = with_retry(
+    label: dict[str, Any] = with_retry(
         lambda: (
             service.users()
-            .messages()
-            .list(userId="me", q="is:unread in:inbox", maxResults=1)
+            .labels()
+            .get(userId="me", id="INBOX")
             .execute()
         )
     )
 
-    count: int = result.get("resultSizeEstimate", 0)
+    count: int = label.get("messagesUnread", 0)
     return count
 
 
