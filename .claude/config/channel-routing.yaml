@@ -125,12 +125,15 @@ models:
 # channel to the legacy "everything everywhere" behaviour without a code revert.
 # Reload requires a chat-engine restart; YAML is read once at startup.
 #
-# OFF since 2026-06-20 (Linards's directive): every channel gets the full tool
-# palette (incl. Bash), every skill, and every MCP server — "full access in all
-# channels". The per-channel `tools:`/`mcp_servers:`/`skills:` blocks below are
-# IGNORED while this is false; they're kept intact so flipping back to `true`
-# restores the granular model exactly as it was. To re-scope, set this `true`.
-scoping_enabled: false
+# ON (2026-06-20, Linards's security directive): per-channel scoping enforces
+# the designed least-privilege surface so sensitive channels stay locked down —
+# #legal and #finances resolve to web-research tools only (NO Bash/shell, NO
+# Gmail MCP, restricted skills; see the blocks below). It was briefly OFF earlier
+# today for blanket full access, then flipped back ON when Linards asked for
+# legal/finances to be fully secure. Side effect: unmapped channels like
+# #all-ai-agent revert from full access to the web-enabled fallback below — add
+# Bash/NotebookEdit to `tools.defaults.fallback` to re-broaden them.
+scoping_enabled: true
 
 # Per-channel built-in tool palette. Channel name → list of tools BEYOND the
 # always-on base palette (Read, Write, Edit, Glob, Grep, Skill — every channel
