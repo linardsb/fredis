@@ -139,6 +139,28 @@ def check_injection_patterns(text: str) -> list[tuple[str, str]]:
     return flags
 
 
+def neutralize_boundary_tags(text: str) -> str:
+    """HTML-escape any ``<external_data>`` boundary tags embedded in CONTENT.
+
+    Turns ``</external_data>`` into ``&lt;/external_data>`` (opening tags too) so
+    a tag appearing *inside* data — a logged wrapper block, or prose that quotes
+    the tag while discussing this guardrail — can neither close the real trust
+    boundary added later by ``wrap_external_data()`` nor false-trigger the
+    ``xml_escape_attempt`` pattern. Unlike ``escape_markdown_structure()`` it
+    touches only the boundary tag (headings / code fences are left intact), so it
+    is safe to run over a whole daily-log bundle before the synthesis/reflection
+    loops scan and wrap it. With the tag neutralised those loops no longer need
+    to hard-abort on a benign mention; genuine injection-intent still matches.
+    Idempotent: an already-escaped ``&lt;`` tag has no ``<`` left to match.
+    """
+    return re.sub(
+        r"</?\s*external_data[^>]*>",
+        lambda m: m.group().replace("<", "&lt;"),
+        text,
+        flags=re.IGNORECASE,
+    )
+
+
 # =============================================================================
 # MARKDOWN STRUCTURE ESCAPING
 # =============================================================================
@@ -157,12 +179,7 @@ def escape_markdown_structure(text: str) -> str:
     # Escape code fences that could break out of data context
     text = text.replace("```", r"\`\`\`")
     # Escape XML-like tags that could close our trust boundary
-    text = re.sub(
-        r"</?\s*external_data[^>]*>",
-        lambda m: m.group().replace("<", "&lt;"),
-        text,
-        flags=re.IGNORECASE,
-    )
+    text = neutralize_boundary_tags(text)
     return text
 
 

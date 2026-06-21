@@ -40,7 +40,12 @@ from config import (
     now_local,
 )
 from notifications import send_loop_failure_alert
-from sanitize import TRUST_BOUNDARY_INSTRUCTION, check_injection_patterns, wrap_external_data
+from sanitize import (
+    TRUST_BOUNDARY_INSTRUCTION,
+    check_injection_patterns,
+    neutralize_boundary_tags,
+    wrap_external_data,
+)
 from shared import append_to_daily_log, file_lock, load_state, save_state, validate_bash_command
 
 # SOUL.md write-protection is enforced by the standalone PreToolUse hook
@@ -329,6 +334,12 @@ async def _run_reflection_inner(test_mode: bool = False, days: int = 1) -> str |
     for date_str, content in logs:
         log_sections.append(f"### Daily Log: {date_str}\n\n{content}")
     log_context = "\n\n---\n\n".join(log_sections)
+
+    # Neutralise embedded <external_data> tags before the check + wrap (mirror of
+    # memory_synthesis): escaping makes the trust boundary tamper-proof, so a
+    # benign tag mention in the logs no longer hard-aborts reflection; genuine
+    # injection-intent patterns still abort below.
+    log_context = neutralize_boundary_tags(log_context)
 
     # Memory-read defense: route daily-log content through the injection
     # pipeline BEFORE it reaches the reflection prompt. If a known pattern

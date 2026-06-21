@@ -32,7 +32,12 @@ from config import (
     now_local,
 )
 from notifications import send_loop_failure_alert
-from sanitize import TRUST_BOUNDARY_INSTRUCTION, check_injection_patterns, wrap_external_data
+from sanitize import (
+    TRUST_BOUNDARY_INSTRUCTION,
+    check_injection_patterns,
+    neutralize_boundary_tags,
+    wrap_external_data,
+)
 from shared import append_to_daily_log, file_lock, load_state, save_state
 
 MAX_LOG_CHARS_TOTAL = 40_000
@@ -109,6 +114,13 @@ async def _run_synthesis_inner(test_mode: bool, days: int) -> str | None:
     log_bundle = "\n\n---\n\n".join(log_sections)
     if len(log_bundle) > MAX_LOG_CHARS_TOTAL:
         log_bundle = "... (truncated)\n\n" + log_bundle[-MAX_LOG_CHARS_TOTAL:]
+
+    # Neutralise any <external_data> tags embedded in the logs (logged wrapper
+    # blocks, or notes that quote the tag while discussing this guardrail) BEFORE
+    # the check + wrap: escaping makes the trust boundary tamper-proof, so a
+    # benign mention no longer hard-aborts the pass — the 2026-06-14 → 06-21
+    # xml_escape_attempt false-positive. Genuine injection-intent still aborts.
+    log_bundle = neutralize_boundary_tags(log_bundle)
 
     # Memory-read defense: abort on pattern match in the log bundle. Identical
     # to the reflection policy — suspicious-only content still proceeds via the
