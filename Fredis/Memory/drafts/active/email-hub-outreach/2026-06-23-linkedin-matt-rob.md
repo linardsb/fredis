@@ -3,11 +3,15 @@ skill: email-hub-outreach
 lane: email-hub
 created: 2026-06-23
 status: draft
+send_target: 2026-07-07
 ---
 
 # Email Hub — Warm LinkedIn Outreach (Matt Heffer + Rob Lord)
 
 Channel: LinkedIn DM (both). Advisor-mode — Linards sends manually. Voice: direct, warm, no corporate.
+
+**Send target: ~2026-07-07** (≈2 weeks out). Linards is finishing work on Email Hub / the landing page
+first — verify https://email-hub.saulera.com/ is live and ready before sending. Reminder set for that date.
 
 ## 1. Matt Heffer (Merkle — Martech Solutions / Product / AI / Data / Strategy & Enablement) — FOLLOW-UP
 
@@ -16,7 +20,8 @@ This is a light nudge that lowers the bar to respond and pivots toward his real 
 boutique/independent agency world. Matt is a sitting Merkle VP, so a personal buy is unlikely; his network
 + read are the prize, and his silence probably reflects "not a personal buy" rather than no interest.
 
-> Hey Matt — following up on the Email Hub overview I sent (no stress, I know how the weeks go).
+> Hey Matt — following up on the Email Hub overview I sent. Here's the live version if it's easier to
+> skim: https://email-hub.saulera.com/ — no stress, I know how the weeks go.
 >
 > No need for a full review — even a one-line gut reaction would be useful. And the thing I'd most value:
 > do you know any independent or boutique agencies drowning in the cross-client, cross-ESP build-and-QA
@@ -45,7 +50,7 @@ render engine an ESP could embed), NOT "I built a competitor."
 >
 > I've gone independent since Merkle and built Email Hub — an agentic, production-grade email build tool:
 > describe an email, get pixel-clean HTML that renders right across Outlook, dark mode, the lot, and deploys
-> cleanly to any ESP.
+> cleanly to any ESP. Have a look: https://email-hub.saulera.com/
 >
 > Reason I'm reaching out to you specifically: I suspect there's a fit with Ometria — if not the whole thing,
 > then maybe the build / rendering engine as a component your side could use. Might be off-base, but you're
