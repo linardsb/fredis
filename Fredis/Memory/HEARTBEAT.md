@@ -56,6 +56,7 @@ Flag anything unusual:
 - [ ] Tim Jackson follow-up window check (10 business days after last touch — see MEMORY.md)
 - [ ] Šlesers / Krištopans threads — any silence approaching unhealthy?
 - [ ] Any inbound on Email Hub or VTV worth fast-tracking?
+- [ ] **One-off reminder (active 2026-07-07 → 2026-07-11): Email Hub warm DMs ready to send.** Nudge Linards (Slack) to send the Matt Heffer + Rob Lord LinkedIn DMs — draft at `drafts/active/email-hub-outreach/2026-06-23-linkedin-matt-rob.md` — once `https://email-hub.saulera.com/` is live. He asked on 2026-06-23 for a ~2-week reminder (finishing the landing page first). Remove this line once sent.
 
 ### Research Lanes (1× daily during morning brief)
 - [ ] Scan primary sources per `Fredis/Memory/research/{markets,policy,ai,robotics,materials,agriculture}/` lanes
