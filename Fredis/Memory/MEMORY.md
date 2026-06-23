@@ -148,12 +148,14 @@ _(No upcoming events currently tracked.)_
 
 ## Research Lanes (active intent — see folders under `Fredis/Memory/research/`)
 
-- **AI / agentic engineering** — frontier-tracking for consultancy positioning
-- **Markets & finance** — UK + LV + AR; commodity cycles feed VTV and personal portfolio
-- **Public-sector policy & legislation** — UK + LV + EU + AR; gap-spotting for business opportunities
-- **AI in agriculture** (★ year-end deep-understanding goal) — UK SFI / EU CAP via LV / AR export regime; mid-market 200–2000 ha sweet spot
-- **AI robotics** (passive, prospective service line)
-- **Materials / industrial innovation** (passive) — sub-lanes: `mycelium/` (bio-materials, packaging, building, agri crossover), `3d_printing/` (additive manufacturing, consumer + industrial hardware, materials-science plays)
+- **AI / agentic engineering** — frontier-tracking for consultancy positioning; sub-topics: multi-agent orchestration, coding agents, AI evals, context / harness / intent engineering, RAG, MCP, vertical AI for SMBs, local / on-device LLMs, agent reliability
+- **Markets & finance** — UK + LV + AR; commodity supercycle, sector rotation, debt cycle, Fed policy, macro cycles feed VTV and personal portfolio
+- **Public-sector policy & legislation** — UK + LV + EU + AR; AI governance / AI policy / EU tech regulation; gap-spotting for business opportunities
+- **AI in agriculture** (★ year-end deep-understanding goal) — UK SFI / EU CAP via LV / AR export regime; mid-market 200–2000 ha sweet spot; regenerative agriculture, farm robotics, precision fermentation / alt-protein crossover
+- **AI robotics** (passive, prospective service line) — humanoids, embodied / physical AI, robot learning, robotics foundation models
+- **Materials / industrial innovation** (passive) — sub-lanes: `mycelium/` (bio-materials, mushroom leather, biofabrication, packaging, building, agri crossover), `3d_printing/` (additive manufacturing, consumer + industrial hardware, materials-science plays)
+- **Investing / compounding** — long-term wealth building: compound interest, dividend growth, index funds, dollar-cost averaging, value investing, financial independence (distinct from the tactical Markets & finance lane above)
+- **Building a business / solo-founder** — building in public, indie hacking, bootstrapped one-person business, AI automation agency
 
 ## Open Watch Items
 

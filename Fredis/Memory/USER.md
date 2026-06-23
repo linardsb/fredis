@@ -24,7 +24,8 @@
 ### Content Calendar
 - **Cadence:** weekly
 - **Channels active or planned:** LinkedIn, YouTube, X, Nate's Newsletter (https://natesnewsletter.substack.com/)
-- **Topics he wants to write about:** AI and agriculture, AI agents, building business, mycelium / bio-materials, 3D printing / additive manufacturing
+- **Topics he wants to write about:** AI agents & agentic engineering (incl. harness / intent engineering, AI evals, context engineering, local / on-device LLMs, vertical AI for SMBs), AI in agriculture, building a business / solo-founder, investing & compound interest, AI robotics, mycelium / bio-materials, 3D printing / additive manufacturing
+- **X accounts to follow (signal sources; for the planned X scan):** @humanlayer_dev, @dexhorthy, @karpathy, @huggingface, @julien_c, @DanielMiessler, @IndyDevDan, @DaveShapi, @RodmanAi, @romanyam, @shanaka86, @MikushRab, @tricalt, @AIandDesign, @addyosmani, @garrytan, @kevinrose, @jasonfried, @ryancarson, @sdianahu, @Mycosoft, @ForgeCAD, @42Macro, @DariusDale42, @MacroVoices, @LynAldenContact, @DavidSacks
 
 ## Working Style
 
