@@ -1,0 +1,9 @@
+lane: email-hub
+metric: first_paid_pilot_commitment
+threshold: ">=2 boutique/independent agencies commit to a paid pilot (>=£1,500 deposit OR >=£500/mo), with >=1 naming agency-multi-client / white-label (not craft alone) as the reason. Commitment = money/time/intro, not 'interested'."
+deadline: 2026-07-21
+observable_source: 'Fredis/Memory/drafts/sent/ (outbound pilot asks) + Fredis/Memory/MEMORY.md §Active Projects (Email Hub commitments) + HubSpot Fredis Review pipeline (if HUBSPOT_TICKETS_ENABLED)'
+pre_committed_at: 2026-06-23
+status: open
+rationale: "Step-1 pricing scan (2026-06-23): thesis is that boutique/independent agencies pay a flat ~£600/mo licence for AGENCY-NATIVE PACKAGING (multi-client workspaces + white-label + ESP-portability + production craft). The cutting-edge competitor pass shows the craft+portability bundle now ships at $29-79/mo (Postdrop, shipping, ex-Mailgun/OneSignal) and a $4.5M-seed entrant (Kombai) is already courting agencies -- so the moat is agency-packaging + SPEED, not craft, and the test must run fast. 4-week clock from the 2026-06-23 candidate-list unblock. BREACH ACTION if fired: re-test the SAME pitch at mid-market full-service agencies (where the FTE-labour math lands), OR drop the monthly anchor toward the £390 Dyspatch / few-Postdrop-seats line, before building more last-5% infra. A non-start by the deadline is itself a signal the lane isn't the real priority. Log the decision in launch-governance/decision-logger."
+invalidator: ">=2 paid-pilot commitments (>=£1,500 deposit or >=£500/mo) with >=1 citing multi-client/white-label as the reason closes the gate -> boutique-flat-licence thesis holds; proceed to Step 4 (product-shape/pricing-shaper) for the pricing lock."
