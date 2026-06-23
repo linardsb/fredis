@@ -17,6 +17,82 @@ agencies. Model anchor = flat £/agency/mo. Lead-job steer = ESP-portability hea
 
 ---
 
+## ⚠ MATERIAL UPDATE (2026-06-23) — cutting-edge scan shrinks the white space
+
+A second pass for *emerging / AI-native* competitors (the established-player matrix below missed them)
+changes the headline conclusions. **§7 (white-space), §9 (lead-job), and the Atis gate are superseded by
+this block.** Bluntly: the earlier "craft is the un-copyable axis, the overlap is empty" read was wrong — it
+only held because the first scan looked at incumbents, not 2025–26 startups.
+
+### Cutting-edge / emerging direct competitors
+
+| Tool | Stage | Agentic BUILD? | Cross-ESP portability | Craft (proof) | Price | Buyer | Threat |
+|---|---|---|---|---|---|---|---|
+| **Postdrop** (postdrop.io) | Shipping; ex-Mailgun/OneSignal founders | **Yes — prompt→HTML** | **8 named ESPs** (Mailchimp, HubSpot, Klaviyo, Customer.io, SendGrid, OneSignal, Mailgun, Campaign Monitor) | **Verified** (live cross-client + dark-mode) | **$29 / $79/mo** | Dev + marketer | **HIGH — closest, cheap, shipping** |
+| **Kombai for Email** (kombai.com/email) | **$4.5M seed (2023)** | Yes — **Figma→HTML** (not prompt) | "send to your ESP" — none named | **Verified** (25+ render tests) | ~$20–100 *(est)* | Designer/dev + **explicitly agencies** | **HIGH — only one courting agencies** |
+| **Framix skill** (GitHub, MIT) | OSS, early | **Yes — Claude Code skill → MJML+HTML** | tag-preserving SendGrid/SES/Postmark; paste-any | **Engine-verified** (MJML, Outlook 2013–365, dark-mode) | Free | Developer | Med — *architecturally identical to Email Hub's own approach* |
+| **PromptMail** (promptmail.dev) | **Waitlist** | Yes — MJML + **self-healing render loop** | none named | **Engine-verified** | n/d | Dev/platform (embed) | Med — not shipping yet |
+| **EmailTemple** (emailtemple.com) | Shipping | Yes — chat→HTML | **native per-ESP merge-tags** (Mailchimp/MailerLite/ActiveCampaign live) | ESP-safe (no engine named) | $19 / $59/mo | Brand/SMB | Med — different portability vector |
+| **Brew** (brew.new) | Shipping; **#1 Product Hunt May '26** | Yes — full agentic | "export to your ESP" — none named | **Asserted only** | Free *(est)* | Brand/SMB | Med — loud story, thin proof |
+| _Thinner:_ Migma, mjml.ai, Grapes Studio AI, Vibemail, MailUi, Sequenzy, EmailCanvas | shipping/indie | Yes (MJML-gen) | paste-any | engine-implicit → asserted | freemium | dev/SMB | Low |
+
+### Revised white-space (supersedes §7)
+The craft + agentic overlap is **no longer empty** — Postdrop, Kombai, Framix and PromptMail collectively
+occupy ~70–80% of it. **Postdrop proves agentic-build + verified dev-grade craft + named cross-ESP
+portability ships TODAY at $29–79/mo.** So "craft is the un-copyable axis" is **false**. The wedge that
+survives is narrower, and it is a **packaging / GTM moat, not a tech-craft moat**:
+
+> **Agency-native packaging of agentic-build + craft + portability** — multi-client workspaces, white-label
+> client deliverables, per-client-ESP isolation, flat licence. No shipping tool owns this: Postdrop is
+> single-user dev/marketer; Kombai is Figma-input and names no ESPs; Brew has no agency layer. **Kombai is
+> the nearest** (funded + courting agencies) and is ~one product cycle from closing it.
+
+### Revised lead-job (supersedes §9)
+"Author once → deploy to any ESP" is **now table stakes** (Postdrop does exactly that at $29–79). The
+differentiated lead-job has to foreground the **agency-multi-client** dimension:
+
+> *"Run every client's email from one place — each on their own ESP, each white-labelled, each pixel-clean —
+> without re-coding per client or per ESP."*
+
+Hook = **multi-client operations** (what an agency has and Postdrop/Kombai's single-user tools don't serve).
+Craft + portability are now the **table stakes you must match**, not the differentiator.
+
+### Revised pricing note (refines §8)
+Postdrop ($29–79) and Kombai (~$20–100) now sit in the boutique's reflex-anchor set alongside Stripo ($95)
+and Dyspatch (£390). The **£600/mo flat agency licence must be justified entirely by the agency layer**
+(unlimited seats + per-client workspaces + white-label + flat billing) that none of them offer — a boutique
+would otherwise buy a few Postdrop seats at <£200 total. Hold £600 as the test anchor, but treat a fast
+"too expensive vs Postdrop" as the signal to either sharpen the agency story or drop toward **£350–450**.
+
+### Revised Atis gate (supersedes the §Atis block below)
+- **Verdict: No — harder than the first read.** The space went from "empty craft overlap" to "agency
+  packaging of an already-contested bundle." Atis's line: *Postdrop ships your headline feature at a tenth
+  of your price; your bet is now that boutiques pay 8–20× for the multi-client wrapper, and that you ship
+  that wrapper before Kombai (funded) or Postdrop bolt it on. That's a speed + packaging bet, not a craft moat.*
+- **Flips to a bet when:** (1) ≥2 agencies commit to a paid pilot AND name *multi-client / white-label* (not
+  craft) as the reason; AND (2) the last-5% (multi-tenant + billing — the wrapper that now IS the moat) has a
+  credible <6-week ship plan.
+
+### Prospect shortlist for Step 2 (Q-H — found online; cull to 5–8)
+Boutique/independent, multi-ESP, craft-sensitive. UK/EU first; strong US noted.
+
+| Lead with | HQ | ESPs | Why | Contact |
+|---|---|---|---|---|
+| **Enchant Agency** ⭐ | London | Klaviyo, Braze, Iterable, SFMC, HubSpot | Bullseye — multi-ESP + HTML builds + AI-forward + 10–19 ppl + independent | Founder Philip Storey · enchantagency.com |
+| **Scalero** | SF (remote) | Customer.io, Klaviyo, Braze, Iterable | Multi-ESP **and hand-codes Liquid/Jinja** — feels the cross-ESP pain | Cebulla & Pearson · scalero.io |
+| **WeDoCRM** | London | Braze, Iterable, SFMC, Klaviyo, +more | Runs ESP **migrations** — lives the portability pain daily | wedocrm.co |
+| **CodeCrew** | Concord, CA | Braze, Klaviyo, SFMC, Sailthru, HubSpot | Pure email-production house, multi-ESP, <50 | codecrew.us · Alex Marin |
+| **Growth Syndikat** | London/EU | **Braze-first** | Independent EU/London Braze specialists | growth-syndikat.com |
+| **Propel** | NY + Bengaluru | **Braze** + Customer.io | Braze + **most AI-forward** (matches the agentic angle) | trypropel.ai |
+| **Stitch** *(flag: ~110, >50)* | Indianapolis (UK presence) | **Braze** (top tier) | Canonical Braze shop; builds custom Braze tooling = tool-buyer mindset | Burton & Tichy · stitch.cx |
+
+Second wave / hold: **Enfold** (EU, small, multi-ESP); **Get Better**, **Charle** (UK, Klaviyo-only —
+portability pitch weak); **Mavlers / Email Uplers** (150+, sharpest author-once/multi-ESP fit but not
+boutique — approach as a scaled design-partner). Excluded after diligence: Byte (Dept-owned), Phiture
+(Precis-owned), Reload (s360 network + Ometria-specialist), Armadillo (Bond network, ~79).
+
+---
+
 ## 1. Competitive pricing matrix
 
 ### Tier A — Builders / dev tools (the low-end portability set)
