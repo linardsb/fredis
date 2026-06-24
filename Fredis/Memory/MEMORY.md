@@ -48,14 +48,6 @@ _(Pre-revenue stage — formal locked-in decisions still to be made. Likely firs
 
 These are the day-one rules — synthesised from J5. The brain should respect these without re-questioning unless explicitly revisited.
 
-- **Email Hub has a UK IP overhang — "free time" isn't a complete defence.** It was built outside Merkle hours (factual point in his favour), but UK law (CDPA 1988 s.11(2), Patents Act 1977 s.39) tests scope + specific instruction, not clock-hours. The department head tasked the team with workplace innovation, and the work is squarely in his field of employment. Before pitching further: (a) read the Merkle contract IP clause verbatim, (b) drop "Merkle" from the project name, (c) recraft origin as "12 years of MarTech veteran seeing the fragmentation problem" (not "my dept head tasked our team"), (d) £150–£300 solicitor opinion letter is the cheapest insurance before any VC commitment. Going forward: keep all personal IP unambiguously independent — personal device, personal accounts, no Merkle-named folders, no internal presentations first.
-
-- **Ship one MVP to a paying client in 90 days; pause the other four.** Five active projects, zero paying clients, six months in. Shortest revenue path is Email Hub → mid-market UK agencies where 12y MarTech credibility opens doors instantly. VTV, UGOKI, GERBONI, Cab app wait. Revenue unlocks focus.
-
-- **Register a UK Ltd before the first invoice.** Cross-border personal-Gmail invoicing without an entity = tax + liability mess. UK Ltd: ~1 week, ~£50. **Don't** create an LV SIA until LV-originating revenue exists — dormant entities cost admin for nothing.
-
-- **LPV channel is an accelerator, not a foundation.** Šlesers and Krištopans replied because Linards is an LPV member writing sharp Latvian. If LPV isn't in government after the next election, those doors close. VTV's sales path must work without LPV influence: direct Rīgas Satiksme ops contact, EU transport-innovation funding, other municipalities. LPV opens door 1; never rely on it for door 2.
-
 - **VTV €2.4–4.4M ROI claim needs one transit-CFO in the room before it goes public again.** Math is plausible but founder-built. One paid 60-min conversation with a transit ops/finance pro stamps the number as credible. Without it the page reads as optimistic founder math and erodes trust in everything else.
 
 - **Don't single-thread Tim Jackson — build a VC pipeline.** Strong email, strong voice, but one VC = usually silence. Rule: no reply in 10 business days → one light follow-up with one concrete update. Stop after two. Pitch 5 more VCs with adjacent thesis fit. Walking Ventures is 2018 context — build a fresh AI/MarTech VC list for 2026.
