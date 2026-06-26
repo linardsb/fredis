@@ -1,0 +1,11 @@
+[Unit]
+Description=Hourly trigger for Fredis auth watchdog
+
+[Timer]
+# Every hour at :30, offset from the heartbeat (which fires at :00-:02).
+OnCalendar=*-*-* *:30:00
+Persistent=true
+Unit=fredis-auth-watchdog.service
+
+[Install]
+WantedBy=timers.target
