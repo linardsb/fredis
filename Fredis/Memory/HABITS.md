@@ -63,7 +63,7 @@ The agent surfaces any pillar with no signal by 18:00; silent if all four hit.
 ## Today: 2026-06-27
 
 - [ ] Ship
-- [ ] Frontier
+- [x] Frontier — auto-detected: build-repo push + 'loop' in daily log
 - [ ] Read
 - [ ] Ground (Body)
 - [ ] Ground (Near)
