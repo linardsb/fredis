@@ -127,7 +127,7 @@ These are the day-one rules — synthesised from J5. The brain should respect th
 
 ## Upcoming Events
 
-_(No upcoming events currently tracked.)_
+- **Quantum Media intro call — Mon 29 Jun 2026, 09:00–09:30 BST.** Technical CRM Executive role. Rosita Milinkyte (quantum.media) sent calendar invite 2026-06-26. `[impact: med, status: pending]`
 
 ## Preferences Confirmed
 
@@ -156,6 +156,8 @@ _(No upcoming events currently tracked.)_
 - **Building a business / solo-founder** — building in public, indie hacking, bootstrapped one-person business, AI automation agency
 
 ## Open Watch Items
+
+- **Dentsu employment transition underway — P45 thread open (2026-06-26).** Heartbeat flagged a P45 thread with Dentsu HR (Lesia Pereviazko), waiting on her next step. A UK P45 is the employment termination document — confirms Linards is leaving or has left Dentsu. Simultaneous signal: Quantum Media intro call Mon 29 Jun (Technical CRM Executive role). **How to apply:** consultancy income sequencing becomes more time-sensitive; Dentsu day-job buffer disappears sooner than the long-game plan assumed. Watch for employment end date to update schedule patterns and income model. `[impact: high, status: pending]`
 
 - **Email Hub IP question — execution blocker.** Has Linards raised the IP question with Merkle legal yet? Email Hub is paused until answered. Kill trigger: no answer by month 2 → pause indefinitely (2026-04-19)
 - **VTV-first sequencing — needs explicit confirmation.** Linards hasn't confirmed whether VTV ships first with Cab after, or whether Cab runs in parallel. Product plan assumes sequential (2026-04-19)

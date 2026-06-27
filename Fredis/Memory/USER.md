@@ -11,7 +11,7 @@
 ## Professional Context
 
 ### Current Role
-- Senior Email Developer at Dentsu (Merkle), 09:00–17:30 UK weekdays
+- Senior Email Developer at Dentsu (Merkle), 09:00–17:30 UK weekdays — **NOTE (2026-06-26): P45 process underway with Dentsu HR (Lesia Pereviazko); employment ending. Quantum Media intro call Mon 29 Jun for Technical CRM Executive role.**
 - In parallel: building an AI-agentic consultancy that helps SMBs in East Grinstead, the wider UK, and Riga adopt agentic workflows
 - Long-game positioning: 12 years of MarTech depth + current AI-agentic build = a defensible moat for delivering AI-assisted operations to real businesses, not generic AI consulting
 
