@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>operate — mission control × archon</title>
+  <!-- saulera design system — load order matters (contract → pack → catalog) -->
+  <link rel="stylesheet" href="system/tokens.contract.css" />
+  <link rel="stylesheet" href="system/tokens.css" />
+  <link rel="stylesheet" href="system/components.css" />
+  <style>
+    /* operate.html — page-specific organisms (saulera semantic tokens only) */
+    .op-topbar { border-bottom: 1px solid var(--color-border); background: var(--color-bg); position: sticky; top: 0; z-index: 50; }
+    .op-topbar-inner { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 18px 0; }
+    .op-brand { display: flex; align-items: center; gap: 12px; }
+    .op-brand .disc { width: 22px; height: 22px; border-radius: 50%; background: var(--color-accent); }
+    .op-brand .word { font-family: var(--font-display); font-weight: 500; font-size: 22px; letter-spacing: 0.02em; }
+    .op-brand .sep { color: var(--color-fg-muted); opacity: 0.6; }
+    .op-brand .mode { font-family: var(--font-body); font-size: 12px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-fg-muted); }
+
+    .op-intro { padding: var(--spacing-2xl) 0 var(--spacing-lg); }
+
+    .op-banner { background: var(--color-bg-inverse); color: var(--color-fg-on-inverse); padding: 28px 32px; margin: var(--spacing-lg) 0 var(--spacing-2xl); border-top: 3px solid var(--color-accent); }
+    .op-banner .k { font-family: var(--font-body); font-size: 12px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-accent); margin-bottom: 12px; }
+    .op-banner p { color: var(--color-fg-on-inverse-strong); max-width: 74ch; line-height: 1.6; }
+
+    .op-tag { display: inline-block; font-family: var(--font-body); font-size: 11px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; padding: 3px 9px; line-height: 1.5; vertical-align: middle; border-radius: var(--radius-sm); white-space: nowrap; }
+    .op-tag-now { background: var(--color-accent-secondary); color: var(--color-accent-fg); }
+    .op-tag-soon { background: transparent; color: var(--color-accent); border: 1px solid var(--color-accent); }
+
+    .op-legend { display: flex; gap: 28px; flex-wrap: wrap; align-items: center; margin: var(--spacing-md) 0 var(--spacing-lg); }
+    .op-legend .row { display: flex; gap: 10px; align-items: center; font-size: 14px; color: var(--color-fg-muted); }
+
+    .op-group { padding: var(--spacing-xl) 0; border-top: 1px solid var(--color-border); }
+    .op-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: var(--spacing-md); }
+    .op-head .num { font-family: var(--font-display); font-size: 14px; letter-spacing: 0.16em; color: var(--color-accent); }
+    .op-head h2 { font-family: var(--font-display); font-size: var(--type-h2); line-height: 1.15; }
+
+    .op-cmd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13.5px; background: var(--color-bg-surface); border: 1px solid var(--color-border); border-left: 2px solid var(--color-accent); padding: 10px 14px; margin: 12px 0; color: var(--color-fg); overflow-x: auto; white-space: pre; }
+    .op-verify { font-size: 13px; letter-spacing: 0.01em; color: var(--color-fg); margin-top: 8px; }
+    .op-verify::before { content: "verify — "; text-transform: uppercase; letter-spacing: 0.14em; font-size: 11px; color: var(--color-fg-muted); }
+
+    .op-callout { background: var(--color-bg-surface); border: 1px solid var(--color-border); border-top: 2px solid var(--color-accent); padding: 28px 32px; margin: var(--spacing-2xl) 0; }
+    .op-callout h3 { font-family: var(--font-display); font-size: var(--type-h3); margin-bottom: 14px; }
+    .op-callout ul { margin: 0; padding-left: 18px; }
+    .op-callout li { margin-bottom: 9px; line-height: 1.55; }
+
+    .op-foot { border-top: 1px solid var(--color-border); margin-top: var(--spacing-2xl); padding: var(--spacing-xl) 0 var(--spacing-3xl); color: var(--color-fg-muted); font-size: 14px; line-height: 1.7; }
+    .op-foot code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; color: var(--color-fg); }
+    .op-foot .stamp { display: block; margin-top: 14px; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-fg-muted); }
+
+    .lineup-item .op-cmd, .lineup-item .op-verify { margin-left: 0; }
+    .lineup-title .op-tag { margin-left: 10px; }
+  </style>
+</head>
+<body>
+  <header class="op-topbar">
+    <div class="container op-topbar-inner">
+      <span class="op-brand">
+        <span class="disc" aria-hidden="true"></span><span class="word">mission control</span>
+        <span class="sep">×</span><span class="word">archon</span>
+      </span>
+      <span class="op-brand"><span class="mode">operate</span></span>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- DOMINANT PLANNING BANNER -->
+    <section class="op-banner">
+      <div class="k">planning preview</div>
+      <p>this describes the <strong>planned</strong> system. today, only the mission control board and the <code>/mission sync</code> scan exist. everything involving archon — the engine, <code>@delegate</code>, live run status — is <strong>not built yet</strong>. each step below is tagged <span class="op-tag op-tag-now">works today</span> or <span class="op-tag op-tag-soon">after v1 build</span>. build plan: <code>.agent/plans/fredis-archon-mission-control.md</code> in the fredis repo.</p>
+    </section>
+
+    <section class="op-intro">
+      <div class="eyebrow">how the three fit together</div>
+      <p class="lead" style="max-width: 70ch; margin-top: 14px;">mission control is the <strong>board</strong> — what's outstanding across your repos. archon is the <strong>engine</strong> — it runs a task in an isolated git worktree and opens a draft pull request. fredis is the <strong>chat front-end</strong> onto the same engine. this is the day-to-day operating procedure for the three together.</p>
+      <div class="op-legend">
+        <span class="row"><span class="op-tag op-tag-now">works today</span> the board + scan you already have</span>
+        <span class="row"><span class="op-tag op-tag-soon">after v1 build</span> needs the archon integration</span>
+      </div>
+    </section>
+
+    <!-- 0 -->
+    <section class="op-group">
+      <div class="op-head"><span class="num">00</span><h2>one-time setup</h2><span class="op-tag op-tag-soon">after v1 build</span></div>
+      <ol class="lineup">
+        <li class="lineup-item"><span class="lineup-n">1</span><div>
+          <span class="lineup-title">install archon</span>
+          <p>build the engine from the local clone.</p>
+          <div class="op-cmd">cd ~/Desktop/cloned_repos/archon/remote-coding-agent
+bun install &amp;&amp; bun run build</div>
+          <p class="op-verify">the server starts and <code>GET /api/workflows</code> returns json on port 3090.</p>
+        </div></li>
+        <li class="lineup-item"><span class="lineup-n">2</span><div>
+          <span class="lineup-title">pin it to localhost</span>
+          <p>archon's api has no auth and binds all interfaces — bind it to <code>127.0.0.1</code> or firewall port 3090 so it isn't an open code-execution surface on your network.</p>
+        </div></li>
+        <li class="lineup-item"><span class="lineup-n">3</span><div>
+          <span class="lineup-title">configure claude auth</span>
+          <p>same subscription as fredis is fine — but clear any stale <code>CLAUDE_CODE_OAUTH_TOKEN</code> env var first (it silently shadows a good login).</p>
+          <p class="op-verify">a trivial run completes end-to-end on a throwaway repo.</p>
+        </div></li>
+        <li class="lineup-item"><span class="lineup-n">4</span><div>
+          <span class="lineup-title">serve mission control over http</span>
+          <p>the live overlay and <code>@delegate</code> make network calls, which <code>file://</code> blocks — serve this folder over http.</p>
+          <div class="op-cmd">cd ~/Desktop/mission-control
+python3 -m http.server 5000</div>
+          <p class="op-verify">the board opens at <code>http://localhost:5000</code>.</p>
+        </div></li>
+        <li class="lineup-item"><span class="lineup-n">5</span><div>
+          <span class="lineup-title">wire @delegate</span>
+          <p>point the board's delegate action at archon's api (phase 1 of the plan). one-time, then it's a button.</p>
+        </div></li>
+      </ol>
+    </section>
+
+    <!-- 1 -->
+    <section class="op-group">
+      <div class="op-head"><span class="num">01</span><h2>start of day</h2><span class="op-tag op-tag-soon">after v1 build</span></div>
+      <ol class="lineup">
+        <li class="lineup-item"><span class="lineup-n">1</span><div>
+          <span class="lineup-title">start archon's server</span>
+          <p>one command (or a login item to automate it). its sqlite keeps all run history across restarts. you do not need it running 24/7 — only while you work; a run in flight needs the machine up until it finishes.</p>
+        </div></li>
+        <li class="lineup-item"><span class="lineup-n">2</span><div>
+          <span class="lineup-title">open the board</span>
+          <p>visit <code>http://localhost:5000</code>. the static <code>file://</code> board still opens for plain viewing, just without live data or delegate.</p>
+        </div></li>
+      </ol>
+    </section>
+
+    <!-- 2 -->
+    <section class="op-group">
+      <div class="op-head"><span class="num">02</span><h2>see what's outstanding</h2><span class="op-tag op-tag-now">works today</span></div>
+      <ol class="lineup">
+        <li class="lineup-item"><span class="lineup-n">1</span><div>
+          <span class="lineup-title">read the board</span>
+          <p>status across every tracked repo — planned, in-progress, done, blocked — assigned from evidence, never assumption. the filter row narrows to one status.</p>
+        </div></li>
+        <li class="lineup-item"><span class="lineup-n">2</span><div>
+          <span class="lineup-title">refresh from evidence</span>
+          <p>run the scan (a read-only scanner per repo + a separate verifier on the done-claims). this stays your planning source of truth — unchanged by the archon work.</p>
+          <div class="op-cmd">/mission sync</div>
+          <p class="op-verify">the board reloads; "done" reflects real git / PR evidence.</p>
+        </div></li>
+      </ol>
+    </section>
+
+    <!-- 3 -->
+    <section class="op-group">
+      <div class="op-head"><span class="num">03</span><h2>delegate a task</h2><span class="op-tag op-tag-soon">after v1 build</span></div>
+      <ol class="lineup">
+        <li class="lineup-item"><span class="lineup-n">1</span><div>
+          <span class="lineup-title">pick an item, click @delegate</span>
+          <p>the board fires a workflow run on that item's repo.</p>
+        </div></li>
+        <li class="lineup-item"><span class="lineup-n">2</span><div>
+          <span class="lineup-title">choose a workflow</span>
+          <p>start with <code>archon-assist</code> (read-only, safest), then <code>archon-fix-github-issue</code>, then the rest (pr review, interactive-prd, adversarial-dev).</p>
+        </div></li>
+        <li class="lineup-item"><span class="lineup-n">3</span><div>
+          <span class="lineup-title">archon isolates the work</span>
+          <p>it spins a dedicated git worktree on that repo — only your other repos (throwaway → email hub), never the fredis repo or the vault. the item flips to "delegated / running" live.</p>
+        </div></li>
+      </ol>
+    </section>
+
+    <!-- 4 -->
+    <section class="op-group">
+      <div class="op-head"><span class="num">04</span><h2>watch and approve</h2><span class="op-tag op-tag-soon">after v1 build</span></div>
+      <ol class="lineup">
+        <li class="lineup-item"><span class="lineup-n">1</span><div>
+          <span class="lineup-title">drill into archon's web ui</span>
+          <p>watch the run node-by-node and read live logs. the board gives the at-a-glance badge; archon's ui is the detail view. (it's archon's own look, not saulera.)</p>
+        </div></li>
+        <li class="lineup-item"><span class="lineup-n">2</span><div>
+          <span class="lineup-title">approve a human-in-the-loop pause</span>
+          <p>workflows like interactive-prd pause for your input — approve or send feedback in archon's ui to resume the run.</p>
+        </div></li>
+      </ol>
+    </section>
+
+    <!-- 5 -->
+    <section class="op-group">
+      <div class="op-head"><span class="num">05</span><h2>review the result</h2><span class="op-tag op-tag-soon">after v1 build</span> <span class="op-tag op-tag-now">scan reconcile works today</span></div>
+      <ol class="lineup">
+        <li class="lineup-item"><span class="lineup-n">1</span><div>
+          <span class="lineup-title">review the draft pull request</span>
+          <p>the run opens a <strong>draft</strong> PR — nothing is auto-pushed to main or sent anywhere. review it, then merge or send it back.</p>
+        </div></li>
+        <li class="lineup-item"><span class="lineup-n">2</span><div>
+          <span class="lineup-title">reconcile the board</span>
+          <p>the scan sees the draft PR as evidence and promotes the item. branch-name links the run back to the board item.</p>
+          <div class="op-cmd">/mission sync</div>
+          <p class="op-verify">the delegated item moves to its evidence-based status.</p>
+        </div></li>
+      </ol>
+    </section>
+
+    <!-- 6 -->
+    <section class="op-group">
+      <div class="op-head"><span class="num">06</span><h2>the fredis path</h2><span class="op-tag op-tag-soon">after v1 build</span></div>
+      <ol class="lineup">
+        <li class="lineup-item"><span class="lineup-n">1</span><div>
+          <span class="lineup-title">fire the same from chat / slack</span>
+          <p>fredis drives the identical engine conversationally.</p>
+          <div class="op-cmd">run the fix-issue workflow on email hub issue 42</div>
+          <p class="op-verify">fredis launches the run, monitors it, and reports back the draft PR — without touching the fredis repo.</p>
+        </div></li>
+      </ol>
+    </section>
+
+    <!-- guardrails -->
+    <section class="op-callout">
+      <h3>non-negotiable guardrails</h3>
+      <ul>
+        <li>archon runs only on other repos (throwaway → email hub) — never the fredis repo or the vault.</li>
+        <li>draft pull requests only. no auto-push to main; no node that emails, slacks, or posts.</li>
+        <li>archon's api is unauthenticated — keep it bound to localhost.</li>
+        <li>local first — the "fire from my phone" setup comes later.</li>
+        <li>one or two runs at a time to start; they share your claude usage.</li>
+      </ul>
+    </section>
+
+    <footer class="op-foot">
+      build plan: <code>~/Desktop/claude-code-second-brain/.agent/plans/fredis-archon-mission-control.md</code><br />
+      repos: mission control · archon (<code>~/Desktop/cloned_repos/archon/remote-coding-agent</code>) · fredis
+      <span class="stamp">last updated 2026-06-27 — planning preview, no integration built yet</span>
+    </footer>
+
+  </main>
+</body>
+</html>
