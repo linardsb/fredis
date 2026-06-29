@@ -2,11 +2,15 @@
 name: uk-latvia-context
 description: |
   Reference pack for UK and Latvian administrative context — Companies House, HMRC,
-  Lursoft, VID, VAT thresholds, filing deadlines, cross-border tax. Reference only —
-  no API calls, no writes. Cites sources; flags when an answer needs a human advisor.
+  Lursoft, VID, VAT thresholds, filing deadlines, cross-border tax — plus UK and
+  UK-accessible innovation funding and grants (Innovate UK, UKRI, EIC, R&D tax
+  relief) with an eligibility-scoring rubric. Reference only — no API calls, no
+  writes. Cites sources; flags when an answer needs a human advisor.
   Use when user asks about: "VAT threshold", "Companies House", "HMRC deadline",
   "Lursoft", "VID", "SIA", "Latvian tax", "UK filing deadline", "cross-border tax",
-  "invoice in EUR or GBP", "permanent establishment", "double tax UK Latvia".
+  "invoice in EUR or GBP", "permanent establishment", "double tax UK Latvia",
+  "grant", "Innovate UK", "UKRI", "funding", "non-dilutive", "Smart Grants", "KTP",
+  "SBRI", "Horizon Europe", "EIC", "R&D tax relief".
 ---
 
 # uk-latvia-context
@@ -23,6 +27,9 @@ a real accountant / solicitor.
 - A retainer conversation is about to touch cross-border invoicing (GBP vs EUR,
   VAT reverse-charge, permanent-establishment risk).
 - Writing a client-log or retainer entry that references filing deadlines.
+- Linards is weighing **non-dilutive funding** for a lane (Innovate UK / UKRI /
+  EIC grants, R&D tax relief) and wants a sourced shortlist plus a go / no-go
+  rubric before approaching a grant adviser. See `references/uk-funding-grants.md`.
 
 ## How this skill answers
 
@@ -72,6 +79,9 @@ When Linards asks a question whose topic matches an empty section:
 When Linards asks a question that doesn't match any existing section header,
 add a new header and fill the first Q&A under it.
 
+(The funding pack `uk-funding-grants.md` is the one exception to this seed-on-demand
+model — see §Funding & grants below.)
+
 ## Maintenance cadence
 
 Annual review — re-verify the top 5 most-cited entries against primary sources.
@@ -86,13 +96,40 @@ month-anchored gates or surface it via heartbeat in April 2027.
 | `references/uk-admin.md` | Companies House, HMRC, VAT, PAYE, director duties |
 | `references/latvia-admin.md` | Lursoft, VID, VAT, SIA, EDS portal, individual trader rules |
 | `references/cross-border.md` | UK–Latvia double-tax treaty, permanent establishment, invoicing currency |
+| `references/uk-funding-grants.md` | UK + UK-accessible innovation funding — Innovate UK / UKRI, EIC / Horizon Europe, R&D tax relief, challenge prizes, accelerators; plus a founder-fit eligibility-scoring rubric |
+
+## Funding & grants — a dated snapshot plus a durable rubric
+
+`references/uk-funding-grants.md` works differently from the three admin packs
+above. It is **not** seed-on-demand — a founder needs the scoring rubric now, not
+when a section happens to be asked. So it ships authored, in two layers:
+
+- **The eligibility-scoring rubric** — the durable core. Hard gates first
+  (entity / size / partner / scope), then a six-criterion weighted score banded
+  High / Medium / Low. This does not go stale; use it to judge any programme.
+- **A dated programme catalogue** — a 2026-06-29 snapshot of Innovate UK / UKRI,
+  EIC / Horizon Europe, R&D tax relief, challenge prizes, and accelerators. This
+  *does* go stale; every entry is cited and must be re-verified on its source URL
+  before acting.
+
+When Linards asks for funding options for a specific lane, the skill may produce a
+**funding shortlist as an advisor review draft** in
+`Fredis/Memory/drafts/active/uk-latvia-context/` — scored with the rubric, cited
+per [[citation-and-provenance]], and flagged where a human funding adviser is
+needed. The draft is advisor-mode: reviewed by Linards, never sent, and
+eligibility is never asserted as fact. That shortlist is the **only** thing the
+skill writes outside its own references folder.
 
 ## Boundary — what this skill does not do
 
-- No API calls to Companies House / HMRC / Lursoft / VID. The skill is purely a
-  reference pack; real-time lookups are out of scope.
-- No writes to the vault outside its own references folder. Never touches
-  retainer files, MEMORY.md, or drafts.
+- No API calls to Companies House / HMRC / Lursoft / VID / funding portals. The
+  skill is purely a reference pack; real-time lookups and applications are out of
+  scope.
+- One narrow write outside its own references folder: a **funding shortlist
+  review draft** in `drafts/active/uk-latvia-context/` (advisor-mode — reviewed
+  and sent by Linards, never auto-sent), and only when asked for lane funding
+  options. It never touches retainer files, MEMORY.md, the admin reference packs,
+  or any other draft.
 - No financial / legal advice. Every answer is information, not a decision.
   Where law or tax is involved, the answer routes to "needs advisor".
 - No reliance on memory alone when answering specific-number questions. If a
