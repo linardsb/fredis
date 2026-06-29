@@ -244,7 +244,11 @@ def check_owner_reply_in_thread(source_id: str, after_unix_ts: float) -> str | N
 
 
 def send_notification(
-    channel: str, text: str, thread_ts: str | None = None
+    channel: str,
+    text: str,
+    thread_ts: str | None = None,
+    unfurl_links: bool = True,
+    unfurl_media: bool = True,
 ) -> dict[str, Any] | None:
     """
     Send a message to a Slack channel.
@@ -269,7 +273,12 @@ def send_notification(
         target = resolved
 
     try:
-        kwargs: dict[str, Any] = {"channel": target, "text": text}
+        kwargs: dict[str, Any] = {
+            "channel": target,
+            "text": text,
+            "unfurl_links": unfurl_links,
+            "unfurl_media": unfurl_media,
+        }
         if thread_ts:
             kwargs["thread_ts"] = thread_ts
 

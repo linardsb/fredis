@@ -36,6 +36,9 @@ dependencies = [
     # remote MCP doesn't break silently if FastMCP swaps its HTTP runtime.
     "uvicorn[standard]>=0.27.0",
     "starlette>=0.36.0",
+    "youtube-transcript-api>=1.2.4",
+    "yt-dlp>=2026.6.9",
+    "curl-cffi>=0.15.0",
 ]
 
 [project.optional-dependencies]

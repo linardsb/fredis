@@ -88,6 +88,73 @@ Tracked in `.agent/plans/fredis-ob1-integration.md` + `.agent/plans/ob1/*.md`. S
 
 ---
 
+ ## [2026-06-21] AI-native company: filter skills → "AI employee" agents — REVISIT / DECISION PENDING
+
+  **Goal:** run the business with ~4–6 role-based AI agents ("employees": technical, product,
+  growth, finance/tax, strategy, data) rather than one Fredis. Q: can we filter the 24 skills
+  onto those roles, and is it feasible?
+
+  **Key finding — already ~70% built.** `.claude/config/channel-routing.yaml` (scoping ON since
+  2026-06-20) already maps each Slack channel → {skill allowlist + tool palette + MCP servers +
+  model tier + vault folder}. That IS the per-agent skill filter. Today's "employees" are
+  channel-scoped facets of ONE Fredis identity, not separate agents.
+
+  **The filter (24 skills → 6 roles):**
+  - CTO/Engineering: engineering, technical-leadership, security-engineering, ciso-advisor
+    (+robotics-engineer if it ships) → #email-hub / #vtv / #cab-app
+  - Head of Product: product-management, product-shape, idea-validation → #product / #ideation
+  - Growth/Marketing: content-social, content-artifacts (+launch-governance GTM, draft-reply)
+  - CFO/Finance·Legal·Tax: uk-latvia-context, ip-overhang-guard, business-cycle-analyst
+    (+client-log, launch-governance runway) → #legal / #finances (already scoped)
+  - CEO/Chief-of-Staff (orchestrator): executive-leadership, org-design, launch-governance
+    → #all-ai-agent
+  - Head of Data/Research: data-and-experimentation (+idea-validation, built-in /deep-research)
+  - Shared infra (NOT employees): integrations, draft-reply, meeting-notes,
+    obsidian-vault-structure, _shared/
+  - Meta: skill-creator (= "recruiter/L&D"), phase1-ready (one-time bootstrap)
+
+  **Built vs to-build:**
+  - Built: per-channel scope profiles; channels mapped to functions; advisor-mode (nothing
+    auto-sends); per-skill draft folders + HubSpot "Fredis Review" queue (gated OFF:
+    HUBSPOT_TICKETS_ENABLED=false); cross-agent memory patterns documented; constrained-SDK-call
+    pattern proven (Haiku guardrail).
+  - To build for true "employees": multi-agent identity (today one Fredis); an orchestrator for
+    routing/handoffs/escalation; per-agent session keys (sessions key by channel:thread); hard
+    skill gating (skills are soft prompt-rule today, not SDK-gated); turn the queue on.
+
+  **Two models:**
+  - Model A — "one Fredis, many hats" (channel=role): formalise the 6 roles in
+    channel-routing.yaml. Mostly config; already running. Cheap, safe.
+  - Model B — "real employees" (N agents + orchestrator): distinct identities/memory/inbox +
+    CEO router. More capable; costs identity multiplexing, per-agent sessions, hard gates,
+    N× heartbeat tokens.
+  - Recommendation: start Model A; graduate a role to Model B only when it must run
+    autonomously/in-parallel (e.g. Growth drafting daily, Finance watching runway).
+    Summon-on-demand sub-agents ≫ always-on for cost.
+
+  **Caveats:** valuable version = "AI staff DRAFT, Linards APPROVES" (advisor-mode), not an
+  autonomous company. Tax agent = advisor only (uk-latvia-context is reference-only, flags when a
+  human advisor is needed — never wire it to file). Roster white space: no dedicated Sales/BD,
+  Customer Success, or HR/People bundle (partially covered by HubSpot+client-log+draft-reply /
+  org-design+skill-creator).
+
+  **Next actions (pick one):**
+  1. Spec Model A as a concrete channel-routing.yaml proposal (6 role-channels w/ exact skill
+     allowlists + tool palettes + model tiers).
+  2. Design the Model B orchestrator (CEO/chief-of-staff agent that routes HubSpot tickets to
+     employees + handles handoffs).
+  3. Pressure-test / adjust the roster cut first.
+
+  **Related:** prior turn — skill-improvement borrows from 5 external repos (DARE,
+  ai-data-science-team, awesome-engineering-management, Awesome-finance-skills, DeepPaperNote);
+  the research-rigour borrows would strengthen the Data/Research employee. See
+  `.claude/config/channel-routing.yaml`; `engineering/references/agentic-orchestration-patterns.md`
+  (L3 orchestrator-worker); CLAUDE.md §Advisor Mode + §Skill Stack.
+
+  ---
+
+
+
 ## Workflow per phase
 
 1. Re-read the relevant phase block in `.agent/plans/fredis-context-management-roadmap.md` to refresh context.
