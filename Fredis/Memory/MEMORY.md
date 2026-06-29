@@ -111,7 +111,7 @@ These are the day-one rules — synthesised from J5. The brain should respect th
 
 ## Upcoming Events
 
-- **Quantum Media intro call — Mon 29 Jun 2026, 09:00–09:30 BST.** Technical CRM Executive role. Rosita Milinkyte (quantum.media) sent calendar invite 2026-06-26. `[impact: med, status: pending]`
+- **Quantum Media interview — Mon 29 Jun 2026, 14:00–14:30 BST (Google Meet).** Technical CRM Executive role. Rosita Milinkyte (quantum.media) sent original invite 2026-06-26 (showed 09:00–09:30); updated calendar event showing 14:00–14:30 was newly added by 06:24 heartbeat on the day. Confirm the time before dialling in. `[impact: med, status: pending]`
 
 ## Preferences Confirmed
 
@@ -172,6 +172,8 @@ These are the day-one rules — synthesised from J5. The brain should respect th
 - **Phase 4 (thread consolidation) gate check overdue — no start signal (2026-06-21).** The Phase 4 pre-gate review was set for Mon 15 Jun 2026, requiring Linards to confirm nudge wording + thresholds felt right in live threads. Date passed; no "go Phase 4" signal observed in logs. Phase 3 (`a020ff5`) is deployed; Phase 4 scope is in `.agent/plans/thread-consolidation-canon-handoff.md`. **Action:** next session with Linards, ask whether Phase 4 should start or if nudge tuning is still needed first. `[impact: med, status: pending]`
 
 - **X integration fully designed, not yet built (2026-06-23).** `x-scan.yaml` config, `cmd_twitter` in `query.py`, integrations routing all spec'd and ready. Blocked on: Linards provides X Bearer token and gives go signal. X API has no free tier since Feb 2026; costs ~$15–20/mo lean ($0.005/post returned). `[impact: low, status: pending]`
+
+- **VTV GitHub Actions security workflow failed (2026-06-28).** Security audit CI job failed on commit `aec6846` at 07:06. Flagged by 08:18 heartbeat; no follow-up investigation yet. Unknown whether this is a flaky test or a genuine security finding. Check the failed run log on `linardsb/VTV` before next push. `[impact: med, status: pending]`
 
 - **Co-founder loop guide — 5 open decisions before build (2026-06-27).** Guide mapped Cole Medin's workshop (autonomous AI co-founder: writes code, opens PRs, ships) onto Fredis architecture. ~80% of orchestration layer already exists (heartbeat, gates, ticket dispatcher, Slack notify); execution layer (code-building engine) is net-new. Five open decisions pending Linards's go-ahead: (1) first project, (2) build engine choice (detached `claude` CLI subprocess recommended for v1), (3) local vs VPS, (4) model mixing, (5) cadence. Plan offered at `.agent/plans/fredis-cofounder-loop.md` — not yet written. Note: "never commit or push without explicit ask" standing rule needs a per-project override mechanism before any build starts. `[impact: med, status: pending]`
 
