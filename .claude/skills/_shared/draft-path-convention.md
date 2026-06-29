@@ -82,6 +82,37 @@ path because its output is a send-candidate, even though `heartbeat.py:1086` rec
 field automatically on send. The automatic reconciler is the reason `draft-reply` uses
 `status: active` instead of the default `status: draft` — see its SKILL.md for the full rationale.
 
+## Grounding discipline (lane-chain handoffs)
+
+The lane chain runs `idea-validation → product-shape → launch-governance` (with `engineering`
+branching off `product-shape/mvp-architect`). Each upstream skill writes its artefact to
+`drafts/active/<skill>/...` and ends with a forward hand-off note naming the next skill — see each
+skill's "Hand-off contract". This is the *backward* half of that handoff: what the downstream skill
+owes the artefact it builds on.
+
+Before a downstream skill runs, it:
+
+1. **Names its inputs.** States which upstream artefact(s) it is building on, by path — e.g.
+   `product-shape/mvp-architect` reads the MLP brief at
+   `Fredis/Memory/drafts/active/idea-validation/minimum-lovable-product/<date>-<lane>-mlp-brief.md`.
+2. **Reads and cites them.** Facts carried forward — the validated problem, the painkiller verdict,
+   the agreed price point — are cited back to the upstream draft as a vault-file source (`V1`) per
+   [[citation-and-provenance]], so a number never appears downstream without its origin.
+3. **STOPs if an input is missing.** If the named upstream artefact does not exist, the downstream
+   skill does not invent it. It stops, says which artefact is missing and which skill produces it,
+   and asks for that step first — it does not fabricate a validated problem or a price to keep going.
+
+Worked example: `launch-governance/launch-wedge` depends on `idea-validation/problem-validation`'s
+painkiller-commitment evidence (its anti-patterns already forbid launching a wedge on a vitamin).
+Under this discipline that dependency is *explicit*: launch-wedge cites the problem-validation draft
+as its input, and if no such draft exists it stops and asks for validation first rather than
+assuming a painkiller.
+
+This mirrors ArcKit's read-upstream-or-stop handoff without porting its recipe engine — a convention
+the lane skills follow, not a new orchestrator. It pairs with [[citation-and-provenance]] (cite the
+upstream artefact) and [[atis-test]] (the downstream bet must clear the £1k gate on grounded inputs,
+not assumed ones).
+
 ## The never-send boundary
 
 Never in any automated path:
