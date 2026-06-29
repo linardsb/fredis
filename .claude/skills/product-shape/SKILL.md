@@ -1,6 +1,6 @@
 ---
 name: product-shape
-description: Shape a validated idea into a priced, positioned, stack-ready MVP — Van Westendorp + Gabor-Granger + Ramanujam monetisation (pricing-shaper), April Dunford + Geoffrey Moore positioning with one-tweet test (positioning-sharpener), Ries + Kniberg + Wardley build-vs-buy stack architecture (mvp-architect). Three pre-built lane canvases — B2G contract (VTV), B2C commission (Cab), SaaS (Email Hub gated on ip-overhang-guard). Use when user says "price this", "what should I charge", "willingness to pay", "Van Westendorp", "Gabor Granger", "position Cab/VTV/Email Hub", "who are we for", "Dunford", "Moore positioning template", "why us not them", "MVP architecture", "stack for X", "build vs buy", "Wardley", "first sprint".
+description: Shape a validated idea into a priced, positioned, stack-ready MVP — Van Westendorp + Gabor-Granger + Ramanujam monetisation (pricing-shaper), April Dunford + Geoffrey Moore positioning with one-tweet test (positioning-sharpener), Ries + Kniberg + Wardley build-vs-buy stack architecture (mvp-architect). Two-sided/marketplace products get the 8-canvas Platform Design Toolkit (platform-design-toolkit) — ecosystem, liquidity bootstrapping, transaction-cost/take-rate, network-effect defensibility. Three pre-built lane canvases — B2G contract (VTV), B2C commission (Cab), SaaS (Email Hub gated on ip-overhang-guard). Use when user says "price this", "what should I charge", "willingness to pay", "Van Westendorp", "Gabor Granger", "position Cab/VTV/Email Hub", "who are we for", "Dunford", "Moore positioning template", "why us not them", "MVP architecture", "stack for X", "build vs buy", "Wardley", "first sprint", "marketplace", "two-sided", "commission", "take rate", "liquidity", "network effect", "chicken-and-egg".
 ---
 
 # product-shape
@@ -14,6 +14,8 @@ After `idea-validation/problem-validation` returns a painkiller verdict. Sequenc
 1. **pricing-shaper** — willingness-to-pay conversation plan + canvas per revenue model.
 2. **positioning-sharpener** — one-sentence + five-bullet Dunford.
 3. **mvp-architect** — stack brief with build-vs-buy grid and first-commit checklist.
+
+**Two-sided / marketplace products run `platform-design-toolkit` first.** It establishes the ecosystem, two-sided entity portraits, the transaction-cost-grounded take rate, and the liquidity-bootstrapping plan — the four things a single-sided shaping pass assumes away. Its outputs then feed the three steps above (take-rate → `pricing-shaper`, portraits → `positioning-sharpener`, MVP/liquidity → `mvp-architect`). See `references/platform-design-toolkit.md`.
 
 Outputs feed `launch-governance/launch-wedge` (first-10-users plan) and `launch-governance/metrics-gate` (kill criteria on revenue / pricing / usage).
 
@@ -31,6 +33,7 @@ Outputs feed `launch-governance/launch-wedge` (first-10-users plan) and `launch-
 | "price", "pricing", "Van Westendorp", "Gabor Granger", "willingness to pay", "charge", "pricing canvas" | `references/pricing-shaper.md` |
 | "positioning", "who are we for", "Dunford", "Moore template", "why us not them", "one-sentence positioning" | `references/positioning-sharpener.md` |
 | "MVP architecture", "stack", "build vs buy", "Wardley", "C4 diagram", "first sprint", "first-commit" | `references/mvp-architect.md` |
+| "marketplace", "two-sided", "commission", "take rate", "liquidity", "network effect", "chicken-and-egg"; marketplace lanes (Cab) | `references/platform-design-toolkit.md` (run *before* the three above) |
 
 ## Hand-off contract
 
@@ -59,6 +62,7 @@ Output drafts only. Write to `Fredis/Memory/drafts/active/product-shape/<sub-ski
 | `references/pricing-shaper.md` | Van Westendorp + Gabor-Granger + Ramanujam pricing; three lane canvases |
 | `references/positioning-sharpener.md` | Dunford + Moore positioning; one-sentence + five-bullet output with Chris-Lori gate |
 | `references/mvp-architect.md` | Ries + Kniberg + Wardley; three stack templates; build-vs-buy grid; first-commit checklist |
+| `references/platform-design-toolkit.md` | Product is two-sided / a marketplace (Cab); 8-canvas PDT — ecosystem, liquidity bootstrapping, transaction-cost/take-rate, network-effect defensibility; runs first and feeds the other three |
 
 ## Anti-patterns
 
