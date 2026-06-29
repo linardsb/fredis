@@ -60,7 +60,7 @@ The agent surfaces any pillar with no signal by 18:00; silent if all four hit.
 
 (Exception: Frontier auto-detection's 18:00 self-report fallback above is fine — it's a single ask, not a nudge cycle.)
 
-## Today: 2026-06-28
+## Today: 2026-06-29
 
 - [ ] Ship
 - [ ] Frontier
@@ -69,6 +69,13 @@ The agent surfaces any pillar with no signal by 18:00; silent if all four hit.
 - [ ] Ground (Near)
 
 ## History
+
+### 2026-06-28
+- [ ] Ship — no signal detected
+- [ ] Frontier — no signal detected
+- [ ] Read — no self-report
+- [ ] Ground (Body) — no signal detected
+- [ ] Ground (Near) — no signal detected
 
 ### 2026-06-27
 - [ ] Ship — no signal detected
