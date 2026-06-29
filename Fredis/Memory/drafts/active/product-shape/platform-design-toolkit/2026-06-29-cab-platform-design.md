@@ -120,7 +120,7 @@ charges.
 | Enforcement | cash, no recourse on a bad trip | in-app settlement, dispute/refund, rating |
 
 **Take-rate justification.** A commission is defensible to the extent it sits *below* the friction it
-removes. A take rate in the region of **15–20%** is the working assumption [V2-C1] — but that band is
+removes. A take rate in the region of **15–25%** is the working assumption [V2-C1] — but that band is
 borrowed from an internal skeleton note with **no verified external source attached** and must be
 confirmed against Bolt's actual per-market driver commission before `pricing-shaper` treats it as
 fact. Do not assert it as Bolt's rate. The strategic question Cab has to answer: can it sustain a take
@@ -239,7 +239,7 @@ nowhere. Phase 1 is one zone, drivers first.
 ## Composing with the rest of product-shape
 
 - Take-rate + transaction-cost analysis (§4) → `pricing-shaper` B2C-commission canvas (it sets the
-  real number; verify the 15–20% benchmark first [V2-C1]).
+  real number; verify the 15–25% benchmark first [V2-C1]).
 - Two-sided portraits (§2) → `positioning-sharpener` — position to drivers and riders separately;
   the lane's weak default "Bolt replacement in Riga" needs a named under-served segment.
 - MVP + liquidity (§7) → `mvp-architect` (the Cab stack template already exists there) and
@@ -256,7 +256,7 @@ nowhere. Phase 1 is one zone, drivers first.
     inertia at a viable CAC (§7, highest-risk assumption).
   - A named corridor/segment Bolt under-serves — i.e. positioning off the incumbent's strongest
     ground, not onto it.
-  - A verified take-rate and cost structure (replace the unsourced 15–20% [V2-C1] with a confirmed
+  - A verified take-rate and cost structure (replace the unsourced 15–25% [V2-C1] with a confirmed
     per-market figure) showing drivers net more than on Bolt while the platform still funds growth.
 - **What I'm NOT going to do about it yet (and why):**
   - Not start building Cab — it is correctly parked behind VTV; this draft is the shaped artefact for
