@@ -42,9 +42,11 @@ _(Pre-revenue stage — formal locked-in decisions still to be made. Likely firs
 
 - **Google OAuth app confirmed already in Production — 7-day Testing-mode theory was wrong (2026-06-22).** When investigating the Gmail/Calendar token expiry, the hypothesis was that Google's 7-day Testing-mode timeout caused it. Confirmed false — the app was already in Production. Token death was almost certainly a one-off account-level revocation (password change or Google security sweep), not a recurring config issue. **Don't re-propose Testing→Production fix for future token deaths.** `[impact: low, status: decided]`
 
-- **Daily brief pipeline live — code uncommitted, commit decision pending (2026-06-23).** launchd at 10:00 UK daily; chain: collect (9 web lanes + transcripts) → synthesise → post to Fredis private Slack channel (`C0A8AP22A1L`) + vault file. Slack formatting fixed: no title duplication, threaded overflow for long briefs, no link-unfurl clutter. All code local-only (`daily_brief.py`, `run_daily_brief.sh`, plist, pyproject.toml dep, `slack_api.py`). Plist PATH pins `node/v20.20.2` — update if Node bumped via nvm. First real run: 2026-06-24 10:00 (prior test runs were IP-throttled). `[impact: med, status: pending]`
+- **Daily brief pipeline live — committed 2026-06-29 (2026-06-23).** launchd at 10:00 UK daily; chain: collect (9 web lanes + transcripts) → synthesise → post to Fredis private Slack channel (`C0A8AP22A1L`) + vault file. Slack formatting fixed: no title duplication, threaded overflow for long briefs, no link-unfurl clutter. Code committed as `2bec62e` on 2026-06-29 (`daily_brief.py`, `run_daily_brief.sh`, plist, pyproject.toml dep, `slack_api.py`). Plist PATH pins `node/v20.20.2` — update if Node bumped via nvm. First real run: 2026-06-24 10:00 (prior test runs were IP-throttled). `daily_brief_runs.log` excluded from commit — add to `.gitignore`. `[impact: med, status: decided]`
 
 - **European AI sovereignty dropped from research lanes (killed 2026-06-23).** Explicitly dropped per Linards — niche 5 is not to be tracked or surfaced. `[impact: low, status: killed]`
+
+- **Citation/provenance primitives and Platform Design Toolkit shipped — arckit-borrows (2026-06-29).** Two shared primitives in commit `c9231b8`: (1) `.claude/skills/_shared/citation-and-provenance.md` — channel-prefixed Source IDs (GM/SL/WEB/GH/HS/V), inline `[<ID>-C<N>]` markers, Source Register table with Retrieved date, four-field provenance block for drafts; (2) `.claude/skills/_shared/draft-path-convention.md` updated (+30 lines) — backward grounding obligation for the `idea-validation → product-shape → launch-governance` chain. Also commit `64955a0`: Platform Design Toolkit (8-canvas PDT, marketplace-weighted) added to `product-shape` skill. Cab PDT draft produced, in HubSpot review queue (ticket `421600934101`). Phase 3 of arckit-borrows (B4 grants → `uk-latvia-context`) not yet started. `[impact: med, status: decided]`
 
 ## Lessons Learned
 
@@ -86,6 +88,8 @@ These are the day-one rules — synthesised from J5. The brain should respect th
 
 - **Synthesis output format varies between runs — use format-agnostic chunking (2026-06-23).** Model's heading levels and section wording change across runs; regex-based section detection breaks. Fix: chunk by character count, not parsed heading structure. Applied in `daily_brief.py` Slack posting. General rule: never rely on specific model output structure (heading level, section label) for downstream parsing. `[impact: low, status: decided]`
 
+- **Slack and HubSpot integration non-obvious limits (2026-06-29).** Three operational quirks: (1) `query.py` `slack messages` CLI / `get_recent_messages` skips `bot_message` subtype — use raw `conversations_history` to verify bot delivery, not the CLI; (2) `send_notification` in `slack_api.py` is soft-fail — prints error, returns `None`, never raises, so absence of `slack_error` in dispatch result does not confirm delivery; (3) `skill_source` in HubSpot ticket creation only accepts top-level skill names (e.g. `product-shape`, not sub-skill paths) — sub-skill detail goes in subject or content field. `[impact: low, status: decided]`
+
 ## Important Facts
 
 - **The "why" behind everything:** building enough durable, diversified income streams to let his family (wife, son, dog) live freely across UK, Latvia, and Argentina. A permanent home in Latvia and Argentina (wife's home country) is the long-game. Every research lane is a sub-investigation of this one question.
@@ -111,7 +115,7 @@ These are the day-one rules — synthesised from J5. The brain should respect th
 
 ## Upcoming Events
 
-- **Quantum Media interview — Mon 29 Jun 2026, 14:00–14:30 BST (Google Meet).** Technical CRM Executive role. Rosita Milinkyte (quantum.media) sent original invite 2026-06-26 (showed 09:00–09:30); updated calendar event showing 14:00–14:30 was newly added by 06:24 heartbeat on the day. Confirm the time before dialling in. `[impact: med, status: pending]`
+_(no upcoming events)_
 
 ## Preferences Confirmed
 
@@ -174,6 +178,8 @@ These are the day-one rules — synthesised from J5. The brain should respect th
 - **X integration fully designed, not yet built (2026-06-23).** `x-scan.yaml` config, `cmd_twitter` in `query.py`, integrations routing all spec'd and ready. Blocked on: Linards provides X Bearer token and gives go signal. X API has no free tier since Feb 2026; costs ~$15–20/mo lean ($0.005/post returned). `[impact: low, status: pending]`
 
 - **VTV GitHub Actions security workflow failed (2026-06-28).** Security audit CI job failed on commit `aec6846` at 07:06. Flagged by 08:18 heartbeat; no follow-up investigation yet. Unknown whether this is a flaky test or a genuine security finding. Check the failed run log on `linardsb/VTV` before next push. `[impact: med, status: pending]`
+
+- **CI failure on fredis@main — daily-brief commit (2026-06-29).** All CI jobs failed on commit `2bec62e` (daily-brief collector + scheduler). Flagged by 12:28 heartbeat; unresolved at end of day. Check the failed run log on `linardsb/fredis` Actions before next push. `[impact: med, status: pending]`
 
 - **Co-founder loop guide — 5 open decisions before build (2026-06-27).** Guide mapped Cole Medin's workshop (autonomous AI co-founder: writes code, opens PRs, ships) onto Fredis architecture. ~80% of orchestration layer already exists (heartbeat, gates, ticket dispatcher, Slack notify); execution layer (code-building engine) is net-new. Five open decisions pending Linards's go-ahead: (1) first project, (2) build engine choice (detached `claude` CLI subprocess recommended for v1), (3) local vs VPS, (4) model mixing, (5) cadence. Plan offered at `.agent/plans/fredis-cofounder-loop.md` — not yet written. Note: "never commit or push without explicit ask" standing rule needs a per-project override mechanism before any build starts. `[impact: med, status: pending]`
 
