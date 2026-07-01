@@ -3,7 +3,7 @@ title: "Email Hub — Tool-Call Cap + Planning Telemetry (51.3)"
 approved: true        # Linards-only: set to true to arm the run (HITL #1). Fredis never sets this.
 repo: linardsb/merkle-email-hub
 codebase_id: dee73f6cbc6ed8e6e06cc32dfea4a82a
-github_issue: TBD      # Fredis files the GitHub issue after HITL #1, then fills the number here before firing.
+github_issue: 307
 workflow: fix-github-issue-emailhub
 gate: "make lint types test"
 lane: P4
@@ -60,7 +60,7 @@ per-session tool-call cap**, plus structured per-step planning telemetry.
   the PR; the core deliverable is the cap + telemetry + unit tests.
 - VSA: the primitive lands in `app/ai/agents/` + `app/core/config/security.py` per the plan.
 - **Advisor mode:** worktree-isolated; output is a **DRAFT PR** against `main` with
-  `Fixes #<issue>`. Never merge, never mark ready-for-review, never push to `main`.
+  `Fixes #307`. Never merge, never mark ready-for-review, never push to `main`.
 
 _Why this issue: real security-hardening (bounds agent drift with a deterministic stop),
 fully validated by the harness gate — the cap and telemetry are pure logic with unit tests,
