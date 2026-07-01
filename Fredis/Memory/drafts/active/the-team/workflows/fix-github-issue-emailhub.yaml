@@ -113,6 +113,7 @@ nodes:
       make types     # mypy app/ + pyright app/  (read-only)
       make test      # pytest -m "not integration and not benchmark and not visual_regression and not collab"
       echo "GATE_PASSED"
+    timeout: 600000       # full `make test` ~178s + lint/types ~90s; Archon's 120s bash-node default failed Run 1 here
     depends_on: [implement]
 
   # ── 5. DRAFT PR only (advisor mode) ──────────────────────────────────
