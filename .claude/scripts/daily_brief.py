@@ -84,16 +84,22 @@ ATOM = {"a": "http://www.w3.org/2005/Atom", "yt": "http://www.youtube.com/xml/sc
 
 
 def fetch(url: str, timeout: int = 25) -> bytes:
-    return urllib.request.urlopen(urllib.request.Request(url, headers=HDR), timeout=timeout).read()
+    req = urllib.request.Request(url, headers=HDR)
+    data: bytes = urllib.request.urlopen(req, timeout=timeout).read()
+    return data
 
 
 def clean(text: str) -> str:
     return re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", "", text or ""))).strip()
 
 
-def rss_items(xml_bytes: bytes, limit: int) -> list[dict]:
+def _row(it: dict[str, str]) -> str:
+    return f"- {it['title']} — {it['source']} ({it['date']}) — {it['link']}"
+
+
+def rss_items(xml_bytes: bytes, limit: int) -> list[dict[str, str]]:
     """Parse RSS 2.0 <item> entries (title, source, date)."""
-    out: list[dict] = []
+    out: list[dict[str, str]] = []
     for item in ET.fromstring(xml_bytes).iter("item"):
         title = clean(item.findtext("title", ""))
         src = clean(item.findtext("source", "") or "")
@@ -114,7 +120,7 @@ def rss_items(xml_bytes: bytes, limit: int) -> list[dict]:
     return out
 
 
-def youtube_latest(channel_id: str) -> dict | None:
+def youtube_latest(channel_id: str) -> dict[str, str] | None:
     feed = fetch(f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}")
     entry = ET.fromstring(feed).find("a:entry", ATOM)
     if entry is None:
@@ -186,7 +192,7 @@ def web_section() -> list[str]:
         lines.append(f"### {label}")
         try:
             items = rss_items(fetch(GN.format(q=quote(query))), MAX_PER_LANE)
-            rows = [f"- {it['title']} — {it['source']} ({it['date']}) — {it['link']}" for it in items]
+            rows = [_row(it) for it in items]
             lines += rows or ["- (no items)"]
         except Exception as e:
             lines.append(f"- FETCH FAILED: {type(e).__name__}")
@@ -195,7 +201,7 @@ def web_section() -> list[str]:
         lines.append(f"### {label}")
         try:
             items = rss_items(fetch(url), MAX_PER_LANE)
-            lines += [f"- {it['title']} — {it['source']} ({it['date']}) — {it['link']}" for it in items]
+            lines += [_row(it) for it in items]
         except Exception as e:
             lines.append(f"- FETCH FAILED: {type(e).__name__}")
         lines.append("")
