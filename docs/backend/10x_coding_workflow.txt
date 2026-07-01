@@ -1,0 +1,2401 @@
+Welcome everyone to the live stream where I show you my up-to-date AI coding
+0:06
+workflow and how Archon has done yet another 10x over my AI coding process.
+0:13
+So I would say that like my classic development before AI coding assistants were a thing that was a 1x and then
+0:20
+starting to introduce tools like cloud code brought me to a 10x and now archon it honestly feels like a 100x and like
+0:26
+maybe that's a little bit of exaggeration just cuz it's the clean you know 1 to 10 to 100 but it's pretty
+0:32
+crazy how fast I'm able to build things and work on different things in parallel
+0:37
+thanks to Aron. So that's what I want to show you guys today. I'll give you
+0:42
+really like an inside scoop. Like I'm not just going to be working on some kind of demo that I've set up for today.
+0:47
+I'm going to be using Archon to uh well, it's a little meta, but I'm going to be using Archon to work on Archon because
+0:54
+it is just the best example of a really complicated codebase that I'm super wrapped up in. Um so I can show you what
+1:00
+it looks like to do real AI coding at scale with Archon, not just some dinky
+1:05
+app that I built. So I've got a pretty comprehensive plan for today. Okay, let
+1:11
+me go ahead and pop this up here. So, I have a a file in my Obsidian vault where
+1:17
+I've uh pretty much like just had a big session with Claude planning out everything that I do in the stream
+1:23
+today. I want to cover and and showcase really like different parts of my AI
+1:28
+coding workflow with Archon. I want to start by showing what it looks like to do brownfield development because I
+1:34
+don't think that's really covered enough. I want to show how I can, you know, use issues as the input to my
+1:41
+coding agent to work on different things. And then I want to show archon for more green field development. I'll
+1:48
+still be working on an existing codebase, but we'll be building out a brand new feature. Uh, and I'll actually
+1:55
+show you a little bit of a teaser for that. One thing that I want to work on for Archon, and I'll explain what Archon
+2:01
+is and give my elevator pitch in just a couple of minutes here for those of you who don't know what it is. But uh one thing I want to do for Archon is build a
+2:08
+workflow marketplace. So a place for people to build their own custom coding agent harnesses with Archon and then
+2:15
+share them with other people then and you could install each of these with just a single command kind of like an
+2:21
+npm registry or something like a skills registry like what Verscell has with skills.sh but for archon workflows. So
+2:30
+this is green field sort of in the sense that this is a brand new part of the archon ecosystem. We don't have anything
+2:36
+like a workflow marketplace yet. So what you're looking at right here is really just a PC that I did in a feature
+2:43
+branch. I really am not going to be leveraging this. I'm going to try building it from scratch here. So we're
+2:48
+going to be using Archon for a bunch of brown field, a bunch of green field. Um and then to finish things off here,
+2:55
+there's one other thing. Maybe we'll have time for this. I I don't really know, but uh doing some work on the Dark
+3:02
+Factory as well. So, there's quite a few live streams that I did um within the
+3:07
+last couple of weeks on my Dark Factory and I went kind of quiet on that um you
+3:13
+know, within the last like week and a half just because I've been pretty busy with some other things going on uh
+3:18
+especially with Archon. Um, so we'll see if I have time to bring that back today, especially because like as we are, you
+3:25
+know, invoking Archon workflows to handle everything else above, we'll probably have some downtime. So, I might
+3:31
+end up just like spending all that time and chatting with you guys um because I always love going back to the chat
+3:36
+pretty often when we're waiting for coding agents to finish. But, we'll see if we have time for that. Uh, we'll see
+3:41
+how long I stream for as well. So, yeah. um for everyone who's who's here right now. Before I just like get into things,
+3:47
+I want to chat with you guys for a little bit. Uh appreciate all of you being here. I know that uh hopefully
+3:53
+there's like a little bit more people in this live stream compared to the usual because I I talked about this one in my
+3:59
+Wednesday video. Uh but I'm excited for the new cadence that I have for live streams. Doing these three times a week.
+4:05
+And I'm just going to try this out and and see what you guys think and what kind of attendance I really get for
+4:10
+these streams. But I just want to show what it looks like to to build at scale,
+4:15
+build for real, not just show the perfect little demonstrations and YouTube videos and talk about the newest
+4:21
+features of Claude because everyone's doing that right now, but really show you what real engineering looks like. And so some of these things that we're
+4:28
+going to be working on today might feel a little random, like you don't even necessarily know what this is if you
+4:33
+haven't gotten super deep into Archon. But that's that's okay cuz it's not the point to like understand the little individual pieces of work I'm doing, but
+4:41
+more just to see my highle process for AI coding and how I'm using Archon and just generally how I'm incorporating
+4:46
+skills and context for my coding agent. So that's what I I want to share with you guys. And um I I think there's
+4:54
+definitely going to be like each individual live stream I do the topic is more just based on what am I working on
+4:59
+right now. I think just being able to like get a glimpse into how I I work on a project for real means that uh I can't
+5:07
+really set the topic too much ahead of time. But I definitely did a lot of preparation for this one to make sure
+5:12
+that I have a lot of value for you guys. Just showing you like different ways that I use Archon for, you know, like I said, like brownfield and green field.
+5:20
+So, we'll get into all that here. Um
+5:26
+Oh, I'm so sorry. You guys could hear the voice echo. Ah man, I I didn't realize I didn't have the stream muted.
+5:33
+That That is my bad. Well, it's fixed now. [laughter] Okay. Shoot. That's a bummer.
+5:40
+All right. Um so I have it muted now, so hopefully it's good, but um shoot. All
+5:46
+right. Okay. Um will there be a possibility to
+5:52
+configure the community skills then through a preconfigured workflow from the Archon skill creator?
+5:59
+Um, so I'm not sure if you're talking about like skills that you build into Archon workflows, but the plan is when
+6:07
+you submit a workflow here, it's going to be a bundled asset for everything that the Archon workflow needs. So it'll
+6:14
+be like, you know, the core YAML file for the Archon workflow. It'll be any uh
+6:20
+scripts that you're running with any of the deterministic nodes. And then it'll also be any skills that
+6:26
+you're uh incorporating into the workflow. So it'll be like a an entire package that this command would install
+6:34
+together. So you would have whatever you host. Basically what I'm thinking about doing for the workflows here is you
+6:41
+build the bundle for your workflow and you host it in your own repository kind of like an npm package. um you know like
+6:48
+if you have any kind of like package marketplace for Python or TypeScript or whatever like mpm uh you host it
+6:54
+yourself and then there'd be some kind of registry that you'd make a pull request into and then that would link
+7:00
+out to all the assets you have for each individual Archon workflow. That's the
+7:05
+plan for uh at least like the proof of concept that I'm going to be doing for the workflow marketplace. And I'm
+7:11
+excited for this. This is a a very very requested feature because uh right now
+7:16
+people if they want to share workflows, they just have to, you know, send a link to their GitHub repo and tell people to
+7:22
+clone it and copy over the files or just like share a zip or whatever. Uh but now there'll just be like a single install
+7:28
+command. Uh pretty excited for this. So yeah, we we'll get to that in a little bit, but I want to start by giving a
+7:33
+quick elevator pitch for Archon. And then I'll show what it looks like to work on some GitHub issues because I
+7:39
+know there's a big backlog of things. It's crazy how easy it is for people to create issues and PRs now and open
+7:46
+source projects just because of how fast you can move with AI coding assistance. And like, yeah, we can keep up decently
+7:52
+well. I mean, there's a ton of closed issues and and merge pull requests already, but holy cow, the list just
+7:57
+keeps growing. So we'll we'll knock out a few of these. and I'll show you what that looks like. [snorts]
+8:03
+All right. Just honestly want to thank you for giving us Archon. Literally don't ship
+8:09
+any PR without my customer or my custom PR reviews for uh from the built-in ones. Very cool. And yes, you're very
+8:16
+very welcome. And I love that you built your own poll request review workflows because that really is the the goal of
+8:23
+Archon is to allow you to build your own harnesses. That's why we call it an
+8:28
+open- source harness builder for AI coding. And so, uh, the the elevator
+8:33
+pitch, I I know I give the elevator pitch every single live stream, but I want to do that really quick for those
+8:40
+of you who haven't used Archon before. And then even if you are already familiar with the tool, I think it's
+8:45
+kind of cool just to see like how my elevator pitch is evolving over time as I make it tighter and tighter. Um, and
+8:51
+so I want to like give a quick overview here. And then another thing that I want to do in my live streams going forward
+8:56
+is like every half hour I want to give like a quick recap of what I'm doing just so that if you um you know weren't
+9:03
+tuning in from the beginning, you still have a chance to like catch the whole you know goal of the live stream every
+9:08
+half hour. Anyway, the the the way that I've been framing Archon recently is I
+9:14
+say that it's the tool that allows you to build coding agents into your
+9:20
+software development system instead of trying to shove your software development system into your coding
+9:26
+agents through skills and prompts. And so it's basically flipped like you're building, you know, LLM into your system
+9:34
+instead of the other way around. And that distinguishment is really powerful because a lot of what people are trying
+9:41
+to do right now is they'll take their entire development process like planning and implementing and validating and uh
+9:47
+they'll just shove it into a bunch of commands. And so the entire software development life cycle for their coding
+9:54
+agents is entirely non-deterministic. They're leaving it up to the agent to remember to do everything exactly as
+10:00
+they prompted. And and sometimes coding agents, they will pull context in the wrong way. they'll forget to do
+10:06
+validation, right? Like there are certain things that we want to enforce into our system. We want to use the
+10:12
+coding agent when we need that reasoning capability, you know, to like actually write the code, for example, but we
+10:17
+don't need it for every step of the way for pulling context and validating and creating emerging pull requests. And so
+10:23
+that's where Archon comes in. It allows you to take whatever your AI coding process is and build it into reliable
+10:31
+and repeatable workflows. Making AI coding as deterministic as possible
+10:36
+because there are certain steps where we don't actually need a large language model. Like maybe we do some
+10:41
+implementation with cloud code or codeex or pi or whatever and then right after the implementation we want to enforce
+10:47
+that there is a certain set of validation that takes place and that's what archon allows us to do. So we build
+10:53
+these workflows where we're creating different nodes for the different steps of our software development life cycle.
+11:00
+We have human in the loop built in. You can mix providers. You can use cloud for implementation and codecs for
+11:05
+validation. There's different parameters to manage like how context is passed between different nodes. And so really
+11:12
+the goal with archon and we're pretty much there now is that literally no matter what your agentic coding workflow
+11:19
+looks like you can package it up into an archon workflow and we handle work trees in isolation under the hood so that you
+11:26
+can invoke these workflows in parallel and that's one of the things that I'll show you today is invoking in parallel
+11:31
+to like really really scale. So once you have a workflow that you trust and you kind of just have it as this like fire
+11:37
+and forget task like okay go handle this issue or go review this poll request. Once you're you're confident in that
+11:43
+then you can invoke you know 20 workflows at the exact same time. Like I could try if I wanted to I mean
+11:49
+obviously now you have to worry about token spend and rate limits. But if I really wanted to I could have it try to
+11:56
+address 20 issues at the exact same time because Archon will create isolated code bases for each one of them. So all my
+12:02
+coding agents aren't stepping on each other's toes as they're going through the whole software development life cycle that I have laid out in the Archon
+12:09
+workflow. So that's my my little elevator pitch. Um and so yeah, someone
+12:14
+actually asked a good question here. I hope that like what I just said addressed this. Maybe you asked this before I just explained it. What's the
+12:21
+difference between an archon workflow and a claude skill? And so this is like exactly the the problem that I'm trying
+12:27
+to address here is like yes, you can have your entire process as a skill for Claude, but then you're relying on it to
+12:33
+go through every single step exactly as designed, not um, you know, skipping any
+12:39
+of them, not kind of, you know, messing up the steps in an individual phase like sometimes coding agents do things in the
+12:45
+wrong order or just not quite what you wanted. So we're basically with Archon, I know it might sound a little
+12:50
+counterintuitive. We're trying to take the decision away from the coding agent as much as possible, right? Like that's
+12:57
+the idea of a harness is we have something above the coding agent that is guiding it to make sure that our process
+13:03
+is really being followed. And when you're trying to like truly use AI coding assistance at scale for real
+13:09
+work, you need that, right? Like I don't want to leave it up to the coding agent to do the same validation every single
+13:16
+time. when there's something that I need guaranteed, I actually want to take that away from the coding agent. So that's
+13:22
+why we have this sort of interle here of like some nodes that are relying on AI because we need that reasoning and then
+13:28
+some nodes where it's like oh we can actually just run this bash script or this set of tests or whatever because we know exactly what needs to happen at
+13:35
+this stage of our development. And so uh I'll show you what that looks
+13:41
+like right now. So, I'm going to pop back over to my cloud code here. And uh
+13:47
+I'm actually working within my second brain right now. So, this is another thing that I've been doing a lot
+13:53
+recently. And uh actually just yesterday in the Dynamis community, I did a
+13:58
+workshop showing exactly how I use Archon with my second brain.
+14:04
+And so, uh this is the diagram here. I'm not going to like go into all of this cuz that's not exactly the point of the
+14:09
+live stream right now, but I have a system in place that essentially allows
+14:14
+my second brain to understand all of the code bases that I work on on a on at
+14:20
+least a weekly basis, right? And so I have this sort of like an index here. It's kind of like a Carpathy LLM wiki if
+14:27
+you're familiar with that. It went like super viral last month. um being able to like have an index that then points to
+14:34
+uh other documents to read. Like for our case, if we're working on a specific codebase, so if I tell my second brain,
+14:41
+I want you to use archon to fix an issue for this codebase, it loads the
+14:47
+repositories.mmd automatically. So this is kind of like global rules where it has access to this full list of my
+14:53
+projects and context around them immediately. And then if I tell it like here's a specific codebase I want to
+15:00
+work on, it'll know to read the full file. Like this is the file for my dark
+15:05
+factory experiment that I've been doing live streams on recently. And so it'll read this file so that it has all of the
+15:11
+metadata for how this codebase works. Uh but then the really important thing here
+15:16
+is I have a section for the archon configuration. And so my second brain immediately understands here's how I
+15:23
+have archon set up to work on this specific codebase and then all of the custom workflows that I've built for
+15:30
+this specific codebase cuz without this my second brain it has the archon skill.
+15:35
+So it knows like generally how to use archon how to build workflows and run them but it doesn't know the individual
+15:42
+workflows that I built for my code bases. And that's really powerful because like I was saying earlier, the
+15:47
+best way to use Archon is not just to use the workflows that we have built in, but rather to take inspiration from them
+15:54
+to build your own. And so for every single codebase, you're going to have custom workflows because each codebase
+15:59
+has its own tech stack and architecture. Maybe you have a bit of a different process between each one of your code
+16:04
+bases. Maybe you work with different clients that each have a different SDLC. And so you definitely need to have
+16:10
+different workflows for each one of them. And so this is my way to tell my second brain, here's how I use Archon
+16:15
+specifically. Here I have my workflow preferences and then even a dispatch history. So this is a really cool part.
+16:22
+So I have a sort of like daily log and reflection system built into my second brain so that whenever I invoke an
+16:30
+archon workflow on a codebase, it remembers that. So it builds up a history of the specific archon workflows
+16:37
+that I like using so that it can start to proactively recommend the right workflow based on the task that I want
+16:43
+to accomplish. And so sometimes when you say, you know, like use archon to fix this issue, it might be like, okay,
+16:49
+well, which workflow do you want me to use exactly? And so building up that dispatch history over time gets it to
+16:55
+the point where it just knows like, okay, Cole used this exact workflow to handle GitHub issues the last 20 times.
+17:01
+Let's just go ahead and use that. So like for this codebase, it knows like let's use this workflow when Cole wants
+17:07
+to handle a GitHub issue for example. Um so that that's uh the goal of the the
+17:13
+system that I have set up here. It's pretty simple overall. It's right it's like here's my index,
+17:18
+here's how I want to use archon with my second brain and then here are the individual files when I'm working on one
+17:24
+of these code bases. So if I go back to claude now and um and I say like all
+17:30
+right I want to use archon to handle issues number uh6007610
+17:37
+and 1612 on the archon codebase right like that that is all I have to do it's
+17:43
+so cool like there's no calling out a specific workflow I don't have to even call out the the exact codebase name
+17:50
+like I just say like hey natural language like this is just like me as a product manager talking to my developer,
+17:56
+right? Like here are the issues. Go and handle this. And it'll know automatically to load the archon skill
+18:03
+and uh read the right files. So it knows like how I like to work on this specific
+18:09
+codebase. Right? You can see right here that it pulled from repositories archon.md.
+18:14
+And so this is like the same file as the dark factory experiment I was just showing you, but obviously for the
+18:20
+archon codebase. And then uh once it has the archon skill, which I think I might have actually already loaded it in this
+18:26
+conversation, so we might not see it load the skill, but once it loads the archon skill that I have uh let me just
+18:33
+scroll up. I have the archon skill right here. This gives it full context for how
+18:39
+to use the archon CLI to invoke all these workflows in parallel. And this
+18:44
+skill just ships right with the archon codebase. So you literally just clone the archon repo and tell claude code to
+18:51
+bring the archon skill into whatever codebase you want to use. Like I'm I'm
+18:56
+working in my second brain for example. So I just copied this skill into my second brain codebase so that my claude
+19:03
+code there has instant access to it. So let's see. Um yep it looks like it
+19:10
+already had the skill loaded earlier in the conversation. So that's that's all we needed. So now it's um
+19:18
+kicked off three workflows right here. So you can see archon workflow run. It decided to use the archon fix GitHub
+19:25
+issue experimental. There's an experimental version that we're working on just as we're continuing to evolve
+19:30
+the workflows for archon. We created a workree with a branch for each one of them. And then there's a quick
+19:36
+description here to give it context. uh kind of truncates the the prompt here, but it it gives that initial context to
+19:43
+the archon workflow. So, it knows to research the issue, plan the fix or
+19:49
+whatever, and then go through the implementation and validation. It's actually a pretty comprehensive workflow that it runs under the hood. And so,
+19:56
+I'll show you what that looks like because the thing is like I want to be really clear here. [clears throat] We
+20:01
+are not just vibe coding, right? like um when I when I use archon
+20:09
+to handle a GitHub issue, I didn't show this in the live stream just for the sake of brevity, but generally I'll
+20:15
+spend a good amount of time looking at the issue and making sure that the issue description really has enough context to
+20:22
+go into the implementation. So if I look at um for example 1607,
+20:27
+let's take a look at issue number 1607. So 16, let me edit this. edit the URL.
+20:34
+Okay, so Archon setup wizard does not offer PI as an AI provider option. And so this is just like we added PI as the
+20:41
+third coding agent that's supported by Archon and we just uh I mean this is my bad. I forgot to add something to the
+20:48
+quick start to make it so that that's like the option you can select for the provider you want to use. And so for
+20:54
+this we have the problem proposed solution user flow. The only reason that I'm just sending Archon to work on this
+21:01
+right away is because I'm very very confident in the description of this issue, right? Like the the way that I
+21:08
+use Archon most of the time for brownfield development is the input into any archon workflow is always the
+21:15
+context from the issue. So I'm not vibe coding. I'm not just like sending in this single sentence and telling it to
+21:20
+implement. There's a process beforehand of creating the issue and gathering that context and proposed solutions. for
+21:27
+example. And if I wanted to, I could really like talk to Claude Code and have a conversation around the pro proposed
+21:33
+solutions before I just send off the workflow to go and uh implement the fix.
+21:39
+And so once we do implement the fix, that's when we have a a very comprehensive workflow here. I'm not
+21:45
+sure why the graph isn't loading. Let me try popping over to another one here. Uh
+21:51
+my computer's been really slow recently. It's kind of frustrating. Not really sure why. Uh maybe I'll just show the
+21:59
+GitHub issue fix. Maybe I'll just show what this one looks like because this is still a good
+22:05
+visualization here. Like you can see that for this workflow there are many different nodes that we go through here.
+22:13
+So we start by gathering context around the GitHub issue. In my experimental one, it's pretty similar. So I can still
+22:18
+just show this and point out the nodes. Um after we gather context from the issue like obviously the description
+22:24
+because this is the context going in then we do research around the issue and
+22:30
+then uh if it is a bug we're going to investigate the issue or if it is a new
+22:35
+feature request then we're going to plan for it right so we also have like conditional gates and routing in archon workflows because the way that we handle
+22:42
+an issue is going to be fundamentally different if it's a bug versus a new feature that's being requested and then
+22:48
+we go into the implementation and then we have a process for self- validation as well. And the powerful thing here
+22:54
+because we are being able with archon, we can have different coding agent sessions in a single workflow. We can
+23:01
+have the validation take place in a brand new context window. And this is one of the most important things for any
+23:08
+implementation with an AI coding assistant is you don't just have it check its own work. I mean, sometimes
+23:13
+you do just so it can iterate on its own work, but you always want to have a separate session to review because
+23:20
+there's just so much bias that builds up in a coding agent session. And so we have a separate agent do the review. And
+23:27
+this is where you could, you know, use codeex or pi or something other than cloud code. You can mix providers here.
+23:32
+And then we create the pull request to end things off. And then we do another comprehensive pull request review. So
+23:38
+this is kind of like our initial first pass validation. And then we do a super comprehensive PR review uh depending on
+23:44
+the type of change that it is. And then uh we finally just like comment on the
+23:50
+pull request for anything that we had to address from the pull request review. So you can see that it's a very very
+23:57
+comprehensive workflow. And the only reason I was able to get to something like this is because I've been using AI
+24:05
+coding assistance for a very very long time. I've gotten this process down pat that I know just works so well for me
+24:11
+for how I like to plan and implement and validate and and and do code reviews on the poll requests. And so I' I've just
+24:17
+taken like my entire process for AI coding and just bundled it up into this workflow. And this workflow is kind of
+24:23
+specific to Archon. But that's why I said earlier that like when you take any of the archon workflows that ship
+24:31
+default with the the platform which they're in archon workflows defaults like you can use these out of the box if
+24:39
+you want but it's better to like give these into your coding agent and tell it like okay load the archon skill take a
+24:46
+look at you know this workflow this one this one whatever one is like close to what you want to build or closest and then build something for you or like
+24:52
+mold it for your codebase specifically. cuz you probably have your own process for fixing GitHub issues. This is more
+24:59
+just inspiration. You can even like take ideas for the specific nodes here, but I want you to build your own because you
+25:05
+have a different process. You're using different skills and different platforms. Like maybe you want to incorporate a skill for linear because
+25:11
+you're using linear instead of GitHub issues, right? Like you could build this entire workflow but to handle a Jira
+25:18
+ticket or a linear issue instead of a GitHub issue. It's actually very very easy. I know quite a few people that
+25:24
+have taken this specific workflow cuz I use this one all of the time and they
+25:30
+molded it to use like their task management software. Like I've heard of like a couple people doing linear,
+25:35
+couple people doing Jira, one person did like I think like monday.com they had like a monday.com skill so that pulled
+25:42
+context from that instead of a GitHub issue. It's pretty cool. So you can take this and and really mold it to your own
+25:47
+process, right? like that that is why archon is the the open- source harness builder.
+25:54
+U so okay let's take a look and see how far we are now. Okay so we got an issue comment here. Uh
+26:01
+I can also go back to claude code and I can tell it to give me a status update.
+26:07
+So we can track the status of the workflows in the UI, but I can also just ask my second brain like, hey, what's
+26:14
+the status on the workflows here? And it can look into the logs. We have a very
+26:19
+robust logging system for archon so that whatever coding agent you're using to dispatch archon workflows can uh look in
+26:27
+like just peer into the process. And so that's another really cool thing with Archon is uh assuming you trust your
+26:35
+workflow. It's very fire and forget, right? Like I just asked my second brain to handle these three issues and it ran
+26:43
+these all as Archon CLI runs in the background. And so what that means is I
+26:48
+can ask it for a status update over time. I can continue on with my
+26:53
+conversation or maybe even ask it to uh kick off more Archon workflows. My
+26:59
+second brain becomes my command center where any piece of coding work that I want to accomplish I just dispatch to my
+27:05
+archon CLI right like go do this go do this go do this and I just keep this single you know sort of master
+27:11
+conversation that guides everything
+27:16
+all right so yeah everything's running pretty successfully here I guess there's one warning smoke validation flag the
+27:23
+issue body sites doesn't exist the codebase those lines are actually the built-in provider
+27:28
+Okay, that's that's a minimal thing. So, it's looking good. Here we have the three workflows that are successfully
+27:34
+running handling an issue. And then once the pull request is created, that's basically the output of
+27:41
+each one of these workflows. So the way I like to think about archon is every
+27:47
+single workflow should have some input. Whether that's a Jira ticket, a GitHub issue, just some markdown document with
+27:54
+a plan that you created with your second brain or cloud code or whatever. You have some kind of input and then you
+27:59
+have some kind of artifact that is going to be your output. For me, most of the time that is going to be a pull request.
+28:08
+most of like for any kind of a brownfield development that I'm doing or um I guess green field's a bit different
+28:13
+but for any for any brownfield development it really doesn't matter what I'm working on if I'm updating docs
+28:19
+if I'm fixing a bug if I'm implementing a new feature everything is just a pull request right like I want to work in
+28:24
+some feature branch and this is how enterprise development always has been and always will be you you always work
+28:29
+in some feature branch create a pull request so that then you have a time for human review before you merge to your
+28:35
+staging branch or your main branch or release branch or whatever you want to call it. Um, so you want that isolated
+28:41
+change set and like that's what we have with this workflow here. It'll it'll create a pull request at the end. And
+28:47
+then for brownfield development, the the artifact that it outputs, I guess, is really like the entire codebase, but you
+28:53
+could even like have it uh, you know, initialize a git repository and push things there. So the output artifact
+28:59
+could still be like an entire git repo, right, for like that initial version of the application that you built with the
+29:04
+archon workflow. Cool. So, yeah, I hope that that sounds
+29:10
+good. I'm going to spend a little bit in the chat with you guys here before I go on to the next thing. And we'll just wait for these these workflows to finish
+29:17
+here.
+29:24
+My own uh lint, my own validate commands, my own conventions, but your structure. That's that's exactly what
+29:30
+Archon allows you to do. Yep. Um, in fact, you could literally just take the
+29:36
+fix GitHub issue workflow or if you wanted to take like a pull request review workflow, we have a couple of
+29:41
+those as well, like comprehensive PR review. You can take this and mold it to your codebase so that it's running the
+29:48
+specific commands like test coverage for like you, your codebase, not Archon.
+29:57
+Uh, would it be a bunch of YAML files or one YAML file that contains multiple
+30:03
+So I I guess I'm kind of confused what you're referring to exactly. If you're
+30:10
+talking about packaging up an archon workflow, generally it's just a single YAML file. And then for any like skills
+30:18
+or commands that you want to incorporate into the workflow, those are just going to be markdown documents that you
+30:23
+package up with the workflow. So for example, this archon comprehensive PR
+30:29
+review workflow, it has a lot of commands that we call out here. So a
+30:34
+command, it's just like a command, like a slash command in cloud code. Basically like for this node, we're going to run
+30:40
+this prompt. And so the prompts live in a separate place. They live in um
+30:45
+workflows or sorryon commands. And then we have all of these. So if we go to the
+30:52
+defaults folder, this one is called archon uh sync PR with main. So if I search for this, you can see that like
+30:59
+this is just a very classic slash command. That's like this is the prompt for this AI node in the archon workflow.
+31:08
+And we have parameters and everything like you would in slash commands in cloud code. So if you want to split
+31:14
+things up so that you don't have just a ton like hundreds of lines of inline prompts in a workflow, this is how you
+31:20
+do it in archon. You have the main YAML that which gives the nodes like this is the structure for the workflow and then
+31:25
+all the prompts can live as separate commands and you can do the same thing with skills. So if I go to
+31:32
+I'm trying to think like uh maybe I'll go to my dark factory as an example. Let me pop over to GitHub and
+31:39
+go to my dark factory experiment because I'll show you a workflow where I have a
+31:44
+skill incorporated. So if I go archon workflows, this is one of the custom workflows that I built for my dark
+31:50
+factory experiment, which by the way, if you don't know, my dark factory is a codebase where I'm not allowed to write any code or review any code by hand
+31:57
+manually. Like the coding agent has full reigns over the codebase. It's pretty cool. More live streams on this coming
+32:03
+soon as well. But if I go to the comprehensive test workflow and I search for skills, the way that you add skills
+32:11
+into a a node in archon is just one of the parameters that you set for the node. So
+32:17
+just like I can specify nodes that are dependent that it's dependent on or uh the structured output or if I want to
+32:24
+start a fresh contact session or continue the one from the last node. You can also just give a list of skills. And
+32:31
+so these can just be the skills that you have in yourcloud skills directory in this codebase. So I'm saying I want the
+32:37
+agent browser skill and it's going to pull that from the skill.md that I have.
+32:42
+Um if I go back here skills agent browser like it'll pull this. So I can
+32:48
+use skills in individual nodes just like you can when you're using cloud code by itself. But the best part about this is
+32:55
+that we also have the opportunity for token optimization. In Archon, we have a
+33:00
+full software development life cycle. And there are certain nodes where we want to use a skill and other nodes
+33:07
+where we don't want to like the agent browser skill. This is for browser
+33:12
+automation, which is a great skill for any kind of validation that we're doing with our coding agent. But when we're
+33:19
+doing our planning up front or we're doing our implementation, we generally don't need this skill. So yeah, skills
+33:26
+are pretty context efficient because we have the idea of progressive disclosure. This is the only thing that's loaded
+33:31
+into the context of our coding agent up front, this description right here. But it's still really nice to be as lean as
+33:37
+possible, giving the least amount of capabilities that the coding agent realistically needs to accomplish the
+33:43
+task at hand. So like during implementation, why even give it this skill if it's just going to cost tokens
+33:49
+and potentially lead to a bad decision of using it when you don't when we can just hold off on giving it that skill
+33:56
+until we get to the node in the archon workflow where we're actually doing the implementation.
+34:03
+So that that's the whole goal of uh injecting skills like per node in archon,
+34:12
+right? What is the best practice to integrate archon with the second brain? Yeah,
+34:18
+that's a good question. So, I I talked about this very briefly. Uh, but you I I
+34:23
+would recommend having some kind of index of the repositories that you work on like what I have right here with my
+34:30
+repositories.mmd. So, it just lives alongside my user.md, my soul.md, like a lot of these files
+34:37
+that I took inspiration from from openclaw. So this index here then points to individual files like markdown
+34:44
+documents that cover more how you like to use archon specifically with that codebase. And this is what you would
+34:50
+evolve over time as you are using your second brain with archon to work on each
+34:56
+one of your projects. And again I I covered this in a full workshop yesterday in the Dynamus
+35:02
+community. If I don't know if you're in Dynamus or if you're interested in joining, but uh a lot of value that I gave there showing you quite deeply like
+35:09
+how the whole system works for uh loading in context and and letting your second brain like understand, okay, here
+35:16
+are the code bases. Here's how I use Archon to handle different kinds of requests for each one of them,
+35:25
+right? You can have multiple LLM wiks for
+35:30
+different purposes. Uh yes, you can. I actually do myself. So th this whole like repository LLM wiki is one and then
+35:37
+I also have like my entities where I'm like building up information for core things in my life like projects and
+35:43
+people. So yeah, you definitely can. My second brain I guess has two LLM wikis at this point.
+35:51
+This is exciting. I've been building something similar to Archon with scripts, execution shells, and governance documents, but this feels
+35:56
+more holistic. Uh, well, I appreciate it a lot and I'm I'm glad it seems holistic to you because that's that's really the
+36:02
+goal is to build a framework that makes it so you don't have to, you know, create your own hodgepodge of scripts
+36:09
+and execution shells and things like that. Um, cuz like really like what you built probably is Archon, but more like
+36:16
+just for you. You know what I mean? Like Archon is kind of like instead of just being a harness, it is the harness
+36:23
+builder. So it equips you with everything you need to dive right into building your own workflows instead of
+36:29
+having to create the support for work trees and isolation and you know build out the the system for the different
+36:37
+nodes and running scripts and then sending that as context into the coding agent. Like you would be surprised how
+36:44
+much goes on under the hood when you invoke an archon workflow. like we have
+36:49
+the whole artifacts directory and there's like structured output and other ways that the nodes can communicate with
+36:54
+each other. Obviously the whole like isolation thing is very complicated to handle edge cases like the different
+37:00
+default branch names you might have for your codebase like there are so many little things that we've done to handle
+37:06
+edge cases and just generally optimize the token usage of archon and the speed and everything and having like node
+37:12
+dependencies so that some things can go in parallel while other things are stuck
+37:18
+waiting for another thing and like that's how you intend it like like this right here right we have these parts of
+37:24
+the PR review that work in paralle Well, while the rest of most of the rest of the workflow is like dependent in on a
+37:29
+linear fashion of like this node has to complete before this node. So like yeah there is a lot that we have built here.
+37:36
+We support um conditional uh nodes, we support routing, we support looping um
+37:43
+bash scripts, TypeScript scripts, Python scripts and then obviously adding more support for different coding agents.
+37:48
+Like we're trying to make it so that you have no need to build your own hodge
+37:53
+podge system anymore. Like Archon gives you the the foundation to then build anything.
+38:01
+All right. Uh what's the difference with N8N? Yeah.
+38:06
+So, uh actually it's funny you ask that [clears throat] because in the read me here
+38:12
+I I say uh think N8N but for software development. So like there definitely is a connection there because when we look
+38:19
+at something like this, it kind of looks like an N8N workflow. In fact, we have a very similar uh viewer here. N8N doesn't
+38:26
+use React Flow. React flow is something similar. I think N8N uses something with Vue as their framework. I mean anyway,
+38:33
+that that detail doesn't really matter, but yeah, it looks like N8N. Now the thing is or like the thing that makes
+38:39
+this really different from N8N is um you don't really have support for working
+38:44
+with coding agents directly in N8N. It's more for just general business and AI
+38:50
+automation which is useful definitely has its place. There's a lot less N8N content these days but it's still a
+38:56
+great platform but it's not for AI coding right like N8N doesn't handle
+39:02
+work trees in isolation like Archon does. It doesn't support different providers that you can inject as nodes
+39:08
+automatically. It doesn't handle passing context between different coding agent sessions and being able to decide like
+39:14
+do you continue the context or do you start fresh, right? Like it's not designed for AI coding workflows at all.
+39:22
+There's so many things in Archon that make it where like it it really is an apples to oranges comparison. So like
+39:30
+really really high level you can think of them as kind of similar because they're workflow builders but it's
+39:35
+workflows for very very different purposes. I hope that makes sense.
+39:42
+All right. Uh do you place files just like they are in your second brain or do
+39:47
+you change them with dockling before putting them in? Um, if you were talking about the the
+39:55
+system, the repository wiki system I have here, I I just have my coding agent
+40:01
+help me build these markdown documents over time. I'm not using dockling because I don't I'm not like doing any
+40:08
+kind of text extraction from documents or any kind of rag or chunking or anything here. Um, I I guess I I I do
+40:15
+have a bit of a rag system in my second brain with semantic search, but that is outside of um what I'm talking about
+40:22
+here with my sort of LLM wiki for my code bases. This is all just plain markdown. No need for dockling or any
+40:29
+kind of chunking or uh text extraction library for this.
+40:35
+So like when I created my repositories.mmd with my dispatch rules like here's how I
+40:41
+like to use archon and um how I like to run workflows and like the whole like
+40:46
+index of code bases. I just initially had a conversation with claude code where I had it help me build this. So
+40:53
+pretty much I just you know listed out like here are all the repositories I work on on a weekly basis or a monthly
+40:59
+basis. here is you know the main branch for each of them and uh you know what I'm working on for each one of them
+41:04
+right like giving it that initial context kind of generally at a high level describing the structure I want for my index here and then it created
+41:11
+this and then kind of you know built the scaffolding for each one of these repository files but it's all just
+41:18
+markdown not working with anything fancy here and in fact for most of your second
+41:23
+brain it should just be markdown documents because you can keep it really really simple that Okay.
+41:31
+Uh, is a workflow fixed to a specific working directory? Uh, yes. But you can
+41:37
+also go out of the working directory if you need to. But whenever you create a
+41:42
+workflow execution, right? Like you use the archon CLI or whatever to run a workflow. It's going to create a work
+41:49
+tree. So we have an isolated local copy of the codebase and then whenever we run
+41:55
+the coding agent there whether it's claude codeex or pi the working directory is set to that work tree so
+42:02
+that it's it's in its own isolated environment uh wherever it's working now coding agents are generally able to look
+42:09
+outside of their current working directory like if I'm if I go back to claw code here right now it's working in
+42:16
+my second brain repo but I could say like go look at and I could say C users
+42:21
+uh col open sort like like I can point it to some other folder and it can go look there but by default unless you
+42:28
+prompt it explicitly generally it's it's just going to stay within its current working directory and if you want to
+42:34
+enforce that you definitely can u but that would just be through like custom hooks that you would build. So like one
+42:39
+thing that I've done for my second brain is there are certain folders that are off limits to my second brain. So, I
+42:45
+have a hook that runs like whenever Claude tries to read or write out to
+42:50
+some other directory, I run the hook to make sure that it's not one of my blacklisted directories. And then I'll
+42:56
+just stop Claude in its tracks and tell it to do something else if it tries to access one of those directories.
+43:05
+All right, I switched AI providers. How satisfied am I with AI providers so far with the
+43:12
+AI providers? Um, I still use Claude code. I'm a bit
+43:17
+bit confused by the question because I still use Cloud Code for pretty much everything. I've been experimenting with
+43:22
+Pi and Codeex and I'm pretty impressed with them. Like Cloud Code, it's definitely not, you know, universally
+43:29
+the best coding agent anymore. Like it's it's a very close race, especially between Claude and Codex, but I still am
+43:36
+using Claude primarily. Uh, and then how do you measure 10x again? Shouldn't everything be done by now given how fast
+43:42
+everything is these days? Yeah. So, uh obviously I don't have like
+43:48
+some hard and fast benchmark for measuring like okay I'm 12 times as fast as I was a year ago or 22 times as fast
+43:56
+like right there's nothing like that. Like I said at the start of the stream um when I say like Archon is 10x my AI
+44:03
+coding like I genuinely believe that but also I I don't think it's like exactly 10x. Maybe it's 8, maybe it's 12,
+44:09
+whatever, right? But it's more just the point of like I'm able to get so much work done now. Not necessarily because
+44:16
+everything finishes really quickly. Like going back here, we can look and see that like we're still running these
+44:23
+workflows. They're longer running workflows. They're going to take their time. It's not like I when I when I say I'm 10x faster with Archon, it's not
+44:30
+that the workflows are blazing through work. It's more that I can run a lot of
+44:36
+these at the exact same time. Now that these are running, I can go back to my second brain
+44:42
+and I could say like, you know, okay, great. Let's go and do XYZ now too,
+44:48
+right? Like I can continue this conversation. I can do so much work in parallel. And then also the the really powerful thing with with uh these archon
+44:55
+workflows is yes, they take a while, but also they're fire and forget, right?
+45:01
+Like I can invoke these five workflows and then go record a YouTube video or I can go do a live stream. Like I actually
+45:07
+have some other Archon workflows running on a different machine right now as I'm live streaming here. So I'm getting some
+45:12
+other work done as I am building with you guys live. Um and so you could also go like take a break, walk your dog, go
+45:19
+to bed, whatever it is, right? So it's it's faster not always in the sense of like these things blitz through work
+45:25
+which you could build a workflow that runs quicker if you wanted to but I care more about like let's get the best
+45:30
+output quality possible. I can run these things in parallel fire and forget. So it's still you know exponentially
+45:36
+increasing the the quality and speed of my my code output.
+45:44
+All right cool. So, uh, while this is still running here,
+45:51
+let me check one thing quick. Check. Do a do a quick time check here. Okay, [snorts] been going for 45 minutes.
+45:59
+So, for those of you who are just joining me, what I'm doing for the live stream today, so I I promised I would
+46:05
+give like quick recaps once in a while. So, if you're just joining the live stream or you've been around for only a little bit, what [snorts] I'm doing
+46:11
+right now is showing you how I use Archon, my open- source harness builder,
+46:16
+to create workflows that package up my AI coding process into something that's very repeatable and reliable that I can
+46:23
+run at scale. And like this, this is a a peak, a glimpse into what my engineering
+46:29
+looks like these days. So, currently I'm handling a few GitHub issues with Archon. These are the workflows that are
+46:36
+running right now. And I'm also going to be doing some green field development. So I'm actually going to get into this
+46:42
+like right now and then we'll have more time for Q&A in a little bit here. But while this is running, just to show you
+46:47
+like generally how I handle GitHub issues, which GitHub issues are usually the input into most of my brownfield
+46:53
+development these days, I'm also going to show you some more green field development. So, I'm going to take a
+46:58
+pretty new feature that I want to build into Archon, show you what it looks like
+47:03
+to go through a more intricate planning process using a framework that I call my
+47:09
+PIV loop. Maybe you've heard of me talk about the PIV loop before. It is my most
+47:14
+foundational approach for AI coding. You plan out a scope of work with a coding
+47:20
+agent. You delegate all of the coding to the agent and then you have it do its
+47:25
+own validation and then you also do your own code review and manual testing. Like
+47:30
+that is my process. Every single time I'm working on something more complex that like really requires me to be a
+47:37
+part of the process with the coding agent. I always use the piv loop. And uh for a while before I had archon built, I
+47:45
+taught the piv loop with a set of commands and skills. So like here's my command for planning. You go through and
+47:52
+you you create the markdown plan document with your coding agent and then you uh iterate on that and then you send
+47:57
+it into the coding agent for implementation. There's like a separate command that I had for implementation. But we can take this entire process and
+48:04
+we can package it up as a single piv loop workflow. And I don't have the full
+48:10
+full full piv loop in an archon workflow yet. It's actually something I'm going to be building in a Dynamus workshop in
+48:18
+the next couple of weeks here. But I do have a simplified version of it, which also just for the sake of speed here for
+48:25
+our live stream, it's good that it's a simple version uh because I want to go through this pretty quickly with you
+48:31
+guys. But I have this Archon Piv loop workflow. This is one of the defaults that ships. So you could use this
+48:36
+yourself right now if you want or adapt it to your own harness like I was talking about earlier. We're going to
+48:42
+use this to build out something pretty new here in the Archon codebase. So,
+48:47
+it's green field development in the sense that like I'm I'm still working on an existing codebase, but unlike these
+48:53
+GitHub issues where I'm just working on minimal bug fixes or features, I'm going to be creating a brand new part of the
+49:00
+Archon ecosystem because I want to build this kind of workflow marketplace, a
+49:06
+place for people to share and install other people's workflows with a single
+49:12
+command. And so I have a a quick proof of concept that I built out actually in my last live stream. And uh so I'm
+49:20
+basically just showing this as a demo of what I want to build, but I want to build it from scratch here because there
+49:27
+are actually quite a few different design decisions that I've decided on from when I built this first version. So
+49:32
+I have this just stashed away in some feature branch. I'm going to show you guys going through the pivoop to build
+49:37
+out the initial version of this pretty much from scratch. And so, let me go back to my conversation here with
+49:45
+Claude. I'm going to start a new one actually. And um let's see. Let's scroll up here
+49:53
+because I have a a prompt pre-crafted just so you guys don't have to watch
+49:58
+paint dry as I am getting started with the work here. So, let me go ahead and find this.
+50:06
+Okay. So, I'm going to have it read this file.
+50:14
+So, I didn't do too much planning before the live stream. Like, don't worry, I'm still showing you the full process here, but I did a little bit of like planning
+50:20
+out what I want to do for the live stream today. So, I'm going to say read this and let me know what uh or I should
+50:26
+say and summarize what we are building for the workflow marketplace.
+50:34
+So whenever I use do like the whole like piv loop workflow I want to start by
+50:40
+loading a little bit of context right like since I don't have a GitHub issue or something to reference here I want to
+50:46
+like curate a little bit of context around what exactly I want to build then I will invoke the piv loop workflow
+50:54
+okay so core idea a metadata only registry where community members keep their workflow yaml in their own public
+51:01
+github repo so it's like the mpm packages. That's the example that I used earlier. And then we submit a pull
+51:07
+request to the archon doc site adding one entry to a typed registry file. So
+51:13
+I'm keeping this really really simple. You share the workflow by hosting it in your own repo. So you can manage the
+51:18
+versioning and evolving your own workflow, but then you'll create a pull request so that we have some kind of
+51:24
+registry that lives in the archon codebase that points to all of the workflows. And then we'll just have to
+51:30
+add a banner to the page here. just giving a warning that like we haven't necessarily vetted all of the workflows
+51:36
+here. Uh it's definitely a uh something that would be pretty impossible to
+51:41
+maintain if we actually had like a vetting process especially because then like people would have to create a poll request just to update the version of a
+51:48
+workflow. Okay, so we have uh two phases.
+51:56
+What are the two phases? There are two phases that I have planned for the live
+52:02
+stream today. I want to start by building the actual marketplace. And
+52:08
+then the second phase is I want to have a archon workflow. This is cool. I'm
+52:14
+going to I'm going to be building an archon workflow that uh basically does
+52:20
+an automated review whenever someone submits a pull request to add a new
+52:26
+workflow to the marketplace. Um, so we have the Yeah, I'm referring
+52:31
+to referring to number one. I'm talking about the two parallel PIV dispatches. So yeah, like I said, I done a little
+52:38
+bit of planning up front, but you can imagine that like this is work coming to
+52:43
+me from a product manager. Generally, as a developer or even as like an entrepreneur, you're going to have some
+52:50
+context from someone else or the internet or whatever for like here's the thing that I need to build. And so I
+52:55
+have a bit of context already, but now I'm going to go through a couple of piv loops in order to you know plan more
+53:02
+specifically how we're going to implement this in the code and then get into the implementation.
+53:09
+So we're going to uh let's let's start with the first or here I'm going to
+53:14
+actually use speech to text here because I don't want I'm sick of typing. I'm going to use my Aqua voice here, my speech to text tool, and I'm going to
+53:21
+say, uh, let's start with the first PIV loop for the marketplace V0. So, I want you to use load the Archon skill, and
+53:29
+we'll use Archon, uh, the PIV loop workflow to build this out in a feature
+53:34
+branch. So I I could do both at the exact same time, but generally for uh like these
+53:42
+workflows that have more human in the loop and I really want to be a part of the process, I find it to be pretty
+53:48
+mentally draining if I have many different coding agents all asking for my review and attention uh between the
+53:56
+different runs. And so at least to keep things simple for this stream, I'll just have it be very linear right now where I
+54:03
+will uh I'll just work on a single piv loop to start. But you can see that like
+54:08
+it's set up here where it uh it is offering to do parallel piv loops if I
+54:13
+wanted. It just can be kind of tough to juggle different plans in your mind as you are reviewing things before you send
+54:20
+it off to implementation, but it's definitely possible. So the piv loop is dispatched. It's
+54:26
+going to do exploration over the codebase to get a general idea of like how are we actually going to implement
+54:32
+this marketplace v0ero and then it'll come back with questions for us before it writes the full plan. And so we'll
+54:39
+see that going back to the UI here we have four workflows running now. We have the the GitHub issue fixes. And by the
+54:47
+way, these are only running for a long time because I've designed it that way. Like we can make this a lot shorter if we wanted to, but I want these to be
+54:54
+very comprehensive, especially with some things that I'm experimenting with. And then now we also have the archon pip
+54:59
+loop. So this this full process that's running right now, starting with the exploration at the top. Pretty cool. Um,
+55:07
+and so we'll wait for this to run and come back with questions. And I can also say, give me a status update to see
+55:12
+where we're at with the GitHub issue fix workflows. All
+55:19
+right. So, let's see what it says here.
+55:26
+So, it reads the logs for each one of the workflows
+55:32
+and then apparently Claus is thinking for a long time for some reason, but it'll output the the summary in a sec
+55:39
+here. [snorts] All right.
+55:47
+I'll go back to the the chat while we wait for this. Uh what has been wild for me is my main Claude session has
+55:53
+apologized to me for missing bugs that were found with the Archon a comprehensive PR review. Well, yeah. I
+56:00
+mean that that's how coding agents are. They're very sickopantic, right? So if you say like, "Hey, you did this thing wrong." They're going to be like, "Oh,
+56:05
+sorry, sorry, sorry. Let me go and fix that." Or whatever. Uh but that's that's exactly why it's important to have a a
+56:12
+separate coding agent session to do validation because the coding agent when it checks
+56:19
+its own work it is always it is always always going to miss things.
+56:26
+All right. Um so here we go. Massive progress and the recursion bug is biting hard. Okay. I'm not actually sure what
+56:32
+this is referring to. So maybe we'll dig into this for a sec here. Uh, so the PI provider,
+56:38
+um, let's see, codeex rejected opus. I'm not sure why it's using codeex. That's kind
+56:45
+of weird. Anyway, uh, implement
+56:56
+opus got routed to codeex which rejected it. Oh no.
+57:04
+I think I might have been messing with some things in my local environment that made it so it was trying to go to codeex
+57:10
+instead of opus. That might be my bad. Um I'm trying to figure out once
+57:16
+[snorts] PRs merges and the YAML gets provider cloud added, redispatching will produce the real fix. Okay.
+57:27
+Interesting. Yeah. So, I mean, I was messing with some things in my local environment, so I kind of shot myself in
+57:32
+the foot here. But at least we actually do have a pull request created. So, let's take a look at this. I'm going to
+57:38
+go over to my browser here, open up the PR. So, this one,
+57:44
+um, that's not the right pull request. Okay,
+57:51
+here I'm actually going to tell it to do something different. Okay, I want you to cancel these archon workflows and then I
+57:56
+want you to change it so that it doesn't use codecs. Fix it so it actually uses claude and then I want you to rerun the
+58:01
+workflows. So I think that's actually a problem of the workflow that I used because I was
+58:08
+like I said I'm I'm using an experimental GitHub issue fix workflow. I probably shouldn't pick the experimental one for the stream. But if
+58:15
+we go into um sorry let me go I have to go to the Archon repo. Let me go over to
+58:21
+archon and then I will go to archon workflows
+58:26
+defaults or this one archon fix github issue experimental um
+58:33
+where was it using oh I guess it already I guess it already adjusted it because the provider's clawed now so we should
+58:38
+be good now but it was trying to use codeex earlier so let's go
+58:46
+okay all right we'll let we'll let it run again. But anyway, we have the piv loop
+58:51
+running on the other conversation here. So, uh the explore phase is done and it's waiting on six questions. One
+58:58
+important finding uh the road map don't doesn't actually exist. The marketplace will be the first
+59:04
+custom Astro page. So, that's that's only because it's in a different branch. U but okay, so I'm going to go through
+59:09
+each one of its questions here. So, uh for the CLI namespace, should it
+59:15
+be archon workflow search or archon workflow install? or a separate marketplace search
+59:21
+marketplace install. Uh let's do archon workflow install like I' I'd want the
+59:27
+command to be uh based on the other POC where it's like archon workflow install and then the ID of the workflow
+59:35
+marketplace page styling wrap a custom page in Starlite Starite page component for consistent Chrome or standalone
+59:40
+pages with their own styling. Um so actually look at the dev branch
+59:47
+for archon because I do have the road map already implemented there. So I want you to find that and just mimic that. U
+59:55
+then for number three
+1:00:01
+just go with whatever you recommend for that one. I'll trust your judgment on that. And then for number four should
+1:00:06
+the piv explore via GitHub API to pick real works or do you want to specify the ones now? Yeah, for the seed entries,
+1:00:14
+let's just uh pick actually I suppose I can pick the the archon workflows for
+1:00:19
+the seed entries quick. Let's do the piv loop code review um GitHub issue fix and
+1:00:30
+um let's see. I guess I need one more. So, these are just the workflows that are
+1:00:36
+going to show up on the initial version of the site when I build it. Kind of like what we have right here. So for the
+1:00:41
+other one, let's do the Ralph uh loop one. That'd be cool to have the Ralph loop. So those those can be the ones that we seed.
+1:00:48
+And then um for the marketplace.json flat array of entries or wrapped
+1:00:55
+um let's just do a flat array of entries.
+1:01:02
+And then for the government's dock,
+1:01:12
+good question. Um,
+1:01:23
+I think you're over complicating things in the what? Let's just add a section to contributing.md for contributing by
+1:01:29
+creating archon workflows and then the marketplace trusted. I don't think we actually need that.
+1:01:35
+All right. Yeah, I just want to I just want to simplify things.
+1:01:41
+Okay, cool. So now what's going to happen is I've given all this feedback, right? Like this is the human in the
+1:01:46
+loop in the archon workflow. The archon workflow paused, asked me these questions. I will I I give the answer
+1:01:53
+here. And now you can see that it's going to run the approve command on the archon workflow. So it approved and then
+1:02:00
+it passed in all of my answers. And now the archon workflow continues to the next step. And so I actually probably
+1:02:05
+should have showed it here, but um the piv loop the archon piv loop workflow
+1:02:10
+was in a pause state for a little bit. Like if I had shown that in the web UI, it would have showed that like it's paused waiting for my input. Obviously
+1:02:16
+now it's running again because it uh ran the approve. And then let's see what happened here.
+1:02:24
+Um, okay.
+1:02:30
+Still trying to figure out the I probably shouldn't have used experimental workflow, but it's all good because you guys got the general idea
+1:02:37
+still of like how I use archon to handle GitHub issues.
+1:02:42
+Okay, so now the piv loop is either going to do another explore round if it needs
+1:02:47
+more clarity or move to the plan creation. And so really it's like the coding agent gets to reason. Now we have
+1:02:54
+this built into the pivoop workflow like should I keep exploring or am I confident enough and the user has answer
+1:03:00
+my questions in a way where I know that I can go to create the structured plan like that actual markdown document that
+1:03:06
+outlines everything like all the context we need to go into the actual implementation. So if I if I go into the
+1:03:13
+piv loop we can see uh actually let me go to workflows. I think my problem is I'm I I don't think I'm in the dev
+1:03:19
+branch for Archon. I think that's why I'm running into the issue with the other workflows. But let me go into the
+1:03:24
+piv loop here and just show you what this looks like. So, um,
+1:03:32
+let me click in. So, like this, that's the code review. Hold on. That's our implement. And then this is our refine
+1:03:38
+plan. This is our create plan. So if it if it goes through the exploration phase
+1:03:44
+and it figures like okay we're good to go now and then it's going to go on to this prompt here. This is the structure
+1:03:51
+plan that it's going to create after our initial back and forth with the exploration. So basically like I want
+1:03:58
+the plan document to have the exact same format every single time because it makes it easier for me to review and it
+1:04:04
+makes my whole process more reliable and repeatable. And so just in simple markdown here, I'm describing like
+1:04:10
+here's the exact structure that I want for the plan. The summary, the mission, the success criteria, what's in scope
+1:04:16
+and out of scope, the codebase context, like here are the files that we have to edit and create to implement this new
+1:04:22
+feature. That's what it's going to create here once it gets to that stage in the workflow. Um,
+1:04:30
+okay, the plan looks solid. Um, okay.
+1:04:35
+give me the full path to the plan. So, it looks like it actually created the plan. So, it paused again to to send
+1:04:43
+that to me so that I can review it. Right. So, like there this is the second time that it's been a uh there's been a
+1:04:50
+pause here. So, let me actually open this. So, I'm going to go to my browser here
+1:04:57
+[snorts] or my file explorer.
+1:05:04
+I hate Windows. My file explorer just froze. I hate Windows so much right now.
+1:05:10
+Come on. Where? Where are you?
+1:05:18
+There we go. Artifacts.
+1:05:24
+Wait, that's not the right path. No, that isn't the right path. I need
+1:05:31
+the exact path to the plan.
+1:05:36
+So, usually it gives me the path. I'm not sure why it didn't, but um yeah, I need it to give me the path so I can
+1:05:42
+actually review it. And then once I review the plan, I can either give it feedback or I can say ready. Uh oh,
+1:05:49
+wait, hold on. Oh, I'm sorry. That's my bad. It's still in the explore phase. It
+1:05:55
+came back for more input from me. And then I can say ready and then it'll move and write out the plan. So, okay, that's
+1:06:01
+my bad. I just read that wrong. Um, which is good because I I want it to like stop for my approval um with this
+1:06:08
+stuff before it goes and just creates the full structured plan. So, one question before I say ready. Do you want
+1:06:13
+the marketplace URL to be SLMarketplace or take over the existing SLworkflows? Uh, yeah. So, I wanted to take over the
+1:06:20
+existing SLworkflows because that was just a separate proof of concept that I did. And so, okay, given that I am now
+1:06:26
+ready to create the plan. Okay, so now it's going to sorry, sorry, that is my bad. Now, it is going to resume the
+1:06:31
+archon workflow and let it go past the explore step now into the um creating
+1:06:38
+the structure plan step. All right.
+1:06:44
+Okay. You know that other poll request that you created, you didn't actually make.
+1:06:50
+That was an old one. So, I need you to um dispatch that third workflow again, too. Sorry, I need to correct that
+1:06:57
+because it was it's only running two workflows, but it needs to run all three. Okay, there we go. Piv is now
+1:07:04
+creating the plan. I'll let you know when it's ready for your review. All right, good. There we go.
+1:07:13
+All right. I'm going to take a sec to to look at
+1:07:18
+the chat now as we're waiting for this.
+1:07:24
+All right. Will we be able to comment on a section of a community workflow to say what we
+1:07:29
+would optimize or which variants are useful? And then the comments can be rated so we can see possible good variants. That's a really good idea.
+1:07:36
+Now, the thing is I wouldn't be able to do that yet because this initial version of the workflow marketplace is not going to have any kind of authentication, but
+1:07:43
+that is in the road map. Like I definitely want to evolve it to get to that point where we'll have like full
+1:07:48
+authentication with like a comment section and up voting and everything that just won't be there for the v0ero of the marketplace.
+1:07:57
+Uh anyone found a good tutorial to integrate BMAD with Archon? uh you know, Eric, what honestly what I'd recommend
+1:08:04
+is just uh cloning the BMAD repository locally and then pointing cloud code to
+1:08:10
+it and saying, "Hey, I want to build BMAD or like these things from BMAD into Archon workflows." And it'll just it
+1:08:16
+should just load the Archon skill and help you ideate there. My recommendation would just be like specifically to ask
+1:08:22
+it to ask you a lot of questions so that you guys can get on the same page with
+1:08:28
+that uh with like what features you want to take from BMAD or if you really want to try to copy the whole thing which
+1:08:33
+might take a while but you could what Archon does is basically keep the
+1:08:39
+agent more grounded with targeted context. It can confuse on specific context that is not relevant. Exactly.
+1:08:45
+Yeah. Like one of the best parts of having a full workflow where we are stringing together different coding
+1:08:51
+agent sessions is we can make each session very very focused and that's powerful for coding agents because they
+1:08:57
+get overwhelmed with context just like people do if you try to have it do too many things in the same conversation.
+1:09:07
+Uh what about having Archon run as a standalone without the use of a CLI? Why have the models run within Archon to
+1:09:12
+power it? So I mean we don't really want to compete with other coding agents. So
+1:09:20
+I would I always want archon to run claude code or codec or pi under the hood. I don't want to like run have the
+1:09:27
+model run directly in archon and have it be another coding agent competitor. I I think that's why you're asking. I'm a
+1:09:33
+little confused by your wording because like because Archon is running as a
+1:09:39
+standalone already like the CLI like I don't know why you wouldn't want a CLI.
+1:09:44
+Uh so yeah, maybe you could clarify. Uh is it possible to let a work tree a
+1:09:49
+workflow run without a work tree? Uh yes, that is very possible actually. Let
+1:09:55
+me let me show you. So if I go into Archon here, I'll just open up a new session. Um, how
+1:10:02
+do I run a Archon workflow without a
+1:10:08
+work tree? So, I'm I'm just doing this to show you that when Archon has the archon skill loaded, it has full context
+1:10:15
+around workflows and parameters and how to run them. And so, it'll be able to grab the answer from me very quickly.
+1:10:20
+But, we have a no workree flag that you can specify when you run a workflow. And
+1:10:26
+so that way if you just want to operate directly on your codebase and you don't want to deal with a separate local copy,
+1:10:33
+you can just do this. So this is actually how I generally recommend using archon when you have a nonI coding
+1:10:39
+workflow. And yes, you heard that right. You can use archon for a lot more than just coding. Really any agentic
+1:10:45
+workflow, you can create as an archon workflow. And a lot of those where you just have like a single output file like
+1:10:50
+a video or a PDF or something, you don't really need a work tree for that. That's more just useful for any kind of like
+1:10:56
+code changes that you are making. All right.
+1:11:02
+Uh let's see where we're at. All three are working with default assistant cla effect. These workflows are in the web
+1:11:08
+UI again. Okay. So, we had a little bit of a blip there, but now we have them all running.
+1:11:14
+Um, cool. I'm going to check actually really quick. I need to check my cloud usage to make sure that I'm not hitting
+1:11:21
+something nasty. Let me look at that real fast off camera. Okay, I've used 41% of my 5
+1:11:28
+hour, which is actually not bad, especially because I did a lot before the stream as well. These workflows, they go for a long time. But here's
+1:11:36
+another really important thing to understand. Archon workflows are actually pretty token efficient because
+1:11:42
+you each coding agent is very focused. you're only giving it the context it needs at each step of the way and you
+1:11:48
+can specify the model that you're using in each node. So for some nodes like
+1:11:54
+research you just need haiku for planning you might want opus and then you'll use codeex for review like
+1:11:59
+whatever it is you get to choose the provider and model per node. So, even though these are very long running
+1:12:04
+processes, they're actually pretty context efficient. Like, I've been running a ton of workflows and I have another one running on my other machine.
+1:12:11
+Like I said earlier, I did a lot of prep work for the stream this morning within the same 5 hour window and I'm still
+1:12:16
+only at 41% of my 5 hour window. It's not bad at all.
+1:12:22
+Um, all right. Yeah. So, let's let's go back and make sure that we don't have an update for any of these. I'm just waiting for the the plan to be created.
+1:12:29
+And again, I've designed the process to be pretty comprehensive, so we'll have to wait a little bit, but it's really up to your prompting to determine how long
+1:12:36
+the process takes, just like we have for, you know, skills and commands. It's entirely up to how much you're asking it
+1:12:42
+to do here. Uh, what's the best way to synergize
+1:12:48
+open source resources like Archon plus Symphfony? PS, uh, non techy here. Um, I
+1:12:54
+don't really think you would use Symphony with Archon
+1:12:59
+Symphony because that that's the thing from OpenAI, right? I I looked into this a little bit here,
+1:13:05
+open- source spec for codeex orchestration. It honestly I feel like Archon is sort of like it replaces
+1:13:12
+Symphony because Symphfony is sort of like their codeex harness. So, I don't I don't really know. Like
+1:13:19
+honestly my answer for you is like I I don't think you would want to,
+1:13:24
+right? Like coding agents using linear as a state machine to work alongside us. Like you can build this whole linear as
+1:13:31
+a state machine into an archon workflow. You don't need symfony if you're building archon workflows. So two things
+1:13:37
+I'd say here. One is if you want to build an archon workflow that operates like Symfony, you can literally just
+1:13:44
+open up cloud code or codeex. you can uh you know load the archon skill, tell it
+1:13:50
+to read this blog post and say I want to build this symfony harness as an archon
+1:13:56
+workflow and it can knock that out for you probably in one shot. The other
+1:14:01
+thing you can do is you could I mean like like I'm saying I don't know if I'd
+1:14:06
+recommend this necessarily, but you could like have it load the archon skill, not not like build something to
+1:14:12
+replace symphony, but ask it like how could I incorporate symfony into an archon workflow. Just see what it comes
+1:14:18
+up with. I really don't know. Like I said, I feel like you wouldn't really use them both together, but you could
+1:14:24
+just see what it says because if it reads this and understands the context of Symphony and you have it load the
+1:14:30
+Archon skill, it can combine that knowledge together and maybe come up with some way that they could work together. But it really comes down to
+1:14:37
+for any kind of like open- source project you want to incorporate with Archon or take inspiration from, it's
+1:14:42
+just load the Archon skill, load in that repo or whatever and tell it how it can combine or build an Archon workflow
+1:14:49
+around that open source project.
+1:14:54
+All right, follow up within Archon settings UI, you have an LLM provider list dropdown and a dropown for the
+1:15:00
+models they provide. Yeah. So that that's more experimental
+1:15:05
+that we're we're something we're working on right now. Um but this will like update your
+1:15:11
+environment variables directly when you change these things. So like you can have like the default provider so that
+1:15:17
+if you don't specify the specific model or provider in a workflow or a node,
+1:15:23
+this is like what it would default to. So it's kind of like the global setting. So we have a sort of override where like
+1:15:30
+in an archon workflow we can specify like here's the provider I want to use and and the default model and then at
+1:15:37
+the individual node level you can also specify the provider or model. So it this takes precedence. What you have set
+1:15:43
+at the individual node level always takes precedence. And then um if
+1:15:48
+something isn't specified for the individual node then what you have as the default for the workflow takes
+1:15:54
+precedence. And then if even that isn't specified that is when it will use the
+1:15:59
+default like global configuration that you have set as environment variables that you can also manage right here.
+1:16:07
+All right. Oh. Oh take a look at that. The archon piv loop is now in the pause state. So it's ready for our feedback
+1:16:13
+now. We can see that it has uh created the plan. So let's go back take a look
+1:16:19
+at that. So the plan looks solid. Here's a summary for your review. Um and then I
+1:16:25
+can say you know like give me the path to the plan so I can review
+1:16:30
+myself. And since this runs in a work tree, the plan is uh somewhere like that isn't
+1:16:37
+like super easy to get access to, but you can just ask it and then you can I can just open the file here. So this is
+1:16:43
+the plan MD and you can see that it is within a work tree. So like this is just
+1:16:48
+like the unique identifier for the work tree. That's why we have like a random uh you know alpha numeric string here.
+1:16:55
+So if I open up the plan now, I can review things and if there's anything that doesn't seem perfect to me, I can
+1:17:01
+just go in here and say like, "Hey, I don't like the validation here. Change it to XYZ." Right? Like whatever that is, I can I can have it iterate because
+1:17:09
+the Archon Piv loop workflow is a loop. Like I get I get to specify any changes
+1:17:14
+I want um in as many times as I want here. So we have the summary, the mission, the success criteria,
+1:17:21
+everything that I showed you in that markdown structure earlier. It has built that exactly here. So it's created the
+1:17:27
+structure plan that we can then send into the next node in the archon workflow for implementation assuming
+1:17:32
+that we actually agree with everything in the plan here. So here's what's in scope. Here's what is out of scope. Like
+1:17:39
+I dropped the marketplace trusted for example. You remember me specifying that earlier when I was giving feedback in
+1:17:45
+the exploration phase. Here are the key files that we need to create and update
+1:17:51
+like we're updating the contributing guide. Here's the pattern to follow. So I had to look at how I built the road map within the dev branch and um what
+1:18:00
+else here we got the architecture task list. I mean I don't need to like go through all of this. The point is it's very comprehensive on purpose because
+1:18:07
+this structure plan is literally going to be all of the context that I send
+1:18:12
+into implementation for claude to handle the actual build. So if I go to the
+1:18:18
+workflow here, I just want to show you the YAML for this. Sorry, this is the wrong repo. I want to show you the YAML for this really quickly. So, let me go
+1:18:25
+out and then back into defaults. I'll open up the archon piv loop workflow just to show you the structure that
+1:18:30
+we're going through here. So, we finished the exploration. This is the prompt that I had for the
+1:18:36
+exploration, right? Like the argument specifies here is what we're building
+1:18:42
+and then we have a loop. So, we're looping until the plan is ready. So,
+1:18:47
+this is what we saw where like it came back to us with questions. It asks us questions and then it after it asks us
+1:18:53
+if we're ready. So we have this whole process where it's interactive. We get to talk to it as much as we want and
+1:18:59
+then it creates the plan. And so it depends on the exploration being done. Obviously we don't want to run these in
+1:19:05
+parallel. That's how we make sure they don't run in parallel. And then we're starting in a fresh context session
+1:19:11
+because basically we're just going to pass the final output from the explore
+1:19:16
+node. This is the cool part about archon is we can start fresh sessions but still pass the core output between different
+1:19:23
+nodes. So here's what happened in the exploration. Here's originally what the user is looking for. Now let's create a
+1:19:30
+structured plan. So it's going to follow the exact convention that we have laid out right here. This is the same prompt
+1:19:36
+I was showing in the archon web UI and I'm specifically telling it to output the plan document to this special
+1:19:43
+artifact directory variable. This is a variable that uh is it works by default
+1:19:50
+for every single archon workflow. This is like the workspace for the workflow
+1:19:55
+execution. And so this is the path that I was showing earlier that had that random alpha numeric string that was
+1:20:01
+like the ID for the directory. So that way all the artifacts and files and everything that we're passing as context
+1:20:07
+between nodes, it all lives in a single place that's isolated for that workflow execution.
+1:20:13
+So we create the plan and then we have the next step to refine the plan. And so
+1:20:18
+this is where I can optionally give feedback on the plan. So if if I give
+1:20:24
+any kind of like I need to change this then it's going to go through this loop here. So it's just like the exploration
+1:20:30
+where it's going to loop you know infinitely or I guess until max iterations just for the sake of token
+1:20:35
+efficiency. I want to have a limit there but it'll iterate up to 10 times if I really have that much feedback. And so
+1:20:41
+for the sake of of brevity for the stream, I I don't really want to iterate that much on the plan, but you can
+1:20:47
+imagine that like as you're going through something this comprehensive, there's probably going to be some things that it didn't quite nail down, either
+1:20:53
+technical implementations or just general like high level what you wanted to build. And so this is your chance to validate and make sure that the coding
+1:21:00
+agent really understands what needs to be built, the different risks that we have here. Maybe you want to address
+1:21:05
+some of these risks in the plan before you go into implementation. It's really up to you. The point is this document
+1:21:11
+now is going to serve as the only context going into the actual implementation.
+1:21:17
+So we can see here that like we're starting a brand new session here. Um so
+1:21:24
+let me let me scroll down. So actually it's kind of cool like one thing we do before we go into implementation is we
+1:21:30
+actually install the dependencies because we are running the workflow in an isolated codebase. So we have to
+1:21:36
+reinstall the node modules or the Python virtual environment whatever it is. So we do that as a deterministic node just
+1:21:42
+to guarantee that our environment is set up now going into the implementation.
+1:21:48
+And uh for the implementation here we have it it's like another loop. It's kind of like a mini R loop where it's
+1:21:54
+just going to keep building until it has uh solved all or it's like you know addressed everything in the structure
+1:21:59
+plan. So we're saying like, you know, here is the user message and then we want you to
+1:22:06
+read the artifacts directory, read the plan.md. So it reads the plan. It builds
+1:22:12
+up a task list and it's going to knock things out one task at a time and then
+1:22:18
+it's even going to like track the progress in another file that we have in the artifacts directory. Pretty cool. And we set fresh context to true because
+1:22:26
+we don't need anything from the prior planning session. It is literally just that plan MD that we're passing in as
+1:22:34
+context for the implementation. And so let's go back to CL. Let's actually kick that off. So I'm going to
+1:22:40
+say here that uh plan looks great. Let's implement.
+1:22:46
+And again, if I wanted to give feedback here, I could and then it would just make those changes to the plan. I'd review it and then I just come back and
+1:22:52
+say this at some point anyway. And so we can see that archon workflow approve and
+1:22:57
+it just said approved, right? like there's no feedback I gave. And so now the implementation is running. And so if
+1:23:02
+we go back to the web UI, we can see here that it's no longer paused. It is currently implementing.
+1:23:08
+Pretty cool. And then while this runs, let me go back here and say, give me a status update. I just want to see where
+1:23:14
+we're at right now with the workflows that we're invoking for the more like brownfield development here.
+1:23:23
+So a lot of loops. Exactly. Yeah. You know, loops are pretty important. I
+1:23:28
+mean, maybe you don't realize it when you're working with cloud code, but you're doing loops all the time. Iterative feedback, having it like kind
+1:23:36
+of loop over its own work. You you generally never want to accept the first
+1:23:42
+pass output from a coding agent because it's never that good. Honestly, like the
+1:23:47
+raw qual output quality from a coding agent with just a single pass is pretty
+1:23:52
+bad. But it's really like the power what makes coding agents really reliable is
+1:23:57
+when you have a process for creating a plan and you refining it in a loop right
+1:24:03
+and then like it implementing and uh kind of checking its own work and iterating again in a loop and then you
+1:24:09
+have the validation process that is yet another loop like everything is just loops and loops because you want the
+1:24:14
+coding agent to have a process of of planning through things and self-correcting and that's what we're building into the archon workflow here.
+1:24:20
+It's really easy to build these kind of loops into Archon.
+1:24:26
+Um, okay. The implement are still routing a codeex. Sorry, guys. I don't know why that why it's routing to
+1:24:32
+codeex. That's um Oh. Oh, it's shoot. It's cuz I said that. Uh, let's see.
+1:24:44
+Um, do you number two? Well, validate is
+1:24:50
+compensating. I already produced a clean PR with a real fix, you know. Okay, let's do option one, but still fix the
+1:24:59
+um config. So, it uses claude. So, that sorry guys, that's my bad. So, I was doing some testing of codeex earlier,
+1:25:06
+but the thing is like the [snorts] the node failed, but the ar the workflow as a whole is still succeeding. And I guess
+1:25:11
+that kind of highlights something else that we have built into archon, which is uh resiliency, right? like we have a lot
+1:25:18
+of um workflow durability built into archon. So if a node fails, it can
+1:25:23
+retry. If your computer crashes or your archon workflow crashes for whatever reason, we have everything stored in
+1:25:30
+state in a database that can either be SQLite or Postgress. And so you can also resume workflows. It's not fully
+1:25:37
+ephemeral, right? Like we have full state stored in a database. So it it knows where we're currently at.
+1:25:44
+Um so that's cool. So, I guess we get to at least demonstrate that. But still little feels a little jank, for lack of
+1:25:50
+better words, the the execution here. Um, that's always the fun part of live streams is if something can go wrong, it
+1:25:57
+always will. So, that's on me for experimenting with things and not cleaning up my environment before the stream, but it doesn't really take away
+1:26:03
+from the demonstration at least. So, I'm good with that.
+1:26:08
+All right. Um, how resource intensive are the workflows themselves? I'm wondering how beefy the local hardware
+1:26:14
+needs to be. So they're not resource intensive at all because most of the
+1:26:20
+time a workflow is just waiting for calls to the coding agent. So as long as you're not running a local large
+1:26:27
+language model for the actual AI coding, it's not going to take much memory at
+1:26:32
+all. Like you could you could run a ton of like a dozen archon workflows and it
+1:26:37
+it'd still be like less than a gigabyte of RAM. um unless unless you're using
+1:26:43
+skills that take a lot of memory. So it's just like with claw and code like generally it's a very lean process but
+1:26:50
+if you're doing like browser automation so it's actually running a Chrome instance or something then it's going to take a lot of memory. So like one thing
+1:26:56
+I ran into with my Dark Factory experiment when I was initially setting it up is u I I have the Dark Factory
+1:27:03
+deployed to a VPS that uh only has like a few gigabytes of RAM. I think it's
+1:27:08
+like 4 GB of RAM and two vCPUs. And I tried running a ton of Archon workflows
+1:27:14
+in parallel that were all validating work with a the agent browser and I crashed my VPS because each one of the
+1:27:20
+workflows obviously had to run a Chrome instance to test the website in their own isolated environment like within the
+1:27:26
+work tree. So it took way too much memory. But assuming that the skills or like tools that the archon workflow is
+1:27:33
+using aren't super memory um like taking a lot of memory then your archon workflow won't
+1:27:42
+uh talk to me about paidantic versus archon. So uh pidantic AI is a framework for
+1:27:48
+building agents. It's very different. It's apples to oranges. Uh comparing archon to pyantic like pyantic AI is a
+1:27:56
+way to create AI agents. You could build a coding agent like claude code but
+1:28:03
+still that would be like the the agent that Archon is using because Archon is orchestrating agents. Uh now one thing
+1:28:09
+Pantic does have is they have a new harness that they put
+1:28:14
+out. So maybe this is what you're referring to. I got to be honest though, I haven't had a chance to try this yet. I've really
+1:28:22
+really been meaning to because I still am a huge fan of Pideantic AI.
+1:28:27
+Um, now the Pyantic AI harness is the official compatibility library for Pantic AI. Uh, so that like this is like
+1:28:34
+an official addition onto the framework. And um, the main thing that I would say is that this still isn't specific for AI
+1:28:42
+coding, right? Like if you look at some of the examples here,
+1:28:47
+I think they're more for like deep research. Let's see.
+1:28:54
+Trying to look at some examples quick. Like this there's definitely some
+1:29:00
+similarities to Archon. I don't know how much it's kind of a harness builder, but it's not specialized AI coding. I don't
+1:29:05
+think they like, you know, support work trees and things like that. Um, but I definitely I I am actually thinking
+1:29:11
+about making a YouTube video where I specifically compare the capabilities of the Panti harness to Archon and talk
+1:29:17
+about when you'd maybe want to use one over the other. Um, but yeah, this looks like really really cool,
+1:29:28
+right? I'm looking at digging into more harnesses. I'm curious if I should start
+1:29:33
+with Archon or Pyantic or something else. So, uh, my recommendation would be
+1:29:39
+to start with Archon if you're looking at building harnesses specifically for AI coding. Now, like I said earlier,
+1:29:47
+Archon you can theoretically build really any agentic workflow as an Archon
+1:29:52
+workflow, [snorts] but I would say that like we haven't really optimized things outside of AI coding yet. So, if you
+1:29:59
+want more of like a general like deep research agent or something like that, then the pideantic harness would probably be better to start. Um, and
+1:30:06
+like I said, I really want to check it out myself more. I I've just kind of like glazed over it uh up until this
+1:30:12
+point. Uh, but it's also cool to see that um,
+1:30:17
+Dowi is working on. I've actually had a conversation, a couple conversations with him. He's a cool guy. So, cool to
+1:30:22
+see him working on the Pantic AI harness and cool to see Pantic AI continue to evolve. Um because I I know I don't
+1:30:29
+create as much content on Pantic AI these days just because like there's so much excitement around claude and AI
+1:30:35
+coding agentic engineering but uh Pantic AI is still like I'm using it every day.
+1:30:40
+Fantastic framework. Well maybe not every day. Every week every day is a bit of an exaggeration but I'm using it
+1:30:46
+every week. Building with it every week.
+1:30:54
+Um how do you update stale information in your second brain? Do you use an automation? So, one thing that I have in
+1:31:00
+my second brain, I mean, I could I could spend an hour talking about my whole reflection system here, but one thing I
+1:31:06
+do in my second brain is I have a memory reflection process. It runs once a day
+1:31:12
+to analyze my current memories and extract the core information into a uh
+1:31:19
+basically it's like a memory promotion process. I have my daily logs that build up over time, basically summarizing all
+1:31:25
+my conversations with my second brain. And the memory reflection process is going to look at those daily logs and
+1:31:32
+take all the important stuff out into a memory.md file that I have loaded into
+1:31:37
+every conversation with my second brain. Another part of that memory reflection process is to look at any past memories.
+1:31:45
+I have a system where it kind of just like u spot checkcks previous daily logs
+1:31:50
+and it it like compares that to recent memories to see if there's any information that's gone stale. And I
+1:31:56
+don't actually delete the information. I just mark it as stale because I think it's kind of like uh knowledge graphs
+1:32:01
+where like like graffiti if you guys remember all my content on graffiti we don't necessarily want to remove the
+1:32:07
+information but we want to mark it as stale so that our second brain can understand how things have evolved. I
+1:32:14
+wanted to still have record of, you know, what was the truth before so that I can kind of give more context into
+1:32:19
+what is the truth now. I know it's a little vague, like it's hard to get into specifics right now, but I hope that
+1:32:25
+makes sense. Basically, I just have a reflection process that runs once a day that helps with all of my memory
+1:32:30
+maintenance for my second brain.
+1:32:36
+All right. Okay. Summary. Okay. So, we fixed our config
+1:32:42
+here. Sure. Uh, so give a status of the workflows. Now
+1:32:48
+let's see where we're at. And then for the implementation, this
+1:32:53
+one's going to probably work a while obviously. Um, so it's going to go
+1:32:59
+through implementation in the piv loop and then it's going to do its first round of validation and iterating on
+1:33:05
+that and then once it figures that it's done, it's going to pause for our feedback. So, we have yet another human
+1:33:11
+gate. Not that your archon workflows always have to have a ton of human in the loop, but I specifically wanted to
+1:33:17
+show a process that has a lot of human in the loop because when you really want to get the most reliable results
+1:33:24
+possible with your coding agents, it is pretty important to have human in the loop. At least after the plan and after
+1:33:30
+the implementation, like those two places, it's really important. Um, not that a coding agent is gonna totally
+1:33:37
+botch the implementation if you don't have human in the loop, but if anything, it's important just to make sure that
+1:33:42
+the coding agent is really aligned with exactly what you want to build, right? Like half the time when a coding agent
+1:33:48
+messes up, it's not that it's bad code, it's that it just wasn't aligned with you. So that's why human loop is, you
+1:33:54
+know, just as important as ever, even with these models and harnesses getting more and more powerful.
+1:34:02
+Um, do pre-flight archon workflow validators exist? So, yes, in a very
+1:34:08
+basic sense. One thing that we have with Archon is we have like basically like a workflow llinter. So, after it builds an
+1:34:15
+archon workflow, there's like an archon validate command that can run to make sure that the syntax itself for the
+1:34:20
+workflow is actually good. Um, but it doesn't do any kind of like smoke testing. We are planning on building a
+1:34:26
+sort of eval system into archon to help you when you first build workflows evaluate that they work as intended.
+1:34:35
+Um how do I [snorts] uh validate workflows after building
+1:34:40
+there is some validate command right? I'll just show you another example of how we can just ask it and with the
+1:34:47
+archon skill it'll understand what it can do to um do sort of like like the linting of the workflow. So CLI validate
+1:34:55
+workflows validate workflows and you can call out a specific one. So like this is that you would just have claude run or
+1:35:01
+whatever coding agent run this command once it builds the workflow to make sure that the syntax it just checks the
+1:35:07
+structure the validity of cycles and references and things like that. Basically just like a whole laundry list
+1:35:13
+of stuff that we can validate without having to actually run the workflow.
+1:35:19
+Uh is there a workflow for creating new workflows? I tried making a couple workflows freestyle without a builder
+1:35:24
+with mixed results. If not, do you have a tutorial on making a workflow? So, we do actually
+1:35:32
+uh we have this archon workflow builder. I think this is exactly what you're looking for. So, I would try that out.
+1:35:40
+Um and then if you have mixed results, like you shouldn't have to use this to be able to get good workflows. It really
+1:35:46
+just comes down to like make sure you're really specific with what you're looking to build. the archon skill by itself
+1:35:52
+should be enough, but yeah, you definitely have to be specific for what you're looking for. And then I don't
+1:35:58
+have a specific guide to building workflows in Archon yet. I'm planning on
+1:36:03
+doing some more content on that soon. What I do have though is a workshop in the Dynamis community. So, I did a
+1:36:09
+workshop a couple weeks ago on building Archon workflows and and like my best practices for that. Um, definitely some
+1:36:15
+content will bubble into YouTube around that stuff as well soon, too.
+1:36:20
+All right. So, where are we at now? Let me go back to the web UI.
+1:36:27
+Refresh. Okay. So, we're still going through the implementation here. So, chugging along.
+1:36:32
+Um, let's see. Yeah, we're actually almost done with all of the brownfield stuff, too. Cool. So, yeah, we'll wait
+1:36:40
+for this to be done. Uh, I'm going to take a quick restroom break. So, I'll be back in like two minutes here. And uh
+1:36:47
+we're waiting for this stuff to finish anyway. So yeah, I'm going to go ahead and um just like mute my microphone and
+1:36:54
+turn off my camera. I'll be back in like 2 minutes.
+1:38:05
+All right, I'm back. Sorry that I had to really take care of that. [laughter]
+1:38:10
+All right. So, uh, yeah, still at the same place here. So, I'll just keep going back to the chat with you guys
+1:38:16
+here. Let's make an Archon agent that makes Archon flows. You know, that's the goal
+1:38:23
+of the workflow builder workflow, right? Like, why build a separate agent when
+1:38:28
+like Archon already allows us to build the harness for anything? That's what this is. U, but if you have more ideas,
+1:38:34
+I'm definitely open to it. All right. Uh, is there any task related
+1:38:40
+tutorials anywhere besides your normal YouTube videos or live? If not, would be super helpful. I'm getting stuck trying to go through all your vids to find
+1:38:46
+exact steps. Um, so yeah, I mean, Dynamus community, it definitely has more content where I
+1:38:52
+go deeper on these things. Another thing that I I have available if you guys want to check it out is um chat.dynamus.ai.
+1:38:59
+So, there is a kind of like AI tutor that I've been working on. It's a little slow because it it does like really
+1:39:05
+comprehensive searching, but this is an agent that I have available for you guys where um if you are uh just a subscriber
+1:39:14
+of my YouTube channel or like sorry let me rephrase that. Um by
+1:39:19
+default it will search [snorts] all of my YouTube videos. So it has indexed all of my YouTube videos. You can ask it
+1:39:25
+questions if because I know sometimes it can be hard to navigate around a lot of YouTube videos. And then uh if you're in
+1:39:31
+the Dynamus community, this agent has the ability to search through all YouTube videos, all workshop and course
+1:39:38
+content as well. And it also like cites its sources and can tell you like exactly where to go.
+1:39:45
+So like for example, I asked it like what workshop does Cole cover hierarchical rag and it points me to the
+1:39:51
+exact workshop in the Dynamis community where I do that. Take a look at that. Boom. Hierarchical rag for large
+1:39:58
+knowledge bases. So it can it can give you quick answers and also point you to the videos or if you're in Dynamus, the
+1:40:03
+Dynamus workshops or course videos that cover that specific thing.
+1:40:09
+So like for example, I asked like a really high level question here. What rag strategies does Cole cover in his content? And we got re-ranking, agentic
+1:40:16
+rag, knowledge graphs, query expansion, multi-query rag, self-reflective rag, contextual retrieval, contextware,
+1:40:22
+hybrid chunking. like we I pretty much have everything at this point, which is pretty cool because one of the things I
+1:40:27
+set out to do when I first made my YouTube channel is I want to cover like all of the important rag strategies and
+1:40:33
+and chunking strategies. And I've pretty much done that at this point. I mean, there's a couple of things that I
+1:40:39
+haven't really covered that much like late chunking, but as far as like, you know, what you actually care about or
+1:40:44
+what I'd recommend, I I've covered it. So, anyway, this is a resource for you to check out. It's just uh
+1:40:50
+chat.dynamus.ai. AI. Free to make an account. It's just if you're not in the Dynamus community, it'll only search
+1:40:57
+over my YouTube content, obviously. All right.
+1:41:06
+Did I drop Kimmy or Miniax? Uh, no. I'm still using it for the Dark Factory.
+1:41:11
+It's just for my general development. Most of the time I am still using Claude Code, but I have been getting pretty
+1:41:16
+good results using Miniax and Kimmy within the Dark Factory. Definitely not quite as reliable as Claude, but for the
+1:41:22
+cost, it's it's pretty effective. Um,
+1:41:28
+out of curiosity, have I done direct comparison for the same scenario, Claude Code versus Codeex, or rather Opus 4.7
+1:41:35
+versus GBT 5.5? Uh, I have not yet, but that is another video that I'm
+1:41:40
+potentially interested in doing. The only reason I'm hesitant to make a comparison video is just because so many
+1:41:45
+people have already and it's really difficult to do like comparison that
+1:41:51
+actually has real substance behind it. Cuz the problem is I can't just run one pin loop with Opus and one with GPT.
+1:41:58
+There's so much variance between different runs even with the same model that it's not really a fair comparison.
+1:42:04
+I'd have to do a lot of testing. But I might do that. We'll see. We'll see. Could be a good live stream, too, actually.
+1:42:12
+Uh, what does Claude Enterprise provide? API credits or usage like Max but for employees? Uh, so they they used to have
+1:42:20
+sort of like a max subscription but for employees, but I think it's like really you just pay for the API credits now.
+1:42:26
+It's kind of insane. It's really really expensive. But um, you get direct support from Enthropic and I think you
+1:42:33
+actually get more powerful models because our subscriptions with Claude are actually subsidized. It's like we don't get the most powerful model when
+1:42:41
+we have our individual subscriptions. And then enterprise I think has access to cloud mythos as well. So it's just an
+1:42:47
+entirely different model. Uh I think those are the main things. I mean there's probably quite a bit more but I
+1:42:53
+usually don't focus on enterprise because that's just not what I teach for most of like my YouTube and Dynamus
+1:42:59
+stuff. But there's also like a lot of things for security and compliance. It's like
+1:43:05
+one thing for um so I've done some corporate I do uh actually a good amount of corporate trainings for agentic
+1:43:12
+engineering and just generally like using claude and claude co-work and things like that and so I I have some
+1:43:18
+experience with with how it works. One thing that the enterprise plan gives you, it's kind of cool, is um you
+1:43:23
+basically have like an internal skill ecosystem, right? Like so you can you can have like
+1:43:29
+a plug-in marketplace for your company and then you can publish skills like if
+1:43:35
+you have like the admin rights to the enterprise plan for your organization, you can publish skills and other kinds
+1:43:42
+of plugins that are like automatically downloaded into all the employees. So you can essentially create your own like
+1:43:48
+context engineering framework for your company with the enterprise plan. So
+1:43:53
+that that part's pretty cool. Um yeah, then like all the security features and stuff.
+1:44:02
+But yeah, it is usage based pricing. It's really expensive. It's so cloud Claude Enterprise is so insanely
+1:44:08
+expensive.
+1:44:13
+Uh, how can I make Claude always write commit messages below 800 characters?
+1:44:18
+Well, I mean really what it comes down to is you prompt it to write under 800 characters and then um, and this could
+1:44:25
+actually be a good use case for archon. Basically, you'd have a workflow where it's like you have it write the commit message as a markdown document and then
+1:44:32
+you have a deterministic step in the archon workflow that validates that it's actually less than 800 characters and
+1:44:38
+then you have it retry the commit message if it isn't that. So that would be my recommendation because it's not
+1:44:44
+enough to like always just ask it like it has to be under 800 characters because sometimes it doesn't listen
+1:44:49
+right like that's that's the whole thing I'm talking about with archon here is we needed to be reliable by uh taking the
+1:44:56
+decision away from the coding agent as much as possible. So like in this case checking if is it really less than 800
+1:45:02
+like doing a deterministic check for that and having it retry if it isn't.
+1:45:08
+All right, let's go back to see where we're at with Claude here.
+1:45:13
+Implementation still running and then um
+1:45:21
+okay, are we done with these now? I want to see if we're if I actually have the pull request. I guess I can look at the
+1:45:28
+repository as well. So, pull request. Uh oh, yeah, we do. Okay. Yeah. Yeah, we
+1:45:34
+got the pull request for each one of these. This one is open eight minutes ago.
+1:45:39
+So, we added the provider for Opus 1 million to our implement nodes.
+1:45:44
+Um, [sighs] oh, okay. So, here's the problem. Three bundled workflows. They use Opus for the
+1:45:52
+model, but they do not set the provider to Claude. When user's default assistant is codecs, then the DAG executor
+1:45:57
+silently routes those nodes to code. Oh, that's okay. I understand. So, literally the problem that we were testing is like
+1:46:03
+why the workflows were failing earlier. So, I mean, that's always a tough part with live streams is that I move kind of
+1:46:09
+quickly. So, I miss things that I would normally catch, but that okay, that's really good to know. So, we're we're basically this pull request is just
+1:46:15
+fixing some workflows really is all it comes down to. So, this is good. And so,
+1:46:20
+we uh have our pull request here. And then if we go to the conversation, we also have the validation.
+1:46:27
+So, uh well, I guess we haven't gotten to that step yet. I guess that's where we are next. So, if I go back to Claude,
+1:46:33
+we can take a look at that. So all three are still running. Um yeah.
+1:46:38
+Okay. So they're all this one just entered archon validate. So we're doing the validation. But essentially what's
+1:46:44
+going to happen here, I mean we're pretty close to being done is it's just going to have that separate node that does the validation at the very end of
+1:46:50
+the pull request. Then it'll create a comment here if there's anything that we need to address and it'll go through
+1:46:56
+that iteratively. So that's like the last loop that we have for the workflow.
+1:47:02
+So that's pretty cool. And then let's see where we're at with the green field stuff. I don't know if I'm going to
+1:47:07
+really be able to get to the end of this here in the live stream. Um the problem I mean it's like a good and a bad thing.
+1:47:14
+Like Archon workflows, at least the ones that I run, I've designed them to take a while because they are fire and forget.
+1:47:20
+But it also makes it a little bit tougher to to demonstrate them live in a stream just because I we can't always
+1:47:27
+see it come to completion just because there's so much that goes on in the workflow. But I hope it's been useful
+1:47:32
+for you guys just to see the general process, especially like how I have human in the loop built into the piv
+1:47:37
+loop workflow up front. So, um, oh, oh, the implementation is
+1:47:44
+complete and ready for my review. Okay, so cool. Let's let's get through this here. Um, so here's the branch. Here's
+1:47:51
+the work tree. I'm going to say uh I want you to start the doc site of archon
+1:47:57
+in this work tree and then tell me the URL so that I can validate the page myself.
+1:48:03
+So we can uh do a little bit of validation and obviously it did its own. Now it's our turn, right? Like let's
+1:48:09
+let's start up the app. Let's take a look at the workflow page and uh see if it looks good.
+1:48:22
+Chat in the meantime. Uh, one thing to note, I created a workflow that uses 50% of the 50hour
+1:48:28
+limit within five minutes due to how incorrectly stack tool usage and context, which was nuts. Issue fixed, of
+1:48:34
+course. Yeah, that's good to when you first create any kind of workflow. It's
+1:48:39
+not that Archon is a token hog. It's that it can be easy to accidentally
+1:48:44
+create workflows that do way too much. And so, it's important when you first build one to always validate that and
+1:48:50
+and watch your usage and adjust accordingly. Okay. So, here's our URL. Let's go to
+1:48:56
+the browser. Let's paste that in. Uh, whoops. I didn't actually copy. Hold on. Let me copy this.
+1:49:04
+We go. Okay. All right. There we go. So, this this is
+1:49:09
+our initial page for workflows. And so, we have the banner here like I wanted. Community submitted. Archon hasn't
+1:49:15
+audited every workflow. Review source before installing or trust the author. Right. This is pretty cool. So, we have
+1:49:22
+the workflow. We can copy the command to install it. We have all the metadata here. We can view the YAML on GitHub. Uh
+1:49:29
+there we go. Okay, this is actually this is really good. This is a great starting point. Very cool. And so I can also ask
+1:49:36
+follow-up questions, right? So like as a part of the validation, I don't have to like just dig into the code myself and
+1:49:42
+look through every single line. I can also ask clarifying questions like for example uh help me understand like based
+1:49:48
+on the implementation here what is the flow for a user to submit their own workflow what does it look like in their
+1:49:54
+own repo what does it look like to create the pull request and the file they need to edit what does that JSON file look like so I'm just kind of
+1:50:00
+giving a brain dump here of like all my questions just to make sure that everything was implemented correctly and then obviously if I wanted to open up
+1:50:06
+the work tree and u look at the code there I can definitely do that as well so you can perform a code review just
+1:50:12
+like you would do with your normal coding agent. It's just with an archon, you have to navigate to that work tree,
+1:50:18
+but it's still the same thing where you're looking at the code in the codebase. We can also do a pull request review once we create that pull request.
+1:50:26
+So the contributor keeps their own workflow YAML wherever they want any public GitHub repo. So looks like this.
+1:50:32
+And then when they fork archon, they add one entry to the marketplace.ts. And so we have the slug, author, description,
+1:50:39
+source URL, blah blah blah. That's the entire PR. Um, yeah. The one thing is,
+1:50:45
+okay, uh, what if an archon workflow is more than just the YAML? What if we have commands and skills and other context
+1:50:51
+that also needs to be passed in? Do we have support for that? So, I think I actually might have just caught something that needs to be u adjusted
+1:50:59
+here. It might not be enough. So, we'll see.
+1:51:08
+Um, let's bring this back.
+1:51:14
+Pre-Cloud code versus OG Claude Code for thirdparty models. I heard that the OG Cloud Code is less efficient with
+1:51:19
+thirdparty models. You know, I've actually had pretty good experience myself. I've been routing Claude code to
+1:51:25
+uh both Kimmy K2.6 and Miniax M2.7 for uh my dark factory experiment.
+1:51:33
+I guess it has felt kind of slow. I don't know. But I I actually haven't tried free cloud code before,
+1:51:40
+but yeah, I've been having pretty good results just uh routing directly with the official cloud code.
+1:51:46
+Okay, so good. But what what I thought is actually a gap here. So v 0ero has a real gap. The current install command
+1:51:52
+downloads exactly one file, the yaml. If the workflow references a custom command that lives in a separate place, the
+1:51:59
+commands folder in the author's repo and never gets installed. Uh the fix roughly in order of
+1:52:05
+simplicity conventionbased directory install change source URL from a single file URL to a directory URL when
+1:52:10
+installing CLI fetches a manifest or walks directory tree pulls down everything.
+1:52:16
+Yes, yes. Um yes,
+1:52:22
+A is good. So resume the workflow with feedback to address this. Right. So I I
+1:52:29
+found a a real gap in the implementation. Thank goodness. Otherwise, this would have been a pretty bad implementation. This is the last
+1:52:36
+thing I really feel like we need here. So, now I'm giving this feedback and we're going to go back into the piv loop
+1:52:42
+workflow, right? So, we run the approve command. This is really I guess I should probably
+1:52:47
+rename this to continue because I'm I'm giving feedback. I'm not really approving. I'm saying like, okay, here's feedback that you need to address. And
+1:52:54
+so, now the workflow is back running addressing that. And then once it's done, it'll come back for me to approve
+1:52:59
+again. And we're pretty we're getting to the end of the the pivot loop here because once we go with the approval,
+1:53:05
+then it's going to create the pull request and we'll have that as the final artifact from the archon workflow. So
+1:53:12
+again, every single archon workflow, it's always some kind of issue in GitHub or a ticket in in linear jer whatever
+1:53:18
+that is the input and then the output is always a pull request that artifact for me to review. It also makes it easier
+1:53:24
+because then I don't have to um always like dig into the workree codebase.
+1:53:30
+All right. So, I mean, these are really like So, a quick recap of what we've done for those of you who haven't been
+1:53:36
+in the stream the whole time. We started by doing brownfield development with Archon. So, I showed what it looked like
+1:53:41
+to take my agentic coding process, package it up into an archon workflow to
+1:53:46
+handle a few different GitHub issues. So, these could be bugs that we want to
+1:53:51
+fix or new features that we want to build. So, I used archon to invoke in parallel. handled each one of these
+1:53:57
+issues in parallel here. And we have a pull request created for each of them now where we've actually gotten to that
+1:54:02
+point. Let me close out of a couple of things here. Um, let me go back to Archon pull requests.
+1:54:08
+We have the three poll requests created and we'll see how far we've gotten in the review as well.
+1:54:16
+Uh, there we go. Yep. So, we have our comprehensive PR review that finished 16 minutes ago. So, this is like the last
+1:54:21
+step of that fix GitHub issue workflow. And uh looks like there's only one like
+1:54:28
+small issue that we'd want to address. And then we ran that next step of the
+1:54:33
+archon workflow to actually fix it and it only took 3 minutes uh because it was a single little issue we had to address.
+1:54:39
+So now this is pretty much ready for us to you know review ourselves. Like now as the human reviewer I can just take a
+1:54:46
+look at the git diffs and the PR or however I'd want to take this forward. But Archon did its job here going from
+1:54:52
+issue and all the context there all the way to a fully validated pull request. And we'll have the same done for the
+1:54:58
+other two in a little bit. And then the other thing that I've done in the stream here is I've also worked on this
+1:55:04
+workflow marketplace. So doing more of a green field like let's build a new feature from scratch going through a
+1:55:10
+much more intricate planning process with my piv loop. So we've seen archon like do exploration create the plan
+1:55:17
+iterate on it with us go into the implementation validate its own work because we don't want to trust the
+1:55:22
+coding agent on its first pass and then we have also had the opportunity like we're doing live right now to iterate on
+1:55:29
+the implementation like hey there's this problem that we saw let's go back into the piv loop and resume the workflow to
+1:55:35
+address our feedback and then go through its own validation again before it comes back to us. So all these workflows have
+1:55:41
+taken a while not because archon is slow or claude is slow but because there are
+1:55:46
+a lot of steps that we have here comprehensive on purpose because this is
+1:55:51
+what gets me insane results. And so going back to what uh I was talking about at the start of the stream because
+1:55:57
+someone had a good question. I'm not 10xing my output with Archon because things are blazing fast. I'm 10xing my
+1:56:04
+output because I can run things in parallel and it's so incredibly reliable. Like I just have my second
+1:56:11
+brain kick off these fire and forget tasks with Archon and I go and continue
+1:56:16
+my work and I come back to these pull requests that have full planning and implementation and a ton of self-
+1:56:21
+validation and selfcorrection. By the time control is passed back to me, I really like I still do a lot of
+1:56:27
+validation myself, but it's pretty quick. like it does such a good job for handling all these issues when we have
+1:56:34
+such a a guided and curated process that it goes through with the archon workflow.
+1:56:43
+All right. So, let's let's go back and I can say, you know, like give me a
+1:56:49
+status update. I've been spelling things so poorly this
+1:56:56
+stream, but Claude doesn't care. [laughter] All right, it's give me a status up. I'm
+1:57:01
+just getting kind of lazy here, but uh it's fun to do this once in a while. Just like if you're impatient, just say
+1:57:06
+hey, what what's going on right now? And it can just quickly tell you. It's nice.
+1:57:15
+Um, how does Archon relate to beads or can it integrate with beads? Yes. So, beads is something that you
+1:57:24
+would integrate into an archon workflow. I have not done that myself, but I I actually have thought about doing that
+1:57:31
+for a YouTube video. Uh, that would be super cool.
+1:57:36
+So, basically, beads would be the memory system that Archon uses as it goes through the implementation.
+1:57:44
+And if you wanted to, my recommendation, I know this is kind of like the easy answer, but like seriously, try this.
+1:57:50
+You'll get good results. Um, you clone the beads repository from GitHub. So you
+1:57:56
+bring it into your your local system and then you load up your coding agent with
+1:58:02
+the archon skill and so you say you know load the archon skill look at the beads
+1:58:07
+repository and then help me build a workflow that integrates beads directly for you know a piv loop or some whatever
+1:58:15
+you want your archon workflow to do and it can pull the context from both like
+1:58:20
+understand how to build archon workflows understand how beads works marry those two things together And yeah, I mean
+1:58:27
+like not like it'll be perfect first try, but like Claude does a really good job kind of combining ideas together
+1:58:32
+into something that uh you know marries the two.
+1:58:37
+All right. So all right. All right. Cool. So
+1:58:44
+yep, we're almost done with our brownfield development here. And then uh directory install support is
+1:58:51
+done and waiting for your review. Here's what changed. Okay. So, yes, this looks good. I'm just
+1:59:01
+going to approve it now so that we can see the pull request get created. So, now we're just continuing the workflow
+1:59:06
+again, really getting to the end of the piv loop. So, the piv loop will now finalize and create the pull request.
+1:59:12
+Very good. And then just for the satisfaction of it, um I'll actually merge one of these
+1:59:19
+pull requests as well. So, I think like this one would be a good one. I mean, I
+1:59:24
+would, if I was off stream, I would do more of a review here. So, I'm just going to pick a really simple one. I
+1:59:30
+think this one is pretty much done. We're running the CI right now,
+1:59:37
+but uh just two minutes ago, we fixed the things that came up in the review.
+1:59:43
+So, like here, there's a couple of medium issues here that we addressed.
+1:59:49
+And so if we go to look at the diffs for the pull request here, I'm just going to go through this really quickly. So we
+1:59:55
+fixed the workflows and then we um made a note in the authoring workflow so this
+2:00:00
+doesn't happen again. So I I actually really appreciate how proactive it is here. And then we just had to update some unit tests just to make sure that
+2:00:08
+for some for the sake of regression testing and um
+2:00:16
+I don't know. I actually don't really know why I did this comment, but whatever. And then I think this is just like a linting thing here. Okay, good.
+2:00:22
+So, I'm going to call this ready. So, um, and I I really I mean, if I wanted to run a separate review and be really
+2:00:28
+confident, we have, of course, Archon workflows for full pull request review as well, but a lot of that is just
+2:00:33
+already built into the um the whole like GitHub issue fix workflow doing the code
+2:00:39
+review in a separate session. And so, I'm going to call this good. I'm going to I'm going to go ahead and merge this
+2:00:45
+now. I guess it actually changed another file like under my nose here. So, the workflow is still running. Maybe I
+2:00:50
+should be patient. I'm just trying to get that payoff here for the the live stream.
+2:00:56
+I don't actually know which file it just changed. I can look at the commit history here. Uh I made a commit one
+2:01:02
+minute ago. Simplify. Okay. What What did this actually do?
+2:01:08
+Oh, okay. It's something super basic. Okay. I Sorry. I'll I'll let the workflow finish. It's it's almost done.
+2:01:13
+I just need to be patient here. [snorts] All right. Okay. So, and our pip loop's
+2:01:19
+done. So, we have a pull request open. Let's take a look at that. Um, go back
+2:01:24
+here. Pull requests. All right. So, we have our marketplace
+2:01:30
+workflow v0. And there's a lot of files that are changed or a lot of uh code changes, but
+2:01:36
+it's just because we created a brand new section of the website. So, if we take a look, um,
+2:01:45
+this this one I'm not going to merge live right now. I definitely want to do more of a review on this later this
+2:01:51
+weekend, but it's looking pretty good. Marketplace commands.
+2:01:58
+So, that we have like the commands to install the workflows. Now, we have um
+2:02:05
+the marketplace page for the docs.
+2:02:11
+Okay. Yeah, this is looking really good. And then we have the updates to the contributing.mmd as well. So if you want to contribute a workflow to the
+2:02:19
+marketplace, you just have your coding agent read this file. So it can guide you through exactly the the publishing
+2:02:24
+and PR process. So pretty cool. All right, let's go back and see where we're
+2:02:29
+at now. I just want to merge one of these poll requests here to end off the stream.
+2:02:37
+All right. Um, last one in flight is
+2:02:44
+1607. Okay. So, I think we're good to merge the other one now,
+2:02:50
+which was uh this one. Yeah. Yeah. Okay. So, this one, this one's good to merge. This is the one we're looking at just
+2:02:55
+like a couple minutes ago. So, I'm going to go ahead and merge this now. Um,
+2:03:02
+so it says the poll request is still a work in progress. I'm going to say it's ready for review. And then I could do my
+2:03:08
+review kind of like I did already. So I'm just going to say this is able to merge squash and merge. And boom. There
+2:03:14
+we go. All right. So we shift a full poll request at least one. And u obviously things are a lot slower here
+2:03:19
+because I'm really taking my time explaining things. And I could have done a lot more in parallel if I wanted. Like within a a 2hour window I can
+2:03:26
+realistically ship a dozen pull requests if I have a lot going in parallel and
+2:03:31
+I'm not you know spending a lot of time talking to you guys in the chat which of course I want to in a live stream. But
+2:03:36
+yeah, there there we go. So, and then I'll I'll just uh take care of the other ones uh this weekend here. Get these
+2:03:42
+merged and then uh get the other parts of the workflow marketplace built out because I also have to build that archon
+2:03:48
+workflow that I'm going to have run automatically each time someone creates a pull request to add a workflow. So, it
+2:03:53
+it'll like do the review and merge automatically. So that way there won't be a ton of maintainer burden on me and
+2:03:58
+and Rasmus and Thomas to review all the workflows because that's why we have the banner here saying that um you know we
+2:04:05
+as maintainers haven't audited every workflow. I think that's fair. So you just have to trust the author like us or
+2:04:12
+you know whoever is sharing or uh do the review of the workflow yourself before
+2:04:17
+you actually use it. I would highly recommend. All right,
+2:04:23
+cool. So, uh, yeah, I think I think that's a good place to end the live stream here.
+2:04:29
+It's been a solid a little bit over two hours stream. I know there are a couple of questions that are still in the chat
+2:04:35
+here. I try to get through pretty much everything, but uh, yeah, I'm I'm going
+2:04:40
+to go ahead and end the stream. for any questions I didn't get to, feel free to, you know, put a comment on a YouTube video, you know, join the Dynamis
+2:04:47
+community because I've got um I'm I'm in the Dynamist community every single day
+2:04:53
+and so always answering questions. We got daily events, a weekly workshop that I do, and we have three courses in the
+2:05:00
+Dynamis community now. We have the AI agent mastery course, agent coding
+2:05:05
+course, and now the new second brain boot camp. So 4 hours for you to build your own AI second brain. personally use
+2:05:11
+mine literally to save 20 hours a week. I'm not exaggerating. Like, I've done the math before. And the other thing I
+2:05:17
+just want to call this out really quick uh before I end the stream here is that I have an anniversary special. This is
+2:05:23
+the last day for the anniversary special. A discount here because last
+2:05:29
+week we celebrated the oneyear anniversary of Dynamus. It still feels unreal that I get to say that. We've
+2:05:35
+been running this community for uh over a year now, growing it nicely for a year. So yeah, this is the place to be
+2:05:41
+if you want to uh learn more about using Archon, level up your agentic engineering, and yeah, there's just, you
+2:05:49
+know, there's over 1,400 people in the community now, all sharing uh a lot of
+2:05:54
+stuff around building second brains and AI coding and all the events that I got going on. So, hope to see you in Dynamis. Otherwise, I appreciate you
+2:06:01
+guys being a part of this live stream here, building out with Archon, both brownfield and sort of green field
+2:06:06
+development. I hope it was useful just to see like how I use my second brain with archon and how I'm using different
+2:06:11
+workflows to handle issues and basically like just going through the concept of like issue in pull request out showing
+2:06:18
+what that looks like also with the piv loop for more human in the loop. So yeah really I'm using archon as my daily
+2:06:24
+driver. I'm not doing any AI coding without it now and so yeah it's just

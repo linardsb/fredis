@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Slack Threaded Messages — Reconstructed PRD</title>
+<style>
+  :root {
+    --ink: #1d2230;
+    --muted: #6b7280;
+    --line: #e6e8ee;
+    --card: #ffffff;
+    --bg: #f5f6f9;
+    --label: #8a91a0;
+    --accent: #3b5bdb;
+    --accent-soft: #eef2ff;
+    --good: #2f9e6f;
+    --good-bg: #e3f6ec;
+    --warn-bg: #fff6e0;
+    --warn-line: #f0d695;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    padding: 44px 20px 72px;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  @page { margin: 14mm; }
+  @media print {
+    body { padding: 0; background: #fff; }
+    .card { box-shadow: none; }
+    section { break-inside: avoid; }
+    .hypothesis, .notspec, table { break-inside: avoid; }
+  }
+  .wrap { max-width: 900px; margin: 0 auto; }
+
+  header.page { text-align: center; margin-bottom: 22px; }
+  .kicker {
+    display: inline-block;
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #fff;
+    background: #4a154b; /* Slack aubergine */
+    border-radius: 999px;
+    padding: 5px 16px;
+    margin-bottom: 14px;
+  }
+  header.page h1 {
+    font-size: 34px;
+    line-height: 1.12;
+    letter-spacing: -0.02em;
+    margin: 0;
+  }
+
+  .disclaimer {
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-line);
+    color: #6b4e00;
+    border-radius: 12px;
+    padding: 14px 18px;
+    font-size: 14.5px;
+    line-height: 1.5;
+    margin: 0 auto 26px;
+  }
+  .disclaimer a { color: #6b4e00; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 12px 40px 36px;
+    box-shadow: 0 6px 28px rgba(20, 28, 56, 0.07);
+  }
+
+  section { padding-top: 26px; }
+  .label {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--label);
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+  }
+  p { margin: 0 0 12px; font-size: 16.5px; }
+  ul { margin: 6px 0 0; padding-left: 22px; }
+  li { font-size: 16px; margin-bottom: 7px; }
+  li:last-child { margin-bottom: 0; }
+
+  .hypothesis {
+    background: var(--accent-soft);
+    border-left: 5px solid var(--accent);
+    border-radius: 10px;
+    padding: 16px 20px;
+    font-size: 17px;
+  }
+  .hypothesis p { margin: 0 0 10px; }
+  .hypothesis p:last-child { margin-bottom: 0; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 15px;
+    margin-top: 4px;
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  th {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: #fafbfd;
+  }
+  td code, p code, li code {
+    background: #f0f1f5;
+    border-radius: 5px;
+    padding: 1px 6px;
+    font-size: 14px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  .tablewrap { overflow-x: auto; }
+
+  .notspec {
+    margin-top: 26px;
+    background: var(--good-bg);
+    border: 1px solid #b7e3cc;
+    border-radius: 12px;
+    padding: 18px 22px;
+  }
+  .notspec .label { color: #1d6b48; border-bottom-color: #b7e3cc; }
+  .notspec li { color: #1d6b48; }
+  .notspec p { color: #1d6b48; }
+  .notspec .closer { font-weight: 600; margin: 12px 0 0; }
+
+  .status {
+    margin-top: 26px;
+    font-size: 14px;
+    color: var(--muted);
+    font-style: italic;
+    text-align: center;
+  }
+
+  em { color: inherit; }
+
+  @media (max-width: 720px) {
+    .card { padding: 8px 22px 28px; }
+    header.page h1 { font-size: 27px; }
+    body { padding: 28px 14px 52px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="page">
+    <span class="kicker">Reconstructed PRD</span>
+    <h1>Slack Threaded Messages</h1>
+  </header>
+
+  <div class="disclaimer">
+    <strong>Note:</strong> Slack&rsquo;s actual PRD for Threaded Messages (launched January 2017) was never public. This is a reconstruction, composed from Slack Design&rsquo;s published retrospective
+    (<a href="https://slack.design/articles/threads-in-slack-a-long-design-journey-part-1-of-2/">Part 1</a>,
+    <a href="https://slack.design/articles/threads-in-slack-a-long-design-journey-part-2-of-2/">Part 2</a>)
+    plus inferences about what a modern PRD for this work would have contained. We use it as the concrete example of a good PRD throughout the session.
+  </div>
+
+  <div class="card">
+
+    <section>
+      <span class="label">Problem statement</span>
+      <p>Channels at scale stop delivering their core value. In channels with high daily message volume (&gt;100 msgs/day &mdash; roughly 7% of active channels but capturing &gt;60% of active users&rsquo; attention), multiple conversations interleave and replies become unmoored from the messages they answer.</p>
+      <p>Three observable behaviors in this cohort:</p>
+      <ul>
+        <li><strong>Tracking failure</strong> &mdash; active members increasingly ask <em>&ldquo;who is replying to what?&rdquo;</em> in research sessions. Average time-to-respond grows as channel volume grows.</li>
+        <li><strong>Posting hesitancy</strong> &mdash; members don&rsquo;t reply because the conversation has &ldquo;moved on&rdquo; by the time they could. Reply-rate per top-level message drops sharply above ~100 msgs/day.</li>
+        <li><strong>Muting and leaving</strong> &mdash; the channels that should be the most valuable are the ones we lose engaged users from. Mute/leave rate among 30-day active members is far higher in high-volume channels.</li>
+      </ul>
+      <p>The channels customers consider most strategically important &mdash; engineering-wide, all-hands, project rooms &mdash; are exactly the ones where this happens.</p>
+    </section>
+
+    <section>
+      <span class="label">Why now</span>
+      <ul>
+        <li>Mute/leave rate in high-volume channels has grown month-over-month for two consecutive quarters.</li>
+        <li>Customer Success has surfaced <em>&ldquo;channels are too noisy&rdquo;</em> as a top-3 theme in enterprise QBRs.</li>
+        <li>Slack&rsquo;s own internal channels show the same pattern &mdash; our engineers and PMs are quietly muting active channels they should be in.</li>
+        <li>Competitor pressure: HipChat and Microsoft Teams are experimenting with threading. It&rsquo;s becoming a category expectation.</li>
+      </ul>
+    </section>
+
+    <section>
+      <span class="label">Hypothesis</span>
+      <div class="hypothesis">
+        <p>We believe <strong>adding threaded replies inside busy channels</strong> will cause <strong>active members of channels with 100+ daily messages</strong> to <strong>stop muting or leaving those channels and keep posting</strong>, resulting in <strong>a 15% lift in weekly message volume from that cohort</strong>.</p>
+        <p>We&rsquo;ll know we&rsquo;re <strong>right</strong> if <strong>channel mutes and leaves from that cohort drop by 10%</strong> within <strong>8 weeks of rollout</strong>.</p>
+        <p>We&rsquo;ll know we&rsquo;re <strong>wrong</strong> if <strong>overall channel engagement (top-level messages per channel-day) drops</strong>, or <strong>thread-related complaints exceed 5% of NPS verbatim comments</strong>.</p>
+      </div>
+    </section>
+
+    <section>
+      <span class="label">Target user</span>
+      <p><strong>Primary</strong> &mdash; Active members of high-volume channels. Specifically: users in 5+ channels with 100+ daily messages who have muted at least one channel in the past 30 days.</p>
+      <p><strong>Secondary</strong> &mdash; Channel admins managing 50+ member channels who currently apply workarounds (announcement-only mode, splitting into sub-channels, pushing conversation to DMs).</p>
+      <p><strong>Not the target</strong> &mdash; Users in small (&lt;10 member) or low-volume channels. Threading is overhead they don&rsquo;t need.</p>
+    </section>
+
+    <section>
+      <span class="label">Non-goals <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)">— explicitly out of scope for v1, to prevent scope creep</span></span>
+      <ul>
+        <li><strong>No multi-level threading.</strong> A thread is a flat list of replies &mdash; internal exploration of nested threads felt heavy and users got lost.</li>
+        <li><strong>No retroactive threading.</strong> Old messages can&rsquo;t be converted to threads after the fact.</li>
+        <li><strong>Not replacing channels.</strong> Threads are a within-channel feature, not a separate place to converse.</li>
+        <li><strong>No threads in DMs in v1.</strong> Group and 1:1 DM threading is deferred &mdash; different usage pattern.</li>
+        <li><strong>No notification-settings overhaul.</strong> Per-thread preferences are a v2 concern.</li>
+        <li><strong>No public-facing API for threads in v1.</strong> Integration partners get notified; API GA follows.</li>
+      </ul>
+    </section>
+
+    <section>
+      <span class="label">Risks and assumptions</span>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr><th>#</th><th>Risk</th><th>Assumption it depends on</th><th>How we&rsquo;ll de-risk</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td>Users don&rsquo;t know when to start a thread</td><td>UI affordances will make the action self-evident</td><td>Multiple placement prototypes, internal dogfood</td></tr>
+            <tr><td>2</td><td>Threading makes channels <em>harder</em>, not easier</td><td>Reply visibility in-channel can be tuned</td><td>Test placement options (inline, sidebar, hybrid)</td></tr>
+            <tr><td>3</td><td>Overall channel engagement drops</td><td>Top-level message volume will hold or grow</td><td>Guardrail metric: top-level msgs/channel-day</td></tr>
+            <tr><td>4</td><td>Mobile sync becomes prohibitive</td><td>Existing message envelope can carry a <code>thread_ts</code> reference</td><td>Engineering spike before commit</td></tr>
+            <tr><td>5</td><td>Old (pre-threads) clients break on thread messages</td><td>A backwards-compat path exists at the API layer</td><td>Engineering spike + staged rollout</td></tr>
+            <tr><td>6</td><td>Search gets confusing &mdash; same content from two places</td><td>Thread replies can be indexed under their parent</td><td>Engineering decision documented in spec</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <span class="label">Open questions <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)">— resolved during build, but flagged here</span></span>
+      <ul>
+        <li>Where do users open a thread &mdash; hover action, persistent reply button, double-click?</li>
+        <li>Should an @-mention inside a thread auto-follow the recipient, or be opt-in?</li>
+        <li>How do unread threads appear in channel summaries and unread counts?</li>
+        <li>Mobile-first or desktop-first launch sequence?</li>
+      </ul>
+    </section>
+
+    <section>
+      <span class="label">Success metrics</span>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr><th>Metric</th><th>Target</th><th>Cohort</th><th>Window</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Mute &amp; leave rate in high-volume channels</td><td>&minus;10%</td><td>Active members</td><td>Week 8 post-rollout</td></tr>
+            <tr><td>Weekly message volume</td><td>+15%</td><td>Active members in high-volume channels</td><td>Week 8 post-rollout</td></tr>
+            <tr><td>Top-level messages per channel-day <em>(guardrail)</em></td><td>No drop</td><td>All channels</td><td>Continuous</td></tr>
+            <tr><td>Thread reply adoption <em>(leading indicator)</em></td><td>&gt;20% of eligible users post ≥1 reply</td><td>Active members in high-volume channels</td><td>Week 4 &amp; 8</td></tr>
+            <tr><td>NPS verbatims mentioning &ldquo;noise&rdquo; / &ldquo;harder to read&rdquo;</td><td>&lt;5% of respondents</td><td>All respondents</td><td>Quarterly</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <span class="label">Experiments &amp; discovery plan <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)">— resolve before full build commit</span></span>
+      <ul>
+        <li><strong>Usability spike (1&ndash;2 weeks)</strong> &mdash; prototype 3 placement options (inline in channel; right-side panel; modal). Internal dogfood. Decision: which placement is least confusing without losing discoverability?</li>
+        <li><strong>Feasibility spike (~1 week)</strong> &mdash; verify the message envelope can carry a <code>thread_ts</code> reference without breaking pre-threads clients. Engineering owns.</li>
+        <li><strong>Reverse-experiment (after 2 weeks of dogfood)</strong> &mdash; turn the feature <em>off</em> internally and measure complaints. No complaints &rarr; it isn&rsquo;t earning its weight. Complaints &rarr; a stronger signal than any A/B test.</li>
+      </ul>
+      <p style="margin-top:12px;color:var(--muted);font-size:15px;">Full experiment design and spec-level technical decisions live in the AI spec, not in this PRD.</p>
+    </section>
+
+    <div class="notspec">
+      <span class="label">What is deliberately NOT in this PRD</span>
+      <p>These are engineering decisions that belong in the <strong>spec</strong>, not here:</p>
+      <ul>
+        <li>Data model &mdash; <code>thread_ts</code> field on the messages table vs a separate <code>thread_replies</code> table</li>
+        <li>API design &mdash; embedded thread metadata on message responses vs <code>GET /threads/:id</code></li>
+        <li>Mobile incremental sync semantics</li>
+        <li>Notification routing rules</li>
+        <li>Backwards-compatibility envelope handling</li>
+        <li>Search indexing strategy</li>
+      </ul>
+      <p class="closer">The PRD says <em>we will not break old clients</em>. The spec says <em>how</em>.</p>
+    </div>
+
+    <p class="status">Status: PRD complete · Spec in progress. This PRD captures the discovery conclusion (Q4 2016 &ndash; Q1 2017); the spec carries the engineering decisions that get it built.</p>
+
+  </div>
+</div>
+</body>
+</html>
