@@ -108,8 +108,22 @@ def resolve_codebase_id(repo: str) -> str:
     known = ", ".join(str(c.get("name") or c.get("id")) for c in codebases) or "(none)"
     raise ArchonError(
         f"No registered codebase matches '{repo}'. Registered: {known}. "
-        f"Register the target with POST /api/codebases (default_cwd = the repo) first."
+        f"Register the target with register_codebase(<local repo path>) first."
     )
+
+
+def register_codebase(path: str) -> dict[str, Any]:
+    """POST /api/codebases — register a LOCAL repo path as a target codebase.
+
+    The HTTP fire path needs a codebaseId; the Archon CLI exposes no `codebases`
+    command and a raw curl would breach the single-seam rule, so registration is
+    done here — the real-lane action WS2 deferred ("needs registered codebases").
+    The engine derives the codebase name from the repo (git remote / dir name);
+    only the local `path` is sent. Callers should check `list_codebases()` first
+    to stay idempotent (re-POSTing a path is not guaranteed to dedupe).
+    """
+    result = _request("POST", "/api/codebases", json={"path": path})
+    return result if isinstance(result, dict) else {}
 
 
 # --- fire: 2-step (idle conversation -> run) -------------------------------

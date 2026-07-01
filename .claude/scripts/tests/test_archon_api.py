@@ -71,6 +71,18 @@ def test_run_workflow_body() -> None:
     assert out["status"] == "started"
 
 
+def test_register_codebase_body() -> None:
+    """POST /api/codebases sends only the local {path}; engine derives the name."""
+    with patch("integrations.archon_api.requests.request") as m:
+        m.return_value = _resp(body={"id": "cb-9", "name": "linardsb/merkle-email-hub"})
+        out = api.register_codebase("/Users/x/Desktop/merkle-email-hub")
+    method, url = m.call_args.args
+    assert method == "POST"
+    assert url.endswith("/api/codebases")
+    assert m.call_args.kwargs["json"] == {"path": "/Users/x/Desktop/merkle-email-hub"}
+    assert out["id"] == "cb-9"
+
+
 def test_approve_and_reject_bodies() -> None:
     with patch("integrations.archon_api.requests.request") as m:
         m.return_value = _resp(body={"success": True, "message": "ok"})
