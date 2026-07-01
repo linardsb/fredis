@@ -79,6 +79,31 @@ The `.claude/skills/` directory groups Fredis's skills by purpose. Every skill o
 
 **Voice modes** — merged skills with persona references surface them via invocation ("in solo-founder voice", "in startup-cto voice", "in product-manager voice"). Default is neutral SOUL voice.
 
+## Skill Improvement Loop
+
+The 24-skill stack improves from real use, not from scheduled audits: friction encountered *while using*
+a skill becomes an edit to the skill that caused it — safe edits Fredis applies itself, risky ones it
+drafts. The operating convention — tiers, the deploy guard, and the cross-cutting principles checklist —
+lives in `.claude/skills/_shared/skill-improvement.md`.
+
+- **Capture** — when a correction, inefficiency, or dead-weight section is genuinely about *how one skill
+  behaved*, log a skill-observation to `Fredis/Memory/skill-observations/log.md`, tagged to that skill,
+  **in-session when it happens** (not batched into the session-end flush). Runs everywhere, incl. VPS/chat
+  (observations are vault files, so they sync). Backstop: asking "any skill observations?" when wrapping a
+  session re-scans for what was not logged live.
+- **Apply (tiered, live)** — when Fredis is in a Desktop session with observations pending (or on request:
+  "improve your skills"), it applies **safe/additive** edits (add an anti-pattern, a trigger phrase, clarify
+  wording, fix an error) to the live `SKILL.md` itself and commits them scoped to that file with a
+  `skill-self-improve:` label — no push; Linards reviews/reverts via git. **Risky** edits (restructure,
+  remove, uncertain, conflicting, new-skill) stay as drafts under `drafts/active/skill-improvement/<skill>/`.
+- **Deploy guard** — live-apply + commit runs **only in an interactive session on the working checkout**,
+  never from the VPS or heartbeat/reflection: `.claude/skills/` is code (git-sync syncs only `Fredis/`), so
+  an autonomous skill edit on the VPS wedges `deploy.sh`'s `git pull --ff-only`. Autonomous sessions capture
+  only.
+- **Scope: improve the existing 24 only.** This loop never proposes or creates new skills — a 25th needs
+  explicit approval (consolidate-don't-proliferate). A pattern that smells like a new skill is a separate
+  manual call, not drafted here.
+
 ## Memory Layout
 
 Fredis's persistent memory is an Obsidian vault at `Fredis/Memory/`. Top-level files are auto-loaded into context by the `SessionStart` hook — no manual reading required.
@@ -103,13 +128,14 @@ Fredis's persistent memory is an Obsidian vault at `Fredis/Memory/`. Top-level f
 | `Fredis/Memory/retainers/` | Retainer-specific client context |
 | `Fredis/Memory/case-studies/` | Case studies for positioning |
 | `Fredis/Memory/gates/*.yaml` | Launch-governance kill-trigger gates (read by heartbeat's `metrics-gate` bundle from the `launch-governance` skill) |
+| `Fredis/Memory/skill-observations/log.md` | Skill-improvement observations logged during work — the improve-existing-skills loop (see §Skill Improvement Loop) |
 
 ### Outside the vault
 
 | Path | Contains |
 |------|----------|
 | `.claude/skills/` | Skill definitions (see §Skill Stack above) |
-| `.claude/skills/_shared/` | Shared primitives — `lanes.md`, `atis-test.md`, `chris-lori-voice.md`, `draft-path-convention.md` |
+| `.claude/skills/_shared/` | Shared primitives — `lanes.md`, `atis-test.md`, `chris-lori-voice.md`, `draft-path-convention.md`, `skill-improvement.md` |
 | `.claude/scripts/` | Runtime scripts (heartbeat, reflection, synthesis, memory search/index, chat engine, integrations CLI) |
 | `.claude/chat/` | Slack chat interface (engine, session store, Slack adapter) |
 | `.claude/hooks/` | `PreToolUse` / `SessionStart` / `SessionEnd` / `PreCompact` hooks |
