@@ -35,6 +35,9 @@ Email Innovation Hub — a centralised email-development platform with AI agents
 - **IP is Linards's, owned outright** — no IP-overhang / clean-room gate applies here. The Email Hub IP question is settled; don't re-raise it.
 - **VSA discipline:** new work lands self-contained under `app/{feature}/`.
 - **Advisor mode:** any dispatch yields a draft PR — never auto-merge or push.
+- **Harness gate (discovered 2026-07-01):** the pre-PR `bash:` validation node is **`make lint types test`** — backend-only: `ruff format` + `ruff check --fix` · `mypy app/` + `pyright app/` · `pytest -m "not integration and not benchmark and not visual_regression and not collab"`. This is `make ci` minus the repo-wide coverage floor + network pip-audit (the two a small fix doesn't control); full `make ci` / GitHub CI is the **review-time** gate, not the harness signal. `make lint` **auto-formats** (mutates the worktree) — the create-PR node must commit the formatted result. Pick **backend-scoped** issues so this gate is a valid RIGHT signal; for `cms/` work add `make check-fe`.
+- **Archon codebase id:** `dee73f6cbc6ed8e6e06cc32dfea4a82a` (registered 2026-07-01, `default_cwd` = local path, `default_branch: main`). The engine names it **`linardsb/merkle-email-hub`** (slug is null) — so `--repo merkle-email-hub` will **not** resolve; fire with `--codebase-id dee73f6…` or `--repo linardsb/merkle-email-hub`.
+- **Molded workflow:** `fix-github-issue-emailhub` (lean PIV mold, Opus-pinned, worktree-isolated, draft-PR-only). Draft lives at `drafts/active/the-team/workflows/fix-github-issue-emailhub.yaml`; place into `.archon/workflows/` in this repo to arm it.
 
 ## Dispatch History
 
