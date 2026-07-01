@@ -3,7 +3,7 @@ title: "Email Hub — DESIGN_SYNC flag cull, PR-1 constantize subset (50.6.4)"
 approved: true        # Linards-only: set to true to arm the run (HITL #1). Fredis never sets this.
 repo: linardsb/merkle-email-hub
 codebase_id: dee73f6cbc6ed8e6e06cc32dfea4a82a
-github_issue: TBD      # Fredis files the GitHub issue after HITL #1, then fills the number here before firing.
+github_issue: 308
 workflow: fix-github-issue-emailhub
 gate: "make lint types test"
 lane: P4
@@ -69,7 +69,7 @@ PR-1 trims the **constantize** subset — over-engineered knobs on keeper featur
   with Read / Grep / Glob.
 - VSA: changes stay under `app/core/config/`, `app/design_sync/`, and the config test dir.
 - **Advisor mode:** worktree-isolated; output is a **DRAFT PR** against `main` with
-  `Fixes #<issue>`. Never merge, never mark ready-for-review, never push to `main`.
+  `Fixes #308`. Never merge, never mark ready-for-review, never push to `main`.
 
 _Why this issue: a real, representative refactor — a heavier, more honest second switch-test
 data point than a test-only change. The gate validates the refactor is mechanically complete
