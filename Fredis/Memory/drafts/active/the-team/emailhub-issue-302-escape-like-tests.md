@@ -1,6 +1,6 @@
 ---
 title: "Email Hub issue #302 — unit coverage for escape_like()"
-approved: false        # Linards-only: set to true to arm the run (HITL #1). Fredis never sets this.
+approved: true        # Linards-only: set to true to arm the run (HITL #1). Fredis never sets this.
 repo: merkle-email-hub
 codebase_id: dee73f6cbc6ed8e6e06cc32dfea4a82a
 github_issue: 302
