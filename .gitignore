@@ -28,6 +28,7 @@ workspace/
 .claude/scripts/.env.backup-*
 .claude/scripts/*.lock
 .claude/scripts/.venv/
+.claude/scripts/daily_brief_runs.log
 .claude/scripts/heartbeat_runs.log
 .claude/scripts/reflection_runs.log
 .claude/scripts/vault_sync_runs.log
