@@ -1,7 +1,8 @@
 # Molded `archon-fix-github-issue` for merkle-email-hub — Fredis build harness, P4 lane.
 #
 # DRAFT — advisor mode. This file is authored in the Fredis vault; Fredis is
-# sandbox-blocked from writing into merkle-email-hub. PLACEMENT is Linards's step:
+# sandbox-blocked from writing into merkle-email-hub via Write/Edit (containment hook).
+# PLACEMENT is a Bash `cp` step:
 #   mkdir -p ~/Desktop/merkle-email-hub/.archon/workflows
 #   cp <this file> ~/Desktop/merkle-email-hub/.archon/workflows/fix-github-issue-emailhub.yaml
 #
@@ -15,6 +16,16 @@
 #   • guard.sh + `git diff base/` are the CLIENT-SITE lane's gates (P4b) — NOT here.
 #   • Opus pin (hard constraint): `model: large` (claude provider's top tier) on the agent nodes.
 #   • Advisor mode: worktree-isolated, DRAFT PR only — never merges, never pushes to a protected branch.
+#
+# Hardening from the first real runs (Run 1/Run 2 on issue #302 → PR #303):
+#   • Item 1 — gate `timeout: 600000` (Archon's 120s bash-node default timed out on the ~270s suite; Run 1).
+#   • Item 2 — gate redirects `make` output to a log + tails only on failure. `make test -v` emits 8k+
+#              lines and overran Node's ~1MB child-process stdout buffer (ERR_CHILD_PROCESS_STDIO_MAXBUFFER; Run 2).
+#   • Item 3 — per-node tool scoping. In Run 2 the `rca` agent (unrestricted tools) did the WHOLE job —
+#              wrote the test, self-ran the gate, pushed, and opened the PR — bypassing the gate NODE.
+#              Fix: `denied_tools: [Bash]` on extract/rca/implement. git+gh run only through Bash, so
+#              `create-pr` becomes the ONLY agent node that can push — and it runs only after the gate
+#              passes. That makes "gate before PR" structural, not advisory.
 
 name: fix-github-issue-emailhub
 description: |
@@ -36,16 +47,15 @@ nodes:
     prompt: |
       Find the GitHub issue number this run targets.
 
-      Run input (an approved, enriched-issue PRD):
+      Run input (an approved, enriched-issue PRD — it names the issue explicitly):
       $ARGUMENTS
 
-      Rules:
-      - If the input names an explicit issue number (e.g. "#302", "issue 302", "302"), use it.
-      - Otherwise use `gh issue list` to find the best match for the described work.
+      Read the number directly from the input (e.g. "#302", "issue 302",
+      "github_issue: 302", or a bare "302"). Do not run anything.
 
       CRITICAL: output ONLY the bare number — no quotes, markdown, or explanation. Example: 302
     model: small
-    allowed_tools: [Bash]
+    denied_tools: [Bash]  # item 3: pure text parse — no shell, so it can never push.
 
   - id: fetch-issue
     bash: |
@@ -63,6 +73,8 @@ nodes:
   - id: rca
     prompt: |
       Root-cause / scope the change for this merkle-email-hub issue.
+      You are the INVESTIGATION node: read and reason only. You have NO shell —
+      do not build, run, commit, push, or open PRs. Later nodes validate and open the PR.
 
       ## Enriched issue (the contract)
       $ARGUMENTS
@@ -71,7 +83,7 @@ nodes:
       $fetch-issue.output
 
       Do:
-      1. Locate the exact code named in the issue (grep/read; note file:line).
+      1. Locate the exact code named in the issue (Grep/Glob/Read; note file:line).
       2. Determine precisely what must change and why — logic, edge cases, missing
          validation, or (for a test-coverage issue) the exact behaviours to pin.
       3. List the files to modify and the tests to add/adjust. Respect Vertical Slice
@@ -82,41 +94,53 @@ nodes:
     depends_on: [fetch-issue]
     context: fresh
     model: large          # Opus
+    denied_tools: [Bash]  # item 3: investigation only — no shell → cannot git/gh/push.
 
   # ── 3. Implement + tests (Fredis github_bug_fix/implement-fix.md, distilled) ──
   - id: implement
     prompt: |
       Implement the fix for this issue, following `$ARTIFACTS_DIR/investigation.md`.
+      You are the WRITE node: edit files only. You have NO shell — do not run tests,
+      build, commit, push, or open PRs. The `gate` node runs `make lint types test`
+      and the `create-pr` node opens the DRAFT PR. Write code that passes that gate;
+      if unsure of exact behaviour, reason it out from the source rather than running it.
 
       Do:
       1. Make the change exactly as planned — minimal, matching existing style/conventions.
       2. Add/adjust unit tests that verify the change (mirror the source location under
          app/{feature}/tests/). Cover the behaviours the issue names, including edge cases.
-      3. Run the backend gate locally and fix anything it flags BEFORE finishing:
-             make lint     # ruff format + ruff check --fix  (auto-formats — expected)
-             make types    # mypy app/ + pyright app/
-             make test     # pytest backend unit tests
-      4. Do NOT touch anything outside the issue's scope. No new deps unless the issue requires it.
+      3. Do NOT touch anything outside the issue's scope. No new deps unless the issue requires it.
 
       Write a short summary of what changed to `$ARTIFACTS_DIR/implementation.md`.
     depends_on: [rca]
     context: fresh
     model: large          # Opus
+    denied_tools: [Bash]  # item 3: write-only — no shell → cannot run/commit/push. Gate node is sole validator.
 
   # ── 4. HARD GATE — the repo's OWN validation MUST pass before any PR ──
   #     This is the SETUP step-0 requirement: bash validation node that blocks the PR node.
   - id: gate
     bash: |
       set -euo pipefail
-      echo "== Backend gate: make lint types test (merkle-email-hub) =="
-      make lint      # ruff format + ruff check --fix (mutates: auto-format is expected & committed)
-      make types     # mypy app/ + pyright app/  (read-only)
-      make test      # pytest -m "not integration and not benchmark and not visual_regression and not collab"
+      # Item 2 fix: `make test -v` emits 8k+ lines and overran Archon's ~1MB bash-node
+      # stdout buffer (ERR_CHILD_PROCESS_STDIO_MAXBUFFER, Run 2). Send each step's output
+      # to a log and surface only a short tail, and only on failure.
+      GATE_LOG="$ARTIFACTS_DIR/gate.log"
+      : > "$GATE_LOG"
+      echo "== Backend gate: make lint types test (full output -> gate.log; tail on failure only) =="
+      for step in "make lint" "make types" "make test"; do
+        echo "-- running: $step --"
+        if ! $step >>"$GATE_LOG" 2>&1; then
+          echo "GATE FAILED at: $step -- last 80 lines:"
+          tail -80 "$GATE_LOG"
+          exit 1
+        fi
+      done
       echo "GATE_PASSED"
-    timeout: 600000       # full `make test` ~178s + lint/types ~90s; Archon's 120s bash-node default failed Run 1 here
+    timeout: 600000       # item 1: full `make test` ~178s + lint/types ~90s; Archon's 120s default failed Run 1
     depends_on: [implement]
 
-  # ── 5. DRAFT PR only (advisor mode) ──────────────────────────────────
+  # ── 5. DRAFT PR only (advisor mode) — the SOLE node with shell/git/gh authority ──
   - id: create-pr
     prompt: |
       Open a DRAFT pull request for the current branch. The gate node passed.
@@ -139,4 +163,4 @@ nodes:
       DO NOT merge. DO NOT mark ready-for-review. DO NOT push to main.
     depends_on: [gate]
     context: fresh
-    model: large          # Opus
+    model: large          # Opus — this is the only agent node left with Bash (git/gh); runs only after the gate.
