@@ -1,0 +1,141 @@
+# Molded `archon-fix-github-issue` for merkle-email-hub — Fredis build harness, P4 lane.
+#
+# DRAFT — advisor mode. This file is authored in the Fredis vault; Fredis is
+# sandbox-blocked from writing into merkle-email-hub. PLACEMENT is Linards's step:
+#   mkdir -p ~/Desktop/merkle-email-hub/.archon/workflows
+#   cp <this file> ~/Desktop/merkle-email-hub/.archon/workflows/fix-github-issue-emailhub.yaml
+#
+# Molding decisions (from .agent/plans/the-team/phase1-implementation.md WS5.0 + Q1/Q2):
+#   • Q1  — reuse Fredis's PIV shape (github_bug_fix/rca + implement-fix, validation/*),
+#           inlined as prompt/bash nodes (a target-repo workflow cannot `command:`-reference
+#           Fredis's .claude/commands/*.md). NOT the default's 20-node bundled-agent pipeline.
+#   • Q2  — hard gate = the repo's OWN backend validation: `make lint types test`
+#           (= `make ci` minus the repo-wide coverage floor + network pip-audit — the two a
+#           small fix does not control). Full `make ci` / GitHub CI is the review-time gate.
+#   • guard.sh + `git diff base/` are the CLIENT-SITE lane's gates (P4b) — NOT here.
+#   • Opus pin (hard constraint): `model: large` (claude provider's top tier) on the agent nodes.
+#   • Advisor mode: worktree-isolated, DRAFT PR only — never merges, never pushes to a protected branch.
+
+name: fix-github-issue-emailhub
+description: |
+  Use when: fixing/resolving a scoped GitHub issue on merkle-email-hub via the Fredis harness.
+  Input ($ARGUMENTS): the APPROVED enriched-issue PRD body (names the issue number).
+  Gate: merkle-email-hub's own `make lint types test` MUST pass before the PR node.
+  Output: a DRAFT PR against main. Never merges, never auto-pushes to a protected branch.
+
+provider: claude
+model: large            # Opus pin (claude provider top tier); reinforced per-node on agent nodes.
+
+worktree:
+  enabled: true         # isolate the run: worktree lives under ~/.archon/... (outside any git tree)
+  baseBranch: main      # email-hub default branch; auto-detection needs origin/main (present)
+
+nodes:
+  # ── 1. Identify the issue ─────────────────────────────────────────────
+  - id: extract-issue-number
+    prompt: |
+      Find the GitHub issue number this run targets.
+
+      Run input (an approved, enriched-issue PRD):
+      $ARGUMENTS
+
+      Rules:
+      - If the input names an explicit issue number (e.g. "#302", "issue 302", "302"), use it.
+      - Otherwise use `gh issue list` to find the best match for the described work.
+
+      CRITICAL: output ONLY the bare number — no quotes, markdown, or explanation. Example: 302
+    model: small
+    allowed_tools: [Bash]
+
+  - id: fetch-issue
+    bash: |
+      set -euo pipefail
+      ISSUE_NUM=$(echo "$extract-issue-number.output" | tr -d "'\"\`\n " | grep -oE '[0-9]+' | head -1)
+      if [ -z "$ISSUE_NUM" ]; then
+        echo "Failed to extract issue number from: $extract-issue-number.output" >&2
+        exit 1
+      fi
+      echo "$ISSUE_NUM" > "$ARTIFACTS_DIR/.issue-number"
+      gh issue view "$ISSUE_NUM" --json number,title,body,labels,state,url,author
+    depends_on: [extract-issue-number]
+
+  # ── 2. Investigate / RCA (Fredis github_bug_fix/rca.md, distilled) ────
+  - id: rca
+    prompt: |
+      Root-cause / scope the change for this merkle-email-hub issue.
+
+      ## Enriched issue (the contract)
+      $ARGUMENTS
+
+      ## GitHub issue
+      $fetch-issue.output
+
+      Do:
+      1. Locate the exact code named in the issue (grep/read; note file:line).
+      2. Determine precisely what must change and why — logic, edge cases, missing
+         validation, or (for a test-coverage issue) the exact behaviours to pin.
+      3. List the files to modify and the tests to add/adjust. Respect Vertical Slice
+         Architecture — changes stay self-contained under app/{feature}/.
+      4. Keep it MINIMAL: only what the issue asks. No adjacent refactors.
+
+      Write your analysis + fix plan to `$ARTIFACTS_DIR/investigation.md`.
+    depends_on: [fetch-issue]
+    context: fresh
+    model: large          # Opus
+
+  # ── 3. Implement + tests (Fredis github_bug_fix/implement-fix.md, distilled) ──
+  - id: implement
+    prompt: |
+      Implement the fix for this issue, following `$ARTIFACTS_DIR/investigation.md`.
+
+      Do:
+      1. Make the change exactly as planned — minimal, matching existing style/conventions.
+      2. Add/adjust unit tests that verify the change (mirror the source location under
+         app/{feature}/tests/). Cover the behaviours the issue names, including edge cases.
+      3. Run the backend gate locally and fix anything it flags BEFORE finishing:
+             make lint     # ruff format + ruff check --fix  (auto-formats — expected)
+             make types    # mypy app/ + pyright app/
+             make test     # pytest backend unit tests
+      4. Do NOT touch anything outside the issue's scope. No new deps unless the issue requires it.
+
+      Write a short summary of what changed to `$ARTIFACTS_DIR/implementation.md`.
+    depends_on: [rca]
+    context: fresh
+    model: large          # Opus
+
+  # ── 4. HARD GATE — the repo's OWN validation MUST pass before any PR ──
+  #     This is the SETUP step-0 requirement: bash validation node that blocks the PR node.
+  - id: gate
+    bash: |
+      set -euo pipefail
+      echo "== Backend gate: make lint types test (merkle-email-hub) =="
+      make lint      # ruff format + ruff check --fix (mutates: auto-format is expected & committed)
+      make types     # mypy app/ + pyright app/  (read-only)
+      make test      # pytest -m "not integration and not benchmark and not visual_regression and not collab"
+      echo "GATE_PASSED"
+    depends_on: [implement]
+
+  # ── 5. DRAFT PR only (advisor mode) ──────────────────────────────────
+  - id: create-pr
+    prompt: |
+      Open a DRAFT pull request for the current branch. The gate node passed.
+
+      Issue: $ARGUMENTS
+      Issue number artifact: read `$ARTIFACTS_DIR/.issue-number`.
+
+      Steps:
+      1. `git status`. Stage ONLY the source/test files that are part of this fix, BY NAME
+         (`git add <path> ...`) — never `git add -A`, `.`, or `-u`. Include files the gate
+         auto-formatted. Never stage anything under `$ARTIFACTS_DIR` or scratch/*.md.
+      2. Commit: `fix(shared): <concise summary> (Fixes #<n>)`.
+      3. Push the branch: `git push -u origin HEAD`.
+      4. Read `.github/pull_request_template.md` (or PULL_REQUEST_TEMPLATE.md) if present; fill every section.
+      5. Create a DRAFT PR:  gh pr create --draft --base main
+         - Title: imperative, < 70 chars.
+         - Body: summary + changes + validation evidence (the gate output) + `Fixes #<n>`.
+         - If you use --body-file, the file MUST live at `$ARTIFACTS_DIR/pr-body.md` — never inside the worktree.
+      6. Capture the PR: write its URL to `$ARTIFACTS_DIR/.pr-url` and number to `$ARTIFACTS_DIR/.pr-number`.
+      DO NOT merge. DO NOT mark ready-for-review. DO NOT push to main.
+    depends_on: [gate]
+    context: fresh
+    model: large          # Opus
