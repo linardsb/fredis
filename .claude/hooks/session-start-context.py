@@ -26,8 +26,11 @@ from shared import invocation_source, log_hook_execution  # noqa: E402
 
 # === Constants ===
 MAX_DAILY_LOG_LINES = 30
-MAX_CONTEXT_CHARS = 20_000  # ~5,000 tokens — 2.5% of 200K context window
-RESUME_MAX_CHARS = 20_000  # Full context for all session types
+# REPOSITORIES.md (the always-loaded codebase index) is injected after USER.md,
+# before the large MEMORY.md. The cap must clear SOUL+USER+REPOSITORIES (~29K)
+# so the small index always survives; MEMORY.md + daily log still truncate by design.
+MAX_CONTEXT_CHARS = 32_000  # ~8,000 tokens — 4% of 200K context window
+RESUME_MAX_CHARS = 32_000  # Match startup so the index survives resume/compact too
 
 
 def read_file_safe(path: Path) -> str:
@@ -94,6 +97,12 @@ def build_context(source: str) -> str:
     user = read_file_safe(MEMORY_DIR / "USER.md")
     if user:
         parts.append("## User\n" + user.strip())
+
+    # Always-loaded codebase index. Placed before MEMORY.md (which is large and
+    # truncates under the cap) so this small index is guaranteed to load.
+    repositories = read_file_safe(MEMORY_DIR / "REPOSITORIES.md")
+    if repositories:
+        parts.append("## Repositories\n" + repositories.strip())
 
     # Active projects and key decisions from MEMORY.md
     memory = read_file_safe(MEMORY_DIR / "MEMORY.md")

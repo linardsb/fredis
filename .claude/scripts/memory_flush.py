@@ -199,6 +199,14 @@ async def _run_flush_inner(
         "consultancy retainer changes, content/livestream commitments."
     )
 
+    repo_bullet = (
+        "- Repository / codebase activity: coding / Archon workflow dispatches (workflow, "
+        "target repo, branch, outcome), PRs merged, notable commits, custom-workflow "
+        "tweaks, or repo-scoped lessons. **Tag the repo by name** (e.g. "
+        "merkle-email-hub: … / VTV: …) so reflection can route it to the per-repo page "
+        "under `Fredis/Memory/repositories/`."
+    )
+
     flush_prompt = f"""Pre-compaction memory flush. The session is near auto-compaction.
 {dry_run_note}
 Review the conversation context below and respond with a concise summary of important items.
@@ -213,6 +221,7 @@ Format your response as bullet points covering:
 - Important facts, configurations, or patterns discovered
 - Action items or follow-ups mentioned
 - Key context that would be lost after compaction
+{repo_bullet}
 
 Skip anything that is:
 - Routine tool calls or file reads

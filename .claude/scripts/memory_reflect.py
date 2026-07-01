@@ -33,6 +33,7 @@ from config import (
     OWNER_NAME,
     PROJECT_ROOT,
     REFLECTION_STATE_FILE,
+    REPOSITORIES_FILE,
     SOUL_FILE,
     USER_FILE,
     ensure_directories,
@@ -100,6 +101,13 @@ def load_soul_file() -> str:
     """Read current SOUL.md content."""
     if SOUL_FILE.exists():
         return SOUL_FILE.read_text(encoding="utf-8")
+    return ""
+
+
+def load_repositories_file() -> str:
+    """Read current REPOSITORIES.md content (the codebase index)."""
+    if REPOSITORIES_FILE.exists():
+        return REPOSITORIES_FILE.read_text(encoding="utf-8")
     return ""
 
 
@@ -384,6 +392,7 @@ async def _run_reflection_inner(test_mode: bool = False, days: int = 1) -> str |
     current_memory = load_current_memory()
     current_user = load_user_file()
     current_soul = load_soul_file()
+    current_repositories = load_repositories_file()
 
     dry_run_note = (
         "\n\nDRY RUN: Do NOT edit any files. Just describe what you would change.\n"
@@ -405,6 +414,10 @@ long-term memory files.
 ## Current SOUL.md
 
 {current_soul}
+
+## Current REPOSITORIES.md (codebase index)
+
+{current_repositories}
 
 ## Recent Daily Logs
 
@@ -478,6 +491,27 @@ Update ONLY if you see clear evidence of communication style adaptations:
 - Tone preferences confirmed through repeated interactions
 - Behavioral patterns that should be codified
 - Changes to how the assistant should operate
+
+### 4. Repository / codebase activity ({REPOSITORIES_FILE})
+Route repo-scoped activity from the logs — coding / Archon workflow dispatches, PRs
+merged, notable commits, repo-scoped lessons, custom-workflow tweaks, base-branch or
+gotcha discoveries — into the per-repo pages under `Fredis/Memory/repositories/`:
+- **Recognise a repo by:** (a) a local-path prefix from the Tracked Repositories table
+  in REPOSITORIES.md, (b) explicit phrases like "ran archon on …", "dispatched to …",
+  "PR #N in <repo>", or (c) a GitHub URL `github.com/<org>/<repo>`.
+- **If a per-repo page exists** (`repositories/<slug>.md`): append a date-prefixed
+  `(YYYY-MM-DD)` bullet to the right section — `## Dispatch History` for workflow
+  dispatches, `## Recent Activity` for commits / PRs, `## Workflow Preferences` for a new
+  repo-scoped rule or gotcha. Use the Edit tool.
+- **If the repo is tracked but has no page yet:** create `repositories/<slug>.md` ONLY
+  once it has appeared in **3+ daily logs** (the auto-promotion threshold). Below that,
+  note it under the relevant MEMORY.md item with a `[[repositories/<slug>]]` pointer. New
+  pages need frontmatter `category: repository, github, visibility, default_branch,
+  local_path, archon_enabled` — copy the shape from an existing page.
+- **Never** create a page for, or route dispatch activity to, `Fredis` itself or the
+  `Fredis/Memory/` vault — they are the command centre, never dispatch targets.
+- Addressing layer only: do NOT invent dispatch records the logs don't show, and remember
+  every dispatch is advisor-mode (draft PR — never auto-merged or pushed).
 
 **Rules:**
 - Use the Edit tool to update files directly

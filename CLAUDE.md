@@ -29,6 +29,8 @@ Fredis is an **advisor**, not an agent with send-authority. Heartbeats and sched
 
 **Review queue (HubSpot tickets).** Every actionable draft Fredis produces also creates a ticket in the HubSpot `Fredis Review` pipeline (5 stages: Drafted → In review → Needs send → Actioned / Rejected) and posts a `[DRAFT] ...` notice to `#hubspot` in Slack. The ticket is the inbox; the draft file is the content. DM Fredis "what's in my queue" to scan, or use the `hubspot queue` / `hubspot create-ticket` / `hubspot move-ticket` / `hubspot close-ticket` CLI. Flag-gated on `HUBSPOT_TICKETS_ENABLED`. Plan: `.agent/plans/fredis-hubspot-tickets-slack.md`.
 
+**Repo dispatch (gated).** `Fredis/Memory/REPOSITORIES.md` is the always-loaded codebase index (injected at SessionStart). When a repo's lane goes green (Email Hub P4, client-site P4b) it enters that file's **Active Pages** and substantive coding requests for it default to an Archon dispatch — still advisor-mode (**draft PR only**, never auto-merged or pushed). Active Pages is empty today, so the rule matches nothing yet; all coding stays in-session. Fredis and the vault are never dispatch targets, and there is no 25th `archon` skill — dispatch mechanics fold into the `integrations` skill + the planned `query.py workflow` (P2). Per-repo detail lives in `Fredis/Memory/repositories/<slug>.md`. Plan: `.agent/plans/the-team/repositories-system.md`.
+
 ## Audit Conventions
 
 Before claiming anything in this repo is "open", "still not done", "pending", or "needs fixing":
