@@ -46,6 +46,7 @@ Email Innovation Hub — a centralised email-development platform with AI agents
 _Reflection appends date-prefixed bullets here when daily logs reference dispatches against this repo._
 
 - (2026-06-30) Page created.
+- (2026-07-01) **First harness run — issue #302 → draft [PR #303](https://github.com/linardsb/merkle-email-hub/pull/303).** Workflow `fix-github-issue-emailhub`. Run 1 failed (gate node hit Archon's 120s bash-node timeout). Run 2's `rca` agent — unrestricted tools — did the whole job and opened PR #303 (test-only, `+22/-0`, **independently validated green: 8180 passed**), after which the redundant gate re-run failed on stdout maxBuffer. **Outcome: clean mergeable draft PR delivered.** Workflow then hardened: per-node `timeout`, gate output→log (tail-on-failure), and `denied_tools:[Bash]` on extract/rca/implement so `create-pr` is the only pusher → gate-before-PR is structural. Lane proven **as a deliverable** — N=1 of the PRD's N=3 switch-test; auto-dispatch (Active Pages) still held.
 
 ## Recent Activity
 
