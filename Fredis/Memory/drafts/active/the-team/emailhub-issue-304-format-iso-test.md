@@ -1,6 +1,6 @@
 ---
 title: "Email Hub #304 — unit test for format_iso (harness validation)"
-approved: false
+approved: true
 codebase_id: dee73f6cbc6ed8e6e06cc32dfea4a82a
 github_issue: 304
 workflow: fix-github-issue-emailhub
