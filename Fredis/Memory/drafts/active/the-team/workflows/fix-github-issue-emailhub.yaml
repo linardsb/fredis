@@ -119,13 +119,6 @@ nodes:
       and the `create-pr` node opens the DRAFT PR. Write code that passes that gate;
       if unsure of exact behaviour, reason it out from the source rather than running it.
 
-      BEFORE writing, Read `pyproject.toml` (the `[tool.ruff]` section) and any
-      CONTRIBUTING / AGENTS.md / CLAUDE.md conventions in the repo, and comply with the
-      enabled lint rules — you cannot run the linter, so you must read its config. Common
-      trap here: flake8-datetimez (DTZ) forbids naive `datetime(...)`; pass a tzinfo (e.g.
-      `datetime(..., tzinfo=timezone.utc)`) and remember a tz-aware `.isoformat()` gains a
-      `+00:00` suffix, so update any expected string accordingly.
-
       Do:
       1. Make the change exactly as planned — minimal, matching existing style/conventions.
       2. Add/adjust unit tests that verify the change (mirror the source location under
