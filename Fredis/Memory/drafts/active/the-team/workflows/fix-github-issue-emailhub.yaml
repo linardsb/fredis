@@ -17,21 +17,35 @@
 #   • Opus pin (hard constraint): `model: large` (claude provider's top tier) on the agent nodes.
 #   • Advisor mode: worktree-isolated, DRAFT PR only — never merges, never pushes to a protected branch.
 #
-# Hardening from the first real runs (Run 1/Run 2 on issue #302 → PR #303):
+# Hardening from the real runs on issue #302 (→ PR #303) and throwaway #304:
 #   • Item 1 — gate `timeout: 600000` (Archon's 120s bash-node default timed out on the ~270s suite; Run 1).
-#   • Item 2 — gate redirects `make` output to a log + tails only on failure. `make test -v` emits 8k+
+#   • Item 2 — gate redirects `make` output to a log + surfaces only a short tail. `make test -v` emits 8k+
 #              lines and overran Node's ~1MB child-process stdout buffer (ERR_CHILD_PROCESS_STDIO_MAXBUFFER; Run 2).
 #   • Item 3 — per-node tool scoping. In Run 2 the `rca` agent (unrestricted tools) did the WHOLE job —
-#              wrote the test, self-ran the gate, pushed, and opened the PR — bypassing the gate NODE.
-#              Fix: `denied_tools: [Bash]` on extract/rca/implement. git+gh run only through Bash, so
-#              `create-pr` becomes the ONLY agent node that can push — and it runs only after the gate
-#              passes. That makes "gate before PR" structural, not advisory.
+#              wrote the test, self-ran the gate, pushed, opened the PR — bypassing the gate NODE.
+#              Fix: `denied_tools: [Bash]` on every AI node EXCEPT the create-pr nodes. git+gh run only
+#              through Bash, so the create-pr nodes are the ONLY pushers → "gate before PR" is structural.
+#              (Proven live on #304: `rca` stayed investigation-only; `create-pr` skipped on gate-fail.)
+#              NB: whole-tool `[Bash]`, not `Bash(git:*)` — Archon runs the SDK with permissionMode
+#              'bypassPermissions' (specifier denies don't hold) AND python/pytest are execution escapes,
+#              so the only airtight push-block is denying the shell entirely.
+#   • Item 4 — INFORMED RETRY. A blind write node can't run the linter, so it trips repo-specific lint/type
+#              POLICY it can't discover (on #304: naive `datetime(...)` → ruff DTZ001 → gate fail → no PR).
+#              So: `gate1` emits a JSON verdict `{"passed":"true|false"}` on stdout and exits 0 (instead of
+#              hard-failing) so downstream `when:` can branch on `$gate1.output.passed`. On "false" the `fix`
+#              node reads `$ARTIFACTS_DIR/gate.log` (the ACTUAL failure) and repairs blind; `gate2` re-runs
+#              the suite and HARD-fails (exit 1) so a double failure still ends the run red with no PR.
+#              create-pr / create-pr-retry are DUPLICATED (not one when-OR node) on purpose: each `when:`
+#              references only its own always-run gate — never a skipped node — and gate2's hard-fail stays
+#              the clean signal. gate1's stdout MUST be pure JSON (diagnostics go to the log) or JSON.parse
+#              fails and both branches skip.
 
 name: fix-github-issue-emailhub
 description: |
   Use when: fixing/resolving a scoped GitHub issue on merkle-email-hub via the Fredis harness.
   Input ($ARGUMENTS): the APPROVED enriched-issue PRD body (names the issue number).
-  Gate: merkle-email-hub's own `make lint types test` MUST pass before the PR node.
+  Gate: merkle-email-hub's own `make lint types test` MUST pass before the PR node; a first-pass
+  failure routes through an informed `fix` node + re-validation before giving up.
   Output: a DRAFT PR against main. Never merges, never auto-pushes to a protected branch.
 
 provider: claude
@@ -101,9 +115,16 @@ nodes:
     prompt: |
       Implement the fix for this issue, following `$ARTIFACTS_DIR/investigation.md`.
       You are the WRITE node: edit files only. You have NO shell — do not run tests,
-      build, commit, push, or open PRs. The `gate` node runs `make lint types test`
+      build, commit, push, or open PRs. The `gate1` node runs `make lint types test`
       and the `create-pr` node opens the DRAFT PR. Write code that passes that gate;
       if unsure of exact behaviour, reason it out from the source rather than running it.
+
+      BEFORE writing, Read `pyproject.toml` (the `[tool.ruff]` section) and any
+      CONTRIBUTING / AGENTS.md / CLAUDE.md conventions in the repo, and comply with the
+      enabled lint rules — you cannot run the linter, so you must read its config. Common
+      trap here: flake8-datetimez (DTZ) forbids naive `datetime(...)`; pass a tzinfo (e.g.
+      `datetime(..., tzinfo=timezone.utc)`) and remember a tz-aware `.isoformat()` gains a
+      `+00:00` suffix, so update any expected string accordingly.
 
       Do:
       1. Make the change exactly as planned — minimal, matching existing style/conventions.
@@ -117,33 +138,35 @@ nodes:
     model: large          # Opus
     denied_tools: [Bash]  # item 3: write-only — no shell → cannot run/commit/push. Gate node is sole validator.
 
-  # ── 4. HARD GATE — the repo's OWN validation MUST pass before any PR ──
-  #     This is the SETUP step-0 requirement: bash validation node that blocks the PR node.
-  - id: gate
+  # ── 4. HARD GATE (pass 1) — emits a JSON verdict, EXIT 0 so `when:` can branch ──
+  #     Item 4: stdout is PURE JSON ({"passed":"true|false"}); ALL diagnostics + make output go to
+  #     gate.log (item 2 maxBuffer fix). A mixed stdout would break JSON.parse → both branches skip.
+  - id: gate1
     bash: |
-      set -euo pipefail
-      # Item 2 fix: `make test -v` emits 8k+ lines and overran Archon's ~1MB bash-node
-      # stdout buffer (ERR_CHILD_PROCESS_STDIO_MAXBUFFER, Run 2). Send each step's output
-      # to a log and surface only a short tail, and only on failure.
       GATE_LOG="$ARTIFACTS_DIR/gate.log"
       : > "$GATE_LOG"
-      echo "== Backend gate: make lint types test (full output -> gate.log; tail on failure only) =="
-      for step in "make lint" "make types" "make test"; do
-        echo "-- running: $step --"
-        if ! $step >>"$GATE_LOG" 2>&1; then
-          echo "GATE FAILED at: $step -- last 80 lines:"
-          tail -80 "$GATE_LOG"
-          exit 1
-        fi
-      done
-      echo "GATE_PASSED"
+      passed=true
+      {
+        echo "== Backend gate (pass 1): make lint types test (full output -> gate.log) =="
+        for step in "make lint" "make types" "make test"; do
+          echo "-- running: $step --"
+          if ! $step; then
+            echo "GATE FAILED at: $step"
+            passed=false
+            break
+          fi
+        done
+        echo "verdict: passed=$passed"
+      } >>"$GATE_LOG" 2>&1
+      # stdout = ONLY the verdict JSON (string value, matches `== 'true'` / `== 'false'`).
+      echo "{\"passed\":\"$passed\"}"
     timeout: 600000       # item 1: full `make test` ~178s + lint/types ~90s; Archon's 120s default failed Run 1
     depends_on: [implement]
 
-  # ── 5. DRAFT PR only (advisor mode) — the SOLE node with shell/git/gh authority ──
+  # ── 5a. DRAFT PR (first-pass success) — a SOLE pusher, only when gate1 passed ──
   - id: create-pr
     prompt: |
-      Open a DRAFT pull request for the current branch. The gate node passed.
+      Open a DRAFT pull request for the current branch. The gate passed on the first pass.
 
       Issue: $ARGUMENTS
       Issue number artifact: read `$ARTIFACTS_DIR/.issue-number`.
@@ -152,7 +175,7 @@ nodes:
       1. `git status`. Stage ONLY the source/test files that are part of this fix, BY NAME
          (`git add <path> ...`) — never `git add -A`, `.`, or `-u`. Include files the gate
          auto-formatted. Never stage anything under `$ARTIFACTS_DIR` or scratch/*.md.
-      2. Commit: `fix(shared): <concise summary> (Fixes #<n>)`.
+      2. Commit: `fix(<area>): <concise summary> (Fixes #<n>)`.
       3. Push the branch: `git push -u origin HEAD`.
       4. Read `.github/pull_request_template.md` (or PULL_REQUEST_TEMPLATE.md) if present; fill every section.
       5. Create a DRAFT PR:  gh pr create --draft --base main
@@ -161,6 +184,81 @@ nodes:
          - If you use --body-file, the file MUST live at `$ARTIFACTS_DIR/pr-body.md` — never inside the worktree.
       6. Capture the PR: write its URL to `$ARTIFACTS_DIR/.pr-url` and number to `$ARTIFACTS_DIR/.pr-number`.
       DO NOT merge. DO NOT mark ready-for-review. DO NOT push to main.
-    depends_on: [gate]
+    depends_on: [gate1]
+    when: "$gate1.output.passed == 'true'"
     context: fresh
-    model: large          # Opus — this is the only agent node left with Bash (git/gh); runs only after the gate.
+    model: large          # Opus — a sole Bash/git node; runs only when gate1 passed.
+
+  # ── 5b. INFORMED FIX (only when gate1 failed) — repairs blind with the ACTUAL error ──
+  - id: fix
+    prompt: |
+      Your first implementation FAILED the gate. Repair it — you have the exact failure output.
+
+      Read `$ARTIFACTS_DIR/gate.log` — it holds the precise `make lint types test` failure
+      (a ruff rule like DTZ001, a mypy/pyright error, or a failing assertion). Also read
+      `$ARTIFACTS_DIR/investigation.md` and `$ARTIFACTS_DIR/implementation.md` for the plan
+      and what was written.
+
+      You are the FIX node: edit files only. You have NO shell — do not run tests, build,
+      commit, push, or open PRs. The `gate2` node re-runs `make lint types test`; the
+      `create-pr-retry` node opens the PR only if it passes.
+
+      Do:
+      1. Read gate.log; identify the ROOT cause of the failure precisely.
+      2. Fix it in the worktree files. If a lint rule fired (e.g. flake8-datetimez DTZ001 on a
+         naive `datetime(...)`), comply with it AND update any assertion the compliant code
+         changes (e.g. a tz-aware datetime's `.isoformat()` gains a `+00:00` suffix).
+      3. Keep the change minimal and in-scope — fix the failure, do not expand the change.
+
+      Write a short note of what you corrected to `$ARTIFACTS_DIR/fix.md`.
+    depends_on: [gate1]
+    when: "$gate1.output.passed == 'false'"
+    context: fresh
+    model: large          # Opus
+    denied_tools: [Bash]  # item 3/4: the fix node is still write-only — no shell → cannot push. gate2 validates.
+
+  # ── 6. HARD GATE (pass 2, post-fix) — normal exit-1 gate; its own log ──
+  #     Terminal: no further retry, so this one HARD-fails (exit 1) → a double failure ends the run
+  #     red with no PR (the clean fail-safe signal), and create-pr-retry (all_success on gate2) skips.
+  - id: gate2
+    bash: |
+      set -uo pipefail
+      GATE_LOG="$ARTIFACTS_DIR/gate2.log"
+      : > "$GATE_LOG"
+      echo "== Backend gate (pass 2, post-fix): make lint types test (full output -> gate2.log; tail on failure) =="
+      for step in "make lint" "make types" "make test"; do
+        echo "-- running: $step --"
+        if ! $step >>"$GATE_LOG" 2>&1; then
+          echo "GATE2 FAILED at: $step -- last 80 lines:"
+          tail -80 "$GATE_LOG"
+          exit 1
+        fi
+      done
+      echo "GATE2_PASSED"
+    timeout: 600000
+    depends_on: [fix]
+
+  # ── 7. DRAFT PR (post-fix success) — SOLE pusher on the retry path; runs iff gate2 passed ──
+  - id: create-pr-retry
+    prompt: |
+      Open a DRAFT pull request for the current branch. The gate passed after one informed fix pass.
+
+      Issue: $ARGUMENTS
+      Issue number artifact: read `$ARTIFACTS_DIR/.issue-number`.
+
+      Steps:
+      1. `git status`. Stage ONLY the source/test files that are part of this fix, BY NAME
+         (`git add <path> ...`) — never `git add -A`, `.`, or `-u`. Include files the gate
+         auto-formatted. Never stage anything under `$ARTIFACTS_DIR` or scratch/*.md.
+      2. Commit: `fix(<area>): <concise summary> (Fixes #<n>)`.
+      3. Push the branch: `git push -u origin HEAD`.
+      4. Read `.github/pull_request_template.md` (or PULL_REQUEST_TEMPLATE.md) if present; fill every section.
+      5. Create a DRAFT PR:  gh pr create --draft --base main
+         - Title: imperative, < 70 chars.
+         - Body: summary + changes + validation evidence (the gate output) + `Fixes #<n>`.
+         - If you use --body-file, the file MUST live at `$ARTIFACTS_DIR/pr-body.md` — never inside the worktree.
+      6. Capture the PR: write its URL to `$ARTIFACTS_DIR/.pr-url` and number to `$ARTIFACTS_DIR/.pr-number`.
+      DO NOT merge. DO NOT mark ready-for-review. DO NOT push to main.
+    depends_on: [gate2]
+    context: fresh
+    model: large          # Opus — the other sole Bash/git node; runs only after gate2 passes.
