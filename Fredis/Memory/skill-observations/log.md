@@ -4,9 +4,9 @@ Skill-improvement observations captured during work — friction, corrections, a
 should become a reviewed edit to the skill that caused it. One entry per observation, appended to the
 end, tagged to a skill. See `.claude/skills/_shared/skill-improvement.md` for the loop.
 
-**Status key:** `open` = logged, not yet drafted · `drafted` = proposed edit sitting in
-`drafts/active/skill-improvement/` · `applied` = Linards merged it into the live skill · `declined` =
-not pursued.
+**Status key:** `open` = logged, not yet acted on · `applied` = edit is in the live skill (a safe edit
+Fredis applied + committed, or a risky draft Linards merged) · `drafted` = risky change proposed in
+`drafts/active/skill-improvement/`, awaiting Linards · `declined` = not pursued.
 
 **Format:**
 
