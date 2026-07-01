@@ -415,7 +415,16 @@ python .claude/scripts/query.py github recent --hours 24
 python .claude/scripts/query.py github review-requests
 python .claude/scripts/query.py github mentions --hours 168
 python .claude/scripts/query.py github ship
+
+# Archon build-harness dispatch — the SINGLE path into the engine (nothing POSTs it directly)
+python .claude/scripts/query.py workflow list                                     # engine's workflow catalogue
+python .claude/scripts/query.py workflow run <name> --prd <slug> --repo <slug> --i-confirm-run  # PRD-gated; draft PR only
+python .claude/scripts/query.py workflow status <runId>
+python .claude/scripts/query.py workflow approve <runId> [--comment "..."]         # resume an approval: node
+python .claude/scripts/query.py workflow reject  <runId> [--reason  "..."]
 ```
+
+**Archon workflow dispatch.** `workflow run` is **PRD-gated** — it refuses unless an approved artifact (front-matter `approved: true`, a Linards-only sign-off) resolves from `Fredis/Memory/drafts/active/the-team/`, and the approved body — never a free-form string — is the run input. `--i-confirm-run` is required to fire (draft PR only, never auto-merge/push). Engine seam is loopback `ARCHON_BASE_URL` (default `http://localhost:3090`); `list/status/approve/reject` need it booted (WS1). Full dispatch guide: `.claude/skills/integrations/references/archon-dispatch.md`.
 
 ### Authentication
 

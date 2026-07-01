@@ -1019,6 +1019,104 @@ def cmd_drive(args: argparse.Namespace) -> None:
             print("File not found")
 
 
+def _print_workflows(data: Any) -> None:
+    """Render the /api/workflows response (list of objects or a dict wrapper)."""
+    items = data.get("workflows", data) if isinstance(data, dict) else data
+    if isinstance(items, list) and items:
+        for w in items:
+            if isinstance(w, dict):
+                name = w.get("name", "?")
+                desc = w.get("description", "")
+                print(f"- {name}" + (f" — {desc}" if desc else ""))
+            else:
+                print(f"- {w}")
+    else:
+        print(json.dumps(data, indent=2))
+
+
+def cmd_workflow(args: argparse.Namespace) -> None:
+    """Archon build-harness dispatch — the SINGLE path into the engine.
+
+    list / status / approve / reject speak HTTP to the loopback engine. `run` is
+    PRD-GATED: it refuses unless an approved artifact resolves from
+    drafts/active/the-team/, then requires --i-confirm-run to actually fire
+    (firing pushes a branch + opens a DRAFT PR on the target remote).
+    """
+    from integrations import archon_api
+
+    if args.action == "list":
+        _print_workflows(archon_api.list_workflows())
+
+    elif args.action == "status":
+        if not args.target:
+            print("Error: run id required — query.py workflow status <runId>")
+            sys.exit(1)
+        print(json.dumps(archon_api.get_run(args.target), indent=2))
+
+    elif args.action == "approve":
+        if not args.target:
+            print("Error: run id required — query.py workflow approve <runId>")
+            sys.exit(1)
+        print(json.dumps(archon_api.approve_run(args.target, args.comment), indent=2))
+
+    elif args.action == "reject":
+        if not args.target:
+            print("Error: run id required — query.py workflow reject <runId>")
+            sys.exit(1)
+        print(json.dumps(archon_api.reject_run(args.target, args.reason), indent=2))
+
+    elif args.action == "run":
+        from integrations.archon_gate import GateError, resolve_prd
+
+        if not args.target:
+            print(
+                "Error: workflow name required — "
+                "query.py workflow run <name> --prd <slug>"
+            )
+            sys.exit(1)
+
+        # --- Gate FIRST (offline, no engine): no approved PRD -> no run. ---
+        try:
+            prd = resolve_prd(args.prd)
+        except GateError as exc:
+            print(f"REFUSED (PRD gate): {exc}")
+            sys.exit(1)
+        print(
+            f"PRD gate PASSED: {prd.path.name} "
+            f"({len(prd.message)} chars of run input)."
+        )
+
+        # --- Confirm gate (offline): firing is outward-facing. ---
+        if not getattr(args, "i_confirm_run", False):
+            print(
+                "Nothing fired. `workflow run` dispatches an agentic run that "
+                "pushes a branch and opens a DRAFT PR on the target remote via "
+                "the engine.\nRe-run with --i-confirm-run to dispatch."
+            )
+            sys.exit(0)
+
+        # --- Resolve the target codebase (needs the engine). ---
+        if not args.codebase_id and not args.repo:
+            print("Error: --repo <slug> or --codebase-id <id> required to fire.")
+            sys.exit(1)
+        codebase_id = args.codebase_id or archon_api.resolve_codebase_id(args.repo)
+
+        # --- Fire: idle conversation -> run -> correlate runId. ---
+        conv = archon_api.create_conversation(codebase_id)
+        conv_id = conv.get("conversationId") or conv.get("id", "")
+        fire = archon_api.run_workflow(args.target, conv_id, prd.message)
+        print(json.dumps({"fired": fire, "conversationId": conv_id}, indent=2))
+        run = archon_api.latest_run_for_conversation(conv_id)
+        if run:
+            run_id = run.get("id") or run.get("runId") or "(unknown)"
+            print(f"runId: {run_id} — track with `query.py workflow status {run_id}`")
+        else:
+            print(
+                "Run fired; runId not yet correlatable — "
+                "poll `query.py workflow status` / GET /api/workflows/runs."
+            )
+
+
 def main() -> None:
     """Main entry point."""
     parser = argparse.ArgumentParser(description="Direct Platform Integrations")
@@ -1260,6 +1358,36 @@ def main() -> None:
                               choices=["spreadsheet", "document", "folder", "presentation", "pdf"])
     drive_parser.add_argument("--max", type=int, default=10)
 
+    # Archon build-harness dispatch — the SINGLE path into the engine
+    wf_parser = subparsers.add_parser(
+        "workflow", help="Archon build-harness dispatch (PRD-gated single path)"
+    )
+    wf_parser.add_argument(
+        "action", choices=["list", "run", "status", "approve", "reject"]
+    )
+    wf_parser.add_argument(
+        "target", nargs="?", default=None,
+        help="workflow name (run) or run id (status/approve/reject)",
+    )
+    wf_parser.add_argument(
+        "--prd", default=None,
+        help=("Approved PRD slug|path in drafts/active/the-team/ (run). "
+              "Omit to auto-pick the single approved artifact."),
+    )
+    wf_parser.add_argument("--repo", default=None,
+                           help="Target codebase slug to resolve (run)")
+    wf_parser.add_argument("--codebase-id", dest="codebase_id", default=None,
+                           help="Explicit codebase id (run)")
+    wf_parser.add_argument(
+        "--i-confirm-run", dest="i_confirm_run", action="store_true",
+        help=("Required to actually fire — a run opens a DRAFT PR on the "
+              "target remote via the engine."),
+    )
+    wf_parser.add_argument("--comment", default=None,
+                           help="Approval comment (approve)")
+    wf_parser.add_argument("--reason", default=None,
+                           help="Rejection reason (reject)")
+
     args = parser.parse_args()
 
     try:
@@ -1281,6 +1409,8 @@ def main() -> None:
             cmd_github(args)
         elif args.service == "drive":
             cmd_drive(args)
+        elif args.service == "workflow":
+            cmd_workflow(args)
     except Exception as e:
         print(json.dumps({"error": str(e), "type": "runtime"}, indent=2))
         sys.exit(1)

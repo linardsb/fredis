@@ -142,6 +142,19 @@ DRAFT_EXPIRY_HOURS = int(os.getenv("DRAFT_EXPIRY_HOURS", "24"))
 # Stale-draft digest note threshold — reporting only, nothing is moved.
 STALE_DRAFT_DAYS = int(os.getenv("STALE_DRAFT_DAYS", "14"))
 
+# === Archon build harness — "the-team" Phase 1 (query.py workflow) ===
+# `query.py workflow` is the SINGLE dispatch path into the engine; no other
+# surface (chat, Slack, cockpit) POSTs the engine directly. Default resolves to
+# the loopback interface — the engine binds loopback ONLY (containment: never
+# all-interfaces; boot-time responsibility, WS1). Override with ARCHON_BASE_URL
+# (e.g. `http://[::1]:3090` if WS1 boots the engine on IPv6 loopback only).
+ARCHON_BASE_URL = os.getenv("ARCHON_BASE_URL", "http://localhost:3090")
+ARCHON_HTTP_TIMEOUT = int(os.getenv("ARCHON_HTTP_TIMEOUT", "15"))
+# The PRD gate's source dir. A run's input is ONLY ever an APPROVED artifact
+# from here (front-matter `approved: true`, a Linards-only action) — never a
+# free-form string. No approved PRD -> no run.
+THE_TEAM_DRAFTS_DIR = DRAFTS_ACTIVE_DIR / "the-team"
+
 # === Onboarding (Phase 1 personalisation) ===
 ONBOARDING_FILE = PROJECT_ROOT / ".agent" / "plans" / "phase1-onboarding-interview.md"
 PRD_FILE = PROJECT_ROOT / ".agent" / "plans" / "second-brain-prd.md"
