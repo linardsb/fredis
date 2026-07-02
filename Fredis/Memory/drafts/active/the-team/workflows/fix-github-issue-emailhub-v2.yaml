@@ -1,0 +1,461 @@
+# Molded `archon-fix-github-issue` for merkle-email-hub — Fredis build harness, P4 lane. **v2**
+#
+# DRAFT — advisor mode. This file is authored in the Fredis vault; Fredis is
+# sandbox-blocked from writing into merkle-email-hub via Write/Edit (containment hook).
+# PLACEMENT is a Bash `cp` step (v2 REPLACES v1 at the same target filename — the `name:`
+# field is unchanged so dispatch briefs keep working, and Archon must not discover two
+# workflows with the same name in one codebase):
+#   mkdir -p ~/Desktop/merkle-email-hub/.archon/workflows
+#   cp <this file> ~/Desktop/merkle-email-hub/.archon/workflows/fix-github-issue-emailhub.yaml
+#
+# Molding decisions (from .agent/plans/the-team/phase1-implementation.md WS5.0 + Q1/Q2):
+#   • Q1  — reuse Fredis's PIV shape (github_bug_fix/rca + implement-fix, validation/*),
+#           inlined as prompt/bash nodes (a target-repo workflow cannot `command:`-reference
+#           Fredis's .claude/commands/*.md). NOT the default's 20-node bundled-agent pipeline.
+#   • Q2  — hard gate = the repo's OWN backend validation: `make lint types test`
+#           (= `make ci` minus the repo-wide coverage floor + network pip-audit — the two a
+#           small fix does not control). Full `make ci` / GitHub CI is the review-time gate.
+#   • guard.sh + `git diff base/` are the CLIENT-SITE lane's gates (P4b) — NOT here.
+#   • Opus pin (hard constraint): `model: large` (claude provider's top tier) on the agent nodes.
+#   • Advisor mode: worktree-isolated, DRAFT PR only — never merges, never pushes to a protected branch.
+#
+# Hardening from the real runs on issue #302 (→ PR #303) and throwaway #304:
+#   • Item 1 — gate `timeout: 600000` (Archon's 120s bash-node default timed out on the ~270s suite; Run 1).
+#   • Item 2 — gate redirects `make` output to a log + surfaces only a short tail. `make test -v` emits 8k+
+#              lines and overran Node's ~1MB child-process stdout buffer (ERR_CHILD_PROCESS_STDIO_MAXBUFFER; Run 2).
+#   • Item 3 — per-node tool scoping. In Run 2 the `rca` agent (unrestricted tools) did the WHOLE job —
+#              wrote the test, self-ran the gate, pushed, opened the PR — bypassing the gate NODE.
+#              Fix: `denied_tools: [Bash]` on every AI node EXCEPT the create-pr nodes. git+gh run only
+#              through Bash, so the create-pr nodes are the ONLY pushers → "gate before PR" is structural.
+#              (Proven live on #304: `rca` stayed investigation-only; `create-pr` skipped on gate-fail.)
+#              NB: whole-tool `[Bash]`, not `Bash(git:*)` — Archon runs the SDK with permissionMode
+#              'bypassPermissions' (specifier denies don't hold) AND python/pytest are execution escapes,
+#              so the only airtight push-block is denying the shell entirely.
+#   • Item 4 — INFORMED RETRY. A blind write node can't run the linter, so it trips repo-specific lint/type
+#              POLICY it can't discover (on #304: naive `datetime(...)` → ruff DTZ001 → gate fail → no PR).
+#              So: `gate1` emits a JSON verdict `{"passed":"true|false"}` on stdout and exits 0 (instead of
+#              hard-failing) so downstream `when:` can branch on `$gate1.output.passed`. On "false" the `fix`
+#              node reads `$ARTIFACTS_DIR/gate.log` (the ACTUAL failure) and repairs blind; `gate2` re-runs
+#              the suite and HARD-fails (exit 1) so a double failure still ends the run red with no PR.
+#              create-pr / create-pr-retry are DUPLICATED (not one when-OR node) on purpose: each `when:`
+#              references only its own always-run gate — never a skipped node — and gate2's hard-fail stays
+#              the clean signal. gate1's stdout MUST be pure JSON (diagnostics go to the log) or JSON.parse
+#              fails and both branches skip.
+#   • Item 5 — WIRING VERIFICATION (v2; from switch-test N=2, PR #309 / issue #307, 2026-07-01).
+#              A green `make lint types test` passed code that was FUNCTIONALLY INERT: 51.3's
+#              `_ToolCallCounter.record_tool_call()` had zero production call sites (tests only) and
+#              `BaseAgentService.process()` is single-shot — the cap could never trip. The gate
+#              structurally cannot catch "never called on the live path". v2 closes that class:
+#              · `snapshot-diff` (bash, fixed script) dumps `git diff` + untracked-file contents to
+#                `$ARTIFACTS_DIR/diff.patch` — the verify node audits a DETERMINISTIC diff, never the
+#                implement node's self-reported implementation.md.
+#              · `verify-wiring` (AI, Opus, `context: fresh` so the implementer never grades its own
+#                homework, `denied_tools: [Bash]` — Grep/Read/Glob only) lists every new/modified public
+#                symbol in the diff, partitions its call sites production-vs-tests (tests-only = FAIL,
+#                with an exemption for issues explicitly scoped test-only, e.g. #303 coverage work),
+#                traces ONE concrete entrypoint→new-code live path naming file:line per hop, and writes
+#                the trace/diagnosis to `wiring.md` + the verdict to `wiring-verdict.json`.
+#              · VERDICT CHANNEL IS THE FILE, deliberately NOT `when: $verify-wiring.output.wired`:
+#                that would depend on two behaviours never proven live (Archon JSON-parsing an AI
+#                node's output text, and `||`/`&&` support in `when:`) whose failure mode is the
+#                item-4 silent dead-end (both branches skip). Instead `gate1` reads the verdict file
+#                as step 0 (missing/unparseable = "false", FAIL-SAFE) and folds it into its single
+#                `{"passed"}` verdict — downstream `when:` machinery is byte-identical to v1's proven
+#                version, and no AI output text is ever string-interpolated into a bash script.
+#              · gate1 still runs the full make suite even when wiring already failed, so the `fix`
+#                node gets complete failure info (wiring + lint) in one pass.
+#              · Retry path is symmetric — the blind `fix` can leave code inert just like `implement`:
+#                `fix` (now also reads wiring.md; instructed to NEVER force-wire when the plan itself
+#                specs the wrong surface — honest red beats wired-but-wrong) → `snapshot-diff-2` →
+#                `verify-wiring-2` → `gate2`, which HARD-fails (exit 1) on a false re-verdict before
+#                running make. gate2 stays terminal — no third pass.
+#              · Honest limit: this closes INERT (zero production call sites / unreachable on the live
+#                path). It cannot close wired-but-semantically-wrong — that stays with draft-PR human
+#                review, now armed with wiring.md's trace as evidence. On #309 itself this workflow
+#                would have ended RED with no PR, and wiring.md would have carried the single-shot
+#                `process()` diagnosis that instead took a manual read-only trace session.
+
+name: fix-github-issue-emailhub
+description: |
+  Use when: fixing/resolving a scoped GitHub issue on merkle-email-hub via the Fredis harness.
+  Input ($ARGUMENTS): the APPROVED enriched-issue PRD body (names the issue number).
+  Gate: merkle-email-hub's own `make lint types test` MUST pass AND the change must be proven
+  WIRED (a live production path reaches the new code — verify-wiring node) before the PR node;
+  a first-pass failure routes through an informed `fix` node + re-verification + re-validation
+  before giving up.
+  Output: a DRAFT PR against main. Never merges, never auto-pushes to a protected branch.
+
+provider: claude
+model: large            # Opus pin (claude provider top tier); reinforced per-node on agent nodes.
+
+worktree:
+  enabled: true         # isolate the run: worktree lives under ~/.archon/... (outside any git tree)
+  baseBranch: main      # email-hub default branch; auto-detection needs origin/main (present)
+
+nodes:
+  # ── 1. Identify the issue ─────────────────────────────────────────────
+  - id: extract-issue-number
+    prompt: |
+      Find the GitHub issue number this run targets.
+
+      Run input (an approved, enriched-issue PRD — it names the issue explicitly):
+      $ARGUMENTS
+
+      Read the number directly from the input (e.g. "#302", "issue 302",
+      "github_issue: 302", or a bare "302"). Do not run anything.
+
+      CRITICAL: output ONLY the bare number — no quotes, markdown, or explanation. Example: 302
+    model: small
+    denied_tools: [Bash]  # item 3: pure text parse — no shell, so it can never push.
+
+  - id: fetch-issue
+    bash: |
+      set -euo pipefail
+      ISSUE_NUM=$(echo "$extract-issue-number.output" | tr -d "'\"\`\n " | grep -oE '[0-9]+' | head -1)
+      if [ -z "$ISSUE_NUM" ]; then
+        echo "Failed to extract issue number from: $extract-issue-number.output" >&2
+        exit 1
+      fi
+      echo "$ISSUE_NUM" > "$ARTIFACTS_DIR/.issue-number"
+      gh issue view "$ISSUE_NUM" --json number,title,body,labels,state,url,author
+    depends_on: [extract-issue-number]
+
+  # ── 2. Investigate / RCA (Fredis github_bug_fix/rca.md, distilled) ────
+  - id: rca
+    prompt: |
+      Root-cause / scope the change for this merkle-email-hub issue.
+      You are the INVESTIGATION node: read and reason only. You have NO shell —
+      do not build, run, commit, push, or open PRs. Later nodes validate and open the PR.
+
+      ## Enriched issue (the contract)
+      $ARGUMENTS
+
+      ## GitHub issue
+      $fetch-issue.output
+
+      Do:
+      1. Locate the exact code named in the issue (Grep/Glob/Read; note file:line).
+      2. Determine precisely what must change and why — logic, edge cases, missing
+         validation, or (for a test-coverage issue) the exact behaviours to pin.
+      3. List the files to modify and the tests to add/adjust. Respect Vertical Slice
+         Architecture — changes stay self-contained under app/{feature}/.
+      4. Keep it MINIMAL: only what the issue asks. No adjacent refactors.
+
+      Write your analysis + fix plan to `$ARTIFACTS_DIR/investigation.md`.
+    depends_on: [fetch-issue]
+    context: fresh
+    model: large          # Opus
+    denied_tools: [Bash]  # item 3: investigation only — no shell → cannot git/gh/push.
+
+  # ── 3. Implement + tests (Fredis github_bug_fix/implement-fix.md, distilled) ──
+  - id: implement
+    prompt: |
+      Implement the fix for this issue, following `$ARTIFACTS_DIR/investigation.md`.
+      You are the WRITE node: edit files only. You have NO shell — do not run tests,
+      build, commit, push, or open PRs. The `gate1` node runs `make lint types test`
+      and the `create-pr` node opens the DRAFT PR. Write code that passes that gate;
+      if unsure of exact behaviour, reason it out from the source rather than running it.
+
+      Do:
+      1. Make the change exactly as planned — minimal, matching existing style/conventions.
+      2. Add/adjust unit tests that verify the change (mirror the source location under
+         app/{feature}/tests/). Cover the behaviours the issue names, including edge cases.
+      3. Your change must be INVOKED on a live production path — a wiring-verification
+         node checks this before the gate and FAILS changes whose only call sites are
+         tests (item 5). New code that nothing in production calls is a failed run.
+      4. Do NOT touch anything outside the issue's scope. No new deps unless the issue requires it.
+
+      Write a short summary of what changed to `$ARTIFACTS_DIR/implementation.md`.
+    depends_on: [rca]
+    context: fresh
+    model: large          # Opus
+    denied_tools: [Bash]  # item 3: write-only — no shell → cannot run/commit/push. Gate node is sole validator.
+
+  # ── 3b. Snapshot the diff (item 5) — deterministic input for verify-wiring ──
+  #     Fixed script, no AI, read-only git: the verify node must audit the ACTUAL diff,
+  #     not the implement node's self-reported implementation.md (a summary that omits a
+  #     symbol would otherwise escape verification). Nothing here stages, commits, or pushes.
+  - id: snapshot-diff
+    bash: |
+      set -euo pipefail
+      DIFF="$ARTIFACTS_DIR/diff.patch"
+      : > "$DIFF"
+      {
+        echo "== git diff (tracked files, worktree vs base) =="
+        git diff
+        echo
+        echo "== untracked new files (full content) =="
+        git ls-files --others --exclude-standard | while IFS= read -r f; do
+          echo "=== NEW FILE: $f ==="
+          cat "$f"
+          echo
+        done
+      } >>"$DIFF" 2>&1
+      echo "diff snapshot written: $(wc -l < "$DIFF") lines -> diff.patch"
+    depends_on: [implement]
+
+  # ── 3c. WIRING VERIFICATION (item 5) — proves the change executes on a live path ──
+  #     Fresh context (independent audit — never the implementer grading its own homework).
+  #     Verdict goes to a FILE (wiring-verdict.json) that gate1 reads fail-safe; stdout JSON
+  #     is kept for run-log legibility only and is never interpolated into a bash script.
+  - id: verify-wiring
+    prompt: |
+      You are the WIRING-VERIFICATION node: read and reason only. You have NO shell —
+      do not build, run tests, commit, push, or open PRs.
+
+      Your job: prove the implemented change actually EXECUTES on a live production
+      path — or fail it. A change can pass `make lint types test` and still be
+      functionally inert (new code whose only call sites are tests, never reached at
+      runtime). You are the structural check for that failure class.
+
+      Inputs:
+      - `$ARTIFACTS_DIR/diff.patch` — the ground-truth diff. Read this FIRST and work
+        from it; do not rely on implementation.md alone (you are auditing its author).
+      - `$ARTIFACTS_DIR/investigation.md` — the fix plan.
+      - The enriched issue (the contract): $ARGUMENTS
+
+      Procedure:
+      1. From diff.patch, list EVERY new or modified public symbol — classes, functions,
+         methods, constants, config fields.
+      2. For each symbol, Grep the repo for its call/usage sites and partition them:
+         production code vs tests. A symbol whose only call sites are tests is NOT WIRED.
+         - Exemption: if the enriched issue explicitly scopes the change as TEST-ONLY
+           (e.g. "add test coverage for X"), a diff touching only test files passes —
+           record the exemption and its justification in wiring.md.
+         - A private helper reached only through a wired public symbol counts as wired
+           (step 3's trace covers it).
+      3. Trace ONE concrete live execution path from a real entrypoint (API route,
+         engine loop, CLI command, scheduled job) to the new/modified code, naming
+         file:line for EVERY hop. If no such path exists, the change is NOT WIRED —
+         document exactly where the trace dead-ends and why (e.g. "the enclosing
+         service method is single-shot; nothing iterates tool calls").
+      4. Write the full trace (or the failure diagnosis) to `$ARTIFACTS_DIR/wiring.md`.
+      5. Write the verdict — exactly `{"wired":"true"}` or `{"wired":"false"}` — to
+         `$ARTIFACTS_DIR/wiring-verdict.json`. This FILE is what the gate reads; if it
+         is missing or malformed the gate fails safe to "false".
+
+      ALL diagnostics go to wiring.md — never your final output.
+      CRITICAL: your final output must be ONLY the verdict JSON — no quotes, markdown,
+      or explanation. Example: {"wired":"false"}
+    depends_on: [snapshot-diff]
+    context: fresh
+    model: large          # Opus — the trace is the most reasoning-heavy step in the workflow.
+    denied_tools: [Bash]  # items 3+5: Grep/Read/Glob only — cannot run, push, or fake the gate.
+
+  # ── 4. HARD GATE (pass 1) — wiring verdict (step 0) + make; EXIT 0 so `when:` can branch ──
+  #     Item 4: stdout is PURE JSON ({"passed":"true|false"}); ALL diagnostics + make output go to
+  #     gate.log (item 2 maxBuffer fix). A mixed stdout would break JSON.parse → both branches skip.
+  #     Item 5: passed = wiring AND make. The wiring verdict is read from wiring-verdict.json —
+  #     missing/unparseable = "false" (FAIL-SAFE). make still runs even on wiring-fail so the
+  #     `fix` node gets complete failure info (wiring + lint/type/test) in a single pass.
+  - id: gate1
+    bash: |
+      GATE_LOG="$ARTIFACTS_DIR/gate.log"
+      : > "$GATE_LOG"
+      passed=true
+      wired=$(grep -oE '"wired"[[:space:]]*:[[:space:]]*"(true|false)"' "$ARTIFACTS_DIR/wiring-verdict.json" 2>/dev/null | grep -oE 'true|false' | head -1)
+      if [ "$wired" != "true" ]; then
+        echo "WIRING FAILED (verdict: ${wired:-missing/unparseable}) — see wiring.md" >>"$GATE_LOG"
+        passed=false
+      fi
+      {
+        echo "== Backend gate (pass 1): wiring verdict = ${wired:-missing}; make lint types test (full output -> gate.log) =="
+        for step in "make lint" "make types" "make test"; do
+          echo "-- running: $step --"
+          if ! $step; then
+            echo "GATE FAILED at: $step"
+            passed=false
+            break
+          fi
+        done
+        echo "verdict: passed=$passed"
+      } >>"$GATE_LOG" 2>&1
+      # stdout = ONLY the verdict JSON (string value, matches `== 'true'` / `== 'false'`).
+      echo "{\"passed\":\"$passed\"}"
+    timeout: 600000       # item 1: full `make test` ~178s + lint/types ~90s; Archon's 120s default failed Run 1
+    depends_on: [verify-wiring]
+
+  # ── 5a. DRAFT PR (first-pass success) — a SOLE pusher, only when gate1 passed ──
+  - id: create-pr
+    prompt: |
+      Open a DRAFT pull request for the current branch. The gate passed on the first pass
+      (wiring verified + `make lint types test` green).
+
+      Issue: $ARGUMENTS
+      Issue number artifact: read `$ARTIFACTS_DIR/.issue-number`.
+
+      Steps:
+      1. `git status`. Stage ONLY the source/test files that are part of this fix, BY NAME
+         (`git add <path> ...`) — never `git add -A`, `.`, or `-u`. Include files the gate
+         auto-formatted. Never stage anything under `$ARTIFACTS_DIR` or scratch/*.md.
+      2. Commit: `fix(<area>): <concise summary> (Fixes #<n>)`.
+      3. Push the branch: `git push -u origin HEAD`.
+      4. Read `.github/pull_request_template.md` (or PULL_REQUEST_TEMPLATE.md) if present; fill every section.
+      5. Create a DRAFT PR:  gh pr create --draft --base main
+         - Title: imperative, < 70 chars.
+         - Body: summary + changes + validation evidence (the gate output AND the live-path
+           trace from `$ARTIFACTS_DIR/wiring.md`) + `Fixes #<n>`.
+         - If you use --body-file, the file MUST live at `$ARTIFACTS_DIR/pr-body.md` — never inside the worktree.
+      6. Capture the PR: write its URL to `$ARTIFACTS_DIR/.pr-url` and number to `$ARTIFACTS_DIR/.pr-number`.
+      DO NOT merge. DO NOT mark ready-for-review. DO NOT push to main.
+    depends_on: [gate1]
+    when: "$gate1.output.passed == 'true'"
+    context: fresh
+    model: large          # Opus — a sole Bash/git node; runs only when gate1 passed.
+
+  # ── 5b. INFORMED FIX (only when gate1 failed) — repairs blind with the ACTUAL error ──
+  - id: fix
+    prompt: |
+      Your first implementation FAILED the gate. Repair it — you have the exact failure output.
+
+      Read `$ARTIFACTS_DIR/gate.log` — it holds the failure. It is one or both of:
+      - a `make lint types test` failure (a ruff rule like DTZ001, a mypy/pyright error,
+        or a failing assertion), and/or
+      - "WIRING FAILED": the implemented code is functionally INERT — nothing on a live
+        production path calls it. `$ARTIFACTS_DIR/wiring.md` holds the trace showing
+        exactly where the live path dead-ends.
+      Also read `$ARTIFACTS_DIR/investigation.md` and `$ARTIFACTS_DIR/implementation.md`
+      for the plan and what was written.
+
+      You are the FIX node: edit files only. You have NO shell — do not run tests, build,
+      commit, push, or open PRs. Downstream, wiring is re-verified and `gate2` re-runs
+      `make lint types test`; the `create-pr-retry` node opens the PR only if both pass.
+
+      Do:
+      1. Read gate.log (and wiring.md if wiring failed); identify the ROOT cause precisely.
+      2. For a lint/type/test failure: fix it in the worktree files. If a lint rule fired
+         (e.g. flake8-datetimez DTZ001 on a naive `datetime(...)`), comply with it AND
+         update any assertion the compliant code changes (e.g. a tz-aware datetime's
+         `.isoformat()` gains a `+00:00` suffix).
+      3. For a wiring failure: wire the new code into the live production path wiring.md
+         shows is missing — the real call site, not a decorative one.
+         CRITICAL: if you conclude NO correct production wiring site exists — the plan
+         itself specs the wrong surface (e.g. a per-call counter on a single-shot method) —
+         do NOT force-wire it somewhere plausible just to pass. Write that conclusion and
+         your evidence to `$ARTIFACTS_DIR/fix.md` and STOP editing. An honest red run
+         carrying the diagnosis beats a wired-but-wrong draft PR.
+      4. Keep the change minimal and in-scope — fix the failure, do not expand the change.
+
+      Write a short note of what you corrected (or why you stopped) to `$ARTIFACTS_DIR/fix.md`.
+    depends_on: [gate1]
+    when: "$gate1.output.passed == 'false'"
+    context: fresh
+    model: large          # Opus
+    denied_tools: [Bash]  # item 3/4: the fix node is still write-only — no shell → cannot push. gate2 validates.
+
+  # ── 5c. Snapshot the post-fix diff (item 5) — verify-wiring-2 needs the CURRENT diff ──
+  - id: snapshot-diff-2
+    bash: |
+      set -euo pipefail
+      DIFF="$ARTIFACTS_DIR/diff2.patch"
+      : > "$DIFF"
+      {
+        echo "== git diff (tracked files, worktree vs base — POST-FIX) =="
+        git diff
+        echo
+        echo "== untracked new files (full content) =="
+        git ls-files --others --exclude-standard | while IFS= read -r f; do
+          echo "=== NEW FILE: $f ==="
+          cat "$f"
+          echo
+        done
+      } >>"$DIFF" 2>&1
+      echo "post-fix diff snapshot written: $(wc -l < "$DIFF") lines -> diff2.patch"
+    depends_on: [fix]
+
+  # ── 5d. WIRING RE-VERIFICATION (item 5) — the blind fix can leave code inert too ──
+  #     Without this, "structurally can't ship inert code" would be false on the retry path.
+  - id: verify-wiring-2
+    prompt: |
+      You are the WIRING RE-VERIFICATION node (retry path): read and reason only. You
+      have NO shell — do not build, run tests, commit, push, or open PRs.
+
+      A first implementation failed gate1 and a fix node has since edited the worktree.
+      Your job: prove the CURRENT state of the change executes on a live production
+      path — or fail it. Same standard as the first verification; the fix node gets no
+      benefit of the doubt.
+
+      Inputs:
+      - `$ARTIFACTS_DIR/diff2.patch` — the ground-truth POST-FIX diff. Work from this.
+      - `$ARTIFACTS_DIR/fix.md` — what the fix node says it corrected.
+      - `$ARTIFACTS_DIR/wiring.md` — the first verification's trace/diagnosis (if wiring
+        was the pass-1 failure).
+      - `$ARTIFACTS_DIR/investigation.md` and the enriched issue: $ARGUMENTS
+
+      Procedure (identical standard to pass 1):
+      1. From diff2.patch, list EVERY new or modified public symbol.
+      2. For each, Grep the repo for call sites; partition production vs tests.
+         Tests-only call sites = NOT WIRED. The explicit test-only-issue exemption from
+         pass 1 still applies (record it in wiring2.md if used).
+      3. Trace ONE concrete live path from a real entrypoint to the new/modified code,
+         file:line per hop. No such path = NOT WIRED.
+      4. If fix.md concludes that NO correct production wiring site exists (a plan
+         defect), verify that reasoning against the code — if it holds, your verdict is
+         "false" and wiring2.md carries the consolidated diagnosis. Do NOT invent a pass.
+      5. Write the trace/diagnosis to `$ARTIFACTS_DIR/wiring2.md` and the verdict —
+         exactly `{"wired":"true"}` or `{"wired":"false"}` — to
+         `$ARTIFACTS_DIR/wiring2-verdict.json` (missing/malformed = gate2 fails hard).
+
+      ALL diagnostics go to wiring2.md — never your final output.
+      CRITICAL: your final output must be ONLY the verdict JSON — no quotes, markdown,
+      or explanation. Example: {"wired":"true"}
+    depends_on: [snapshot-diff-2]
+    context: fresh
+    model: large          # Opus
+    denied_tools: [Bash]  # items 3+5: read-only audit — cannot run, push, or fake the gate.
+
+  # ── 6. HARD GATE (pass 2, post-fix) — wiring re-verdict (step 0, exit 1) + make; its own log ──
+  #     Terminal: no further retry, so this one HARD-fails (exit 1) → a double failure ends the run
+  #     red with no PR (the clean fail-safe signal), and create-pr-retry (all_success on gate2) skips.
+  #     Item 5: a false/missing wiring2 verdict hard-fails BEFORE make — inert code cannot reach the
+  #     PR node on either path. gate2's semantics are otherwise unchanged from v1.
+  - id: gate2
+    bash: |
+      set -uo pipefail
+      GATE_LOG="$ARTIFACTS_DIR/gate2.log"
+      : > "$GATE_LOG"
+      echo "== Backend gate (pass 2, post-fix): wiring re-verdict + make lint types test (full output -> gate2.log; tail on failure) =="
+      wired=$(grep -oE '"wired"[[:space:]]*:[[:space:]]*"(true|false)"' "$ARTIFACTS_DIR/wiring2-verdict.json" 2>/dev/null | grep -oE 'true|false' | head -1)
+      if [ "$wired" != "true" ]; then
+        echo "GATE2 FAILED at: wiring re-verification (verdict: ${wired:-missing/unparseable}) -- wiring2.md tail:"
+        tail -40 "$ARTIFACTS_DIR/wiring2.md" 2>/dev/null || echo "(no wiring2.md written)"
+        exit 1
+      fi
+      for step in "make lint" "make types" "make test"; do
+        echo "-- running: $step --"
+        if ! $step >>"$GATE_LOG" 2>&1; then
+          echo "GATE2 FAILED at: $step -- last 80 lines:"
+          tail -80 "$GATE_LOG"
+          exit 1
+        fi
+      done
+      echo "GATE2_PASSED"
+    timeout: 600000
+    depends_on: [verify-wiring-2]
+
+  # ── 7. DRAFT PR (post-fix success) — SOLE pusher on the retry path; runs iff gate2 passed ──
+  - id: create-pr-retry
+    prompt: |
+      Open a DRAFT pull request for the current branch. The gate passed after one informed
+      fix pass (wiring re-verified + `make lint types test` green).
+
+      Issue: $ARGUMENTS
+      Issue number artifact: read `$ARTIFACTS_DIR/.issue-number`.
+
+      Steps:
+      1. `git status`. Stage ONLY the source/test files that are part of this fix, BY NAME
+         (`git add <path> ...`) — never `git add -A`, `.`, or `-u`. Include files the gate
+         auto-formatted. Never stage anything under `$ARTIFACTS_DIR` or scratch/*.md.
+      2. Commit: `fix(<area>): <concise summary> (Fixes #<n>)`.
+      3. Push the branch: `git push -u origin HEAD`.
+      4. Read `.github/pull_request_template.md` (or PULL_REQUEST_TEMPLATE.md) if present; fill every section.
+      5. Create a DRAFT PR:  gh pr create --draft --base main
+         - Title: imperative, < 70 chars.
+         - Body: summary + changes + validation evidence (the gate output AND the live-path
+           trace from `$ARTIFACTS_DIR/wiring2.md`) + `Fixes #<n>`.
+         - If you use --body-file, the file MUST live at `$ARTIFACTS_DIR/pr-body.md` — never inside the worktree.
+      6. Capture the PR: write its URL to `$ARTIFACTS_DIR/.pr-url` and number to `$ARTIFACTS_DIR/.pr-number`.
+      DO NOT merge. DO NOT mark ready-for-review. DO NOT push to main.
+    depends_on: [gate2]
+    context: fresh
+    model: large          # Opus — the other sole Bash/git node; runs only after gate2 passes.
