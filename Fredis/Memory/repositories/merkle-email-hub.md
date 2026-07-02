@@ -46,6 +46,7 @@ Email Innovation Hub — a centralised email-development platform with AI agents
 _Reflection appends date-prefixed bullets here when daily logs reference dispatches against this repo._
 
 - (2026-06-30) Page created.
+- (2026-07-01) Archon P4 pipeline trial: engine at `:3090` confirmed live, codebase registered (`dee73f6cbc6ed8e6e06cc32dfea4a82a`), throwaway issue #302 created (test coverage for `escape_like`), molded workflow `fix-github-issue-emailhub` (6-node, Opus-pinned, `make lint types test` gate, worktree-isolated, draft-PR-only) drafted to `drafts/active/the-team/workflows/`. Pipeline stopped at HITL #1 — workflow YAML placement + PRD `approved: true` pending Linards.
 
 ## Recent Activity
 
