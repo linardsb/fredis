@@ -1,6 +1,6 @@
 ---
 title: "Email Hub — Tool-Call Cap + Planning Telemetry (51.3)"
-approved: true        # Linards-only: set to true to arm the run (HITL #1). Fredis never sets this.
+approved: false       # DE-ARMED 2026-07-02 (Linards's instruction): 51.3 ruled a PLAN defect — PR #309 was gate-green but functionally inert. Re-plan in-session per issue #307. Do NOT re-dispatch this brief.
 repo: linardsb/merkle-email-hub
 codebase_id: dee73f6cbc6ed8e6e06cc32dfea4a82a
 github_issue: 307

@@ -97,6 +97,27 @@ hooks protect nothing it does.** Containment is enforced by:
   `--i-confirm-run` is required before a run fires (it opens a PR on a real remote,
   on a shared Claude subscription).
 
+## Post-run retro (System Evolution — the outer loop)
+
+Every dispatch that reaches HITL #2 (Linards merged or closed the draft PR) gets a retro:
+
+```
+/validation:dispatch-retro <brief-slug> <repo-slug>#<PR>
+```
+
+It compares the run against the approved brief and routes improvements by defect locus:
+workflow-YAML hardening → draft in `drafts/active/the-team/workflows/` with a `cp`
+placement note (Fredis never writes target repos); command/prompt fixes → live edit in
+`.claude/commands/` (scoped commit, `dispatch-retro:` label, no push); skill-level
+behaviour → `Fredis/Memory/skill-observations/log.md`; run outcome → today's daily log,
+which reflection promotes into the repo page's Dispatch History (existing convention).
+Retro reports land in `drafts/active/the-team/retros/`.
+
+Guards: **in-session on the Desktop checkout only** — never autonomous, never VPS
+(mirror of the Skill Improvement Loop deploy guard, and rail (b) edits code git-sync
+doesn't cover). The retro is part of closing a dispatch, not an optional extra: the
+inner loop ships the PR, the outer loop fixes the system that produced it.
+
 ## Firing internals (for debugging)
 
 A run fires in two HTTP steps: create an **idle** conversation
