@@ -1,0 +1,1480 @@
+Apparently, we're not even supposed to
+0:01
+be prompting our AI coding assistants
+0:03
+anymore. The real skill is designing
+0:06
+loops that prompt your agents so they
+0:07
+work for you 24/7. And I got to say, I
+0:10
+am not sold on this idea right now. It
+0:13
+feels like some of the bigger players in
+0:15
+the AI space like Peter Steinberger, the
+0:17
+creator of OpenClaw, Boris Churnney is
+0:19
+doing this as well, the lead at Claude
+0:21
+Code, they're pushing this new fad,
+0:23
+whether they like it or not, of loop
+0:25
+engineering. It's becoming the next
+0:27
+buzzword. And I promise I'm not going to
+0:29
+be hyping up loop engineering here.
+0:31
+There are some good lessons to be
+0:33
+learned from what's surfacing, but also
+0:36
+with loops, and you've probably seen
+0:37
+this with dynamic workflows and cloud
+0:39
+code for example, they're not always the
+0:40
+most reliable and they are extremely
+0:43
+tokenhungry. So unless you have an
+0:45
+infinite budget like Peter pretty much,
+0:47
+then you have to be really careful with
+0:49
+these kinds of systems. They're not
+0:51
+always practical. And so that's what I
+0:54
+want to cover with you in this video. I
+0:56
+just want to get really honest and
+0:57
+really practical with you. We're going
+0:58
+to cover three things. We're going to
+1:00
+cover loops in a really simple sense.
+1:02
+It's not actually that complicated. So,
+1:04
+I want to show you how you can run these
+1:05
+and then I want to talk about the
+1:06
+trade-offs and then solutions to that.
+1:08
+So, really nice and structured here. And
+1:10
+so, as far as some of the solutions
+1:12
+we'll get into towards the end of the
+1:13
+video, I want to show you how we can
+1:15
+build a system where we can really
+1:16
+observe the loops, the orchestrators and
+1:19
+the workers, how we can optimize for
+1:21
+cost with the workflows we build and
+1:23
+using different providers like PI. And
+1:25
+so it really it's like here's how you
+1:26
+can run loops. Here are the downsides.
+1:29
+Here's how we can solve for them and
+1:30
+really get to the point where we're
+1:32
+building harnesses for these longer
+1:34
+running tasks because it is really
+1:36
+powerful for certain things, but then
+1:38
+also covering the honest trade-offs with
+1:40
+it. Okay, so we saw what Peter said. Now
+The Core Concept of Loops
+1:42
+let's take a look at what Boris, the
+1:43
+creator of Claude Code, said, and it is
+1:46
+really similar. He said, "I don't prompt
+1:48
+Claude anymore. I write loops and the
+1:50
+loops do the work. My job is to write
+1:52
+loops." Okay, Boris, I think we get it.
+1:55
+And like I said, loop engineering is
+1:57
+kind of a buzzword, but also there are
+1:59
+some really good takeaways when you dive
+2:01
+into this. So, like Boris through a lot
+2:02
+of like interviews and podcasts has
+2:04
+shared his workflow. We can get glimpses
+2:06
+into how it works. [clears throat] A lot
+2:08
+of it is built around the newer features
+2:10
+in claude code. Like /loop is the most
+2:13
+basic example, and I told you we're
+2:14
+going to simplify things here. Loop
+2:16
+engineering is really not that
+2:17
+complicated. I don't even know if it
+2:18
+deserves its own term. And so with
+2:21
+/loop, we set an interval for running a
+2:23
+prompt. So like for example, every 5
+2:25
+minutes, I'm going to check for new
+2:27
+GitHub issues in this repo and handle
+2:30
+any that come in. So it's pretty neat.
+2:32
+We set up Claude to basically wake
+2:34
+itself up every 5 minutes. And of
+2:36
+course, you can adjust this. And it's
+2:38
+going to look for input in an external
+2:40
+system like GitHub, for example. And so
+2:42
+as long as our terminal is up and
+2:45
+running with cloud code, it's able to
+2:47
+autonomously handle this. So basically
+2:48
+it's a every 5 minute loop looking at
+2:51
+GitHub issues. There's also /goal that
+2:53
+we have in cloud code and codeex. So we
+2:56
+set some criteria like here is how you
+2:58
+know you are done and then we're forcing
+3:00
+the coding agent to work until it is
+3:02
+done. Kind of like Ralph loops that went
+3:04
+viral a few months ago. And then last we
+3:07
+have / routines. And so these are the
+3:09
+schedule jobs. Like every hour I want
+3:11
+you to wake up look at some larger spec
+3:13
+document and then handle the next task.
+3:16
+And so really loop engineering is
+3:18
+combining or creating a system around
+3:20
+all these things routines/loop
+3:23
+so that we can give a larger scope of
+3:25
+work as input to an AI coding assistant
+3:28
+and have it work through it
+3:29
+incrementally right because we never
+3:31
+want to have a coding agent try to
+3:33
+handle too much at once or it will get
+3:35
+completely overwhelmed. And the main
+3:36
+idea with loop engineering is we want to
+3:38
+have some main orchestrator agent that
+3:40
+we talk to. We do minimal prompting,
+3:42
+just telling it what we want at a high
+3:44
+level, and it figures out how to set up
+3:46
+the loop and the entire system. And it's
+3:49
+really easy to do this in Cloud Code.
+3:50
+This is really cool. You just tell it to
+3:53
+use the loop skill. So, there's a
+3:55
+capability built right into the tool
+3:56
+where it knows how to set up these loop
+3:58
+systems based on what we ask it to do.
+4:00
+So, I passed in some kind of simple spec
+4:02
+document here, like I just have this as
+4:04
+an example. These are the tasks that we
+4:06
+wanted to go through incrementally. And
+4:07
+so, my prompt is telling it to load the
+4:09
+skill. So now how to set up the loop and
+4:11
+then every cycle it's just going to do
+4:13
+the first unchecked task do the
+4:15
+validation and then that loop is done
+4:17
+and then on the next loop it'll go
+4:18
+through and do the next task and so
+4:20
+eventually all the tasks will be
+4:22
+complete and then our primary cloud code
+4:24
+session here that set up everything is
+4:26
+going to report back to us right so like
+4:29
+right here cloud code is sort of the
+4:31
+orchestrator but then also the workers
+4:33
+because it sets up the loop itself but
+4:35
+it is really cool to watch this run so
+4:37
+I'll send off a request here and I'll
+4:39
+Wait for it to run a little bit. I'll
+4:41
+come back and show you kind of how it
+4:42
+works. But you can see that it loads the
+4:44
+loop skills the very first thing. So it
+4:46
+knows how to orchestrate things and
+4:48
+it'll do the slash loop by itself that I
+4:50
+just showed how you can do manually.
+4:52
+Okay. So I came back a couple minutes
+4:54
+later and it's already done with the
+4:55
+first two tasks. So it's gone through
+4:57
+two iterations of the loop already. And
+4:59
+so if we go up to the top, we can see
+5:01
+that it says this is sequential task
+5:03
+list. It's going to do the first task
+5:04
+and then it's going to schedule a quick
+5:06
+wakeup. So, it sets up the slash loop by
+5:08
+itself. And if we scroll down a little
+5:10
+bit after it does and validates the
+5:12
+first task, we can see that it's
+5:14
+resuming with a /loop wake up. And look
+5:17
+at that. I didn't write this prompt
+5:18
+myself at all. I know this is a very,
+5:20
+very basic example, but I want to stay
+5:23
+simple on purpose, but it wrote the
+5:25
+prompt /loop work through plan.mmd one
+5:28
+task at a time. And so the kinds of
+5:30
+systems that Boris is building is
+5:32
+obviously going to be a lot more
+5:33
+elaborate with how we're telling it to
+5:35
+run the looping and building in routines
+5:37
+and describing how we want it to prompt
+5:39
+and work through our context. But at the
+5:41
+basic sense, this is really all it
+5:43
+takes. And so now it's just going to
+5:45
+keep knocking things out one at a time.
+5:48
+So that is loop engineering in the most
+5:50
+basic form possible. But now I want to
+Downsides and Token Costs
+5:54
+get into some of the downsides here,
+5:56
+which some of them are definitely pretty
+5:58
+obvious to you already. Problem number
+6:00
+one, there is no way you're going to
+6:02
+convince me that loop engineering is the
+6:03
+way to get the best results possible
+6:05
+with AI coding assistance. I mean, come
+6:08
+on, this has to be hyperbole here. Boris
+6:10
+Journey says that there are days he
+6:12
+manages tens of thousands of AI agents
+6:14
+at once. Like, really? Is is that
+6:17
+actually practical? Is that going to
+6:18
+scale? Like are you really building cla
+6:21
+code with tens of thousands of agents
+6:22
+per day? I mean maybe that does explain
+6:24
+some of the bugs we have in cloud code.
+6:26
+I feel like there's constantly a couple
+6:28
+annoying ones, but yeah, overall like
+6:30
+building these kinds of loops if we make
+6:32
+it a very tight controlled system,
+6:34
+that's what I'll talk about in a little
+6:35
+bit. I think it's good. And for building
+6:37
+proof of concepts and exploring ideas,
+6:39
+like I think it's really good, but it's
+6:42
+not like I want to drive all my AI
+6:44
+coding with them. And then the second
+6:45
+big problem is cost. Because with loop
+6:48
+engineering, we're relying on some kind
+6:49
+of orchestrator to set up the system and
+6:52
+really determine how to get to the end
+6:54
+goal. So, it figures out how many
+6:56
+workers to spin off, how many loops to
+6:58
+do, and that gets super expensive. So,
+7:00
+the dashboard that I built that I'll
+7:02
+show you at the end of this video, I
+7:03
+built cost tracking into it. And so, for
+7:06
+a single run, like here are all the
+7:07
+loops that the orchestrator went
+7:08
+through, it costed me over a million
+7:10
+tokens just to build a relatively simple
+7:13
+application. And yes, I'm sure there are
+7:15
+a lot of optimizations that I can do
+7:17
+here, but I think you can see just by
+7:19
+looking at this, I mean, this is part of
+7:21
+why I built the dashboard. You can see
+7:23
+why it would be so expensive because we
+7:25
+send in our initial spec to the
+7:27
+orchestrator and it has to reason about
+7:29
+that and then figure out how many
+7:30
+workers to spin off. Then it has to
+7:32
+prompt them all. They each spend tokens
+7:34
+and then the results come back. The
+7:36
+orchestrator has to then reason about
+7:38
+that again and then send off the next
+7:39
+wave. No matter how you design the
+7:42
+system, there's a lot of context passing
+7:44
+and reasoning to make everything work
+7:46
+here in a distributed way. So, it's a
+7:48
+really powerful system and it's cool how
+7:51
+far you can take this kind of stuff with
+7:53
+the self- validation, but man, does it
+7:56
+get so expensive. And then really quick,
+7:58
+the third problem with loop engineering
+8:00
+is at least for a lot of setups, you're
+8:02
+not really working between different
+8:04
+coding agent sessions. Like when you're
+8:05
+just using /loop in claw code like Boris
+8:08
+talks about a lot, it's really just
+8:10
+continuing in the same coding agent
+8:12
+session. So if you loop for a while,
+8:14
+you're going to completely bloat your
+8:16
+context for your LLM and overwhelm it.
+8:19
+And so we need a system where we can
+8:22
+distribute the work actually between
+8:24
+different coding agent sessions and make
+8:26
+it so they can all communicate to each
+8:28
+other and have an idea of like where
+8:30
+they fit in the larger goal. And so
+8:32
+that's what I want to cover for the rest
+Deterministic Workflows with Archon
+8:34
+of the video here. So I want to talk
+8:35
+about how I actually work on a
+8:37
+day-to-day basis because this will cover
+8:40
+how we can solve for a lot of these
+8:42
+problems we have with loop engineering.
+8:43
+So I use my tool Archon, but I'm not
+8:46
+just trying to like push Archon on you
+8:47
+here. I just want to talk about how I
+8:49
+use it in a way that solves for the
+8:52
+problems of cost, reliability, and how
+8:54
+do we actually orchestrate many
+8:56
+different coding agent sessions. And so
+8:59
+go through this with me here. So, Archon
+9:01
+is my harness builder. Allows us to
+9:04
+build workflows that orchestrate many
+9:06
+coding agent sessions to handle larger
+9:09
+tasks. And so, for example, a really
+9:11
+classic AI coding workflow is you do
+9:13
+your planning, you do your
+9:14
+implementation and then you do your code
+9:17
+review or your testing. And so, we can
+9:19
+build this as a single Archon workflow.
+9:21
+There's a ton of content that I have on
+9:23
+Archon on my channel. I'll link to a
+9:25
+video right here to help you get started
+9:27
+if you're interested in this. But again,
+9:29
+I just want to focus on like how I use
+9:30
+this on a day-to-day basis to kind of do
+9:33
+loops. Like you can do loop engineering
+9:35
+with Archon. You can build the Ralph
+9:37
+loop with Archon. So I'll show you an
+9:40
+example of a workflow here. If I go into
+9:42
+the default workflows, there's a ton
+9:43
+that we have that ship with Archon.
+9:46
+Let's take a look at fix GitHub issue
+9:48
+for example. And so I don't want to get
+9:49
+too in the weeds here, but I just want
+9:51
+to show you really quickly at a high
+9:52
+level how this workflow works. And
+9:54
+another really important thing with
+9:56
+Archon is that we're not having the
+9:58
+agent drive the entire thing. It's more
+10:01
+deterministic because we set up the
+10:03
+process in this workflow file and then
+10:06
+we even have certain steps that are
+10:07
+deterministic. Like the agent is not
+10:09
+driving it. We are guaranteeing that
+10:11
+it's going to happen. So when we're
+10:12
+building these loops and larger tasks
+10:15
+that we have our coding agent knock out,
+10:17
+we want to actually take the decision
+10:19
+away from the coding agent as much as we
+10:21
+can only applying the reasoning of the
+10:23
+LLM when we actually need it to write
+10:25
+the code. For example, like we might
+10:26
+want our agent to write the code but not
+10:28
+actually decide the test to run because
+10:30
+we know what it looks like for our test
+10:32
+to pass. And so for this workflow, first
+10:35
+we extract the issue number. So the
+10:37
+input here is some GitHub issue that we
+10:39
+want to fix or address. So we extract
+10:41
+the context, we fetch the issue context
+10:45
+and then we classify it. So we have a
+10:46
+large language model decide at first are
+10:49
+we addressing a bug or are we
+10:51
+implementing a new feature and then the
+10:53
+workflow is going to be dynamic based on
+10:56
+that decision. So the kind of thing that
+10:58
+your orchestrator would usually decide
+11:00
+we're more enforcing a specific process
+11:03
+here like this is the kind of thing that
+11:04
+I want to sort of layer on top of loop
+11:06
+engineering like let me be in the loop
+11:08
+let me determine how the workflow can
+11:11
+progress and so then we research the
+11:13
+issue investigate it and then we go do
+11:16
+the implementation and the validation
+11:17
+and we create the pull request right
+11:19
+step by step each one of the steps we're
+11:21
+using markdown documents as context so
+11:24
+we're handing things off between the
+11:26
+steps But then each step is running in
+11:28
+its own coding agent session. So if
+11:30
+we're handling a larger GitHub issue,
+11:31
+it's not like this entire thing is
+11:33
+running with / loop and cloud code
+11:34
+getting totally overwhelmed with each of
+11:36
+the tasks that we're doing as we're
+11:38
+planning, implementing, and validating.
+11:40
+And the way that I can manage cost here
+11:42
+is every single node in this archon
+11:45
+workflow, I can actually decide what
+11:47
+model am I going to use. And so for
+11:50
+example with the classify step here at
+11:52
+the top when we're figuring out you know
+11:54
+what kind of issue do we need to address
+11:55
+in the rest of the workflow. This is
+11:57
+kind of like the orchestrator decision
+11:59
+we can use a small model like maybe
+12:01
+using haik coup or miniax m3 kim 2.7 for
+12:05
+example right like what we can do in
+12:07
+archon is even mix providers. So we can
+12:10
+use cloud code for the implementation
+12:12
+and then we can use codecs for the
+12:13
+review and then for all of our context
+12:15
+loading and exploration up front. We can
+12:18
+use a smaller model like Kimmyk 2.7. And
+12:21
+so that's one of the other big issues I
+12:23
+see with using /goal or routines or
+12:25
+loops in cloud code is you're just using
+12:27
+one model for pretty much everything.
+12:29
+That's part of the problem of why it's
+12:31
+so expensive because when we're doing
+12:33
+larger amounts of work like this, of
+12:35
+course, you're going to have to spend
+12:36
+more tokens. But you don't always need
+12:39
+to spend the most per token for every
+12:42
+step of your workflow. And I know I'm
+12:44
+really really driving this in the ground
+12:45
+right now, but yet another reason you
+12:47
+want some kind of harness like what you
+12:48
+can build with Archon is we have
+12:50
+durability. So this is my Neon database.
+12:52
+I'm storing all of my logs and runs in
+12:56
+Postgress so that I can resume a
+12:59
+workflow even if my machine goes down or
+13:01
+I cancel things like whatever I do I'm
+13:03
+always able to resume on exactly the
+13:05
+step that I was in that larger loop or
+13:07
+that larger workflow. So I have all my
+13:09
+conversations the code bases that I'm
+13:12
+operating on with Archon. Everything is
+13:14
+durable and it's super easy to resume
+13:16
+any work that I'm doing. Okay, cool. So
+Orchestrating Parallel Coding Agents
+13:18
+now I want to show you how I actually
+13:20
+use Archon on a day-to-day basis. a lot
+13:22
+of ties that we can draw to loop
+13:24
+engineering and things that I've really
+13:26
+fixed with it, right? And so in a very
+13:28
+very basic sense, one of the most
+13:30
+classic workflows that I use with archon
+13:32
+is fixing GitHub issues. Most of the
+13:35
+input for my day-to-day work is issues
+13:37
+in a repo. Either I'll create them or
+13:39
+someone else will. And so we can use
+13:41
+archon to send off workflows to run in
+13:44
+parallel handling multiple GitHub issues
+13:46
+at the exact same time. And this is very
+13:49
+much like loop engineering because we
+13:51
+have our primary cloud code here as our
+13:54
+orchestrator and it's figuring out based
+13:56
+on my higher level request. I'm going to
+13:58
+create the prompts and dispatch the
+14:00
+workflows. Work trees are also a really
+14:02
+important part of loop engineering.
+14:04
+Boris talks about this as well. If we're
+14:06
+having many different agents handling
+14:08
+tasks in a loop, we need to make sure
+14:09
+they're running in isolation so they're
+14:11
+not stepping on each other's toes. That
+14:13
+is how we scale our output with AI
+14:15
+coding assistance. And so we have our
+14:17
+cloud code here kicking off four
+14:19
+workflows to handle GitHub issues. It's
+14:22
+going to validate the PRs after like
+14:25
+make sure that they are actually created
+14:26
+and this is where we can come in with
+14:27
+human in the loop as well. And then
+14:29
+it'll run four more workflows to
+14:31
+validate like perform a code review on
+14:33
+each of the issues as well. So very
+14:35
+comprehensive kind of a loop in a sense
+14:37
+where it's like handle the issues
+14:38
+validate and then do a code review. And
+14:41
+uh another thing as far as like making
+14:43
+this more reliable is with archon
+14:45
+workflows, we can also build human in
+14:47
+the loop within any individual node in
+14:49
+the workflow. So we can always have it
+14:50
+pause for us to validate something
+14:52
+before it continues. Which is one of the
+14:54
+biggest problems with loop engineering
+14:56
+right now in general is that a lot of
+14:57
+times people set up these systems to
+14:59
+just go go and then you have it run for
+15:01
+a day and by the time it comes back you
+15:03
+just have crap. Like I've had that
+15:05
+myself as I've tested a lot of things
+15:07
+within cloud code like routines and
+15:08
+sloop. And so I'll send this off here
+15:11
+and I'll just pause and come back once
+15:13
+it's done. So we can walk through
+15:15
+everything that it accomplished here.
+15:17
+And the best part about all of this is
+15:19
+we actually have nine coding agent
+15:22
+sessions for this entire loop or
+15:24
+whatever you want to call this entire
+15:26
+harness, right? Like one per GitHub
+15:27
+issue fix, one per review, and then we
+15:29
+have our primary orchestrator. So, we're
+15:31
+doing a ton of work, but at the same
+15:33
+time, we actually are pretty lean for
+15:36
+each individual session because
+15:38
+actually, I kind of have to correct
+15:39
+myself. It's more than just nine
+15:40
+sessions because even within each
+15:42
+individual Archon workflow, we're
+15:44
+running separate coding agent sessions
+15:45
+where we can have different models. We
+15:47
+can optimize for cost. There is a lot of
+15:49
+engineering that goes on behind the
+15:51
+scenes here. All right, so I'm back
+15:53
+after the entire thing ran. I just want
+15:55
+to show you how comprehensive we can be
+15:57
+here. And so we have the four workflow
+16:00
+runs for actually fixing the issues. And
+16:02
+then cloud code here is really
+16:03
+monitoring and orchestrating everything,
+16:05
+right? So like as the different tasks
+16:06
+are done, it's coming in and checking on
+16:08
+them. And then finally, we have
+16:10
+everything done together. So all four
+16:12
+fixed workflows are done. Then it
+16:14
+launches the code reviews cuz it
+16:16
+confirmed that all of the pull requests
+16:18
+are ready to be reviewed. And you can
+16:20
+even ask for a status update. So like
+16:22
+while the Archon workflows are running,
+16:23
+if we want to see where we're at, we can
+16:25
+of course check the logs in the Archon
+16:26
+web UI. I have that as well. But then
+16:28
+also we can just ask our orchestrator,
+16:30
+right? So it really is in control of our
+16:33
+entire situation here. And then finally,
+16:36
+all the reviews are done and it gives us
+16:39
+the things that need our attention now.
+16:40
+So we can really come in and direct
+16:42
+things from here. So it's the harness
+16:44
+driving everything, but we still can be
+16:45
+in the loop wherever we want. And I know
+16:48
+there's a lot that goes into effectively
+16:50
+orchestrating parallel coding agents. So
+16:53
+there's a lot of content on my channel
+16:54
+where I cover this kind of thing. Like
+16:56
+for example, one thing that you have to
+16:57
+do a lot is branches in your database,
+17:00
+right? Like if each coding agent is
+17:01
+working on something in parallel, you
+17:03
+don't want them to be stepping on each
+17:05
+other's toes, not just with code
+17:06
+changes, but also database changes. So
+17:08
+work trees and neon is a super powerful
+17:10
+thing. A lot of different things like
+17:12
+port conflicts that we want to solve for
+17:14
+as well. So I'll link to a video right
+17:15
+here where I cover that stuff and just
+17:18
+generally how we can make parallel AI
+17:19
+coding more reliable. So assuming you
+17:21
+take care of all of that, you can really
+17:22
+let Archon rip on as many GitHub issues
+17:25
+or whatever in parallel. Very cool how
+17:28
+far we can take our output here. All
+My Pi Loop Engineering Dashboard
+17:30
+right, so we have covered a lot in this
+17:32
+video already. Loop engineering basics,
+17:34
+the downsides of it, how I'm using
+17:35
+Archon to extract the good parts out
+17:37
+into more deterministic workflows. But
+17:40
+last, I want to cover a system that I
+17:42
+built for loop engineering in its purest
+17:44
+form. Because I presented these issues
+17:46
+to you, but I I do see a lot of promise
+17:49
+with this. I want to try to build a
+17:51
+system that solves for these problems.
+17:53
+And so I've built this dashboard that
+17:55
+I'm really excited to show you right
+17:57
+now. I actually have it open sourced on
+17:59
+GitHub. Link to this in the description.
+18:01
+And I have built this to solve for a lot
+18:03
+of the problems that we have with loop
+18:06
+engineering right now. So first of all,
+18:07
+we have durability. Uh just like with
+18:10
+Archon, all of the loops that we run and
+18:12
+the different events and logs, I'm
+18:13
+storing this here so we can always
+18:15
+resume a workflow later on. So we're
+18:18
+managing all of our state in an external
+18:21
+database. So we're not relying on that
+18:23
+staying in any coding agent session. And
+18:26
+so our main orchestrator, it is going to
+18:28
+read through this state here and then
+18:30
+figure out like okay, what is the next
+18:32
+thing that we need to do? And so then
+18:34
+it's going to call upon the workers to
+18:36
+accomplish all of that like build a new
+18:38
+feature or do some kind of validation
+18:39
+whatever it needs to do. And then those
+18:41
+workers are going to go back and they're
+18:42
+going to update the state that we have
+18:44
+in our database. Like again I'm using
+18:45
+Neon for Postgress here. And so this is
+18:48
+our loop, right? Because then the next
+18:49
+time the orchestrator runs, it's going
+18:51
+to get that updated state from the
+18:52
+workers and then figure out the next
+18:54
+workers to invoke. And there are a
+18:56
+couple of problems that I'm solving by
+18:58
+building something like this. And and I
+19:00
+want to start by saying like this is
+19:02
+more experimental. I'm just showing you
+19:03
+something that I'm working on and kind
+19:04
+of building into my own second brain.
+19:06
+But first of all, I'm driving everything
+19:08
+with Pi. So I'm actually using my Kimmy
+19:11
+subscription with Kimmy K 2.6, 6 now
+19:13
+Kimmy K 2.7 to drive all of these
+19:16
+workflows. So yes, it is a lot of
+19:18
+tokens, but I'm not using Opus for
+19:20
+everything, but I'm still getting really
+19:22
+good results because of the harness that
+19:24
+I built here that elevates the model.
+19:27
+And then I have a lot of observability
+19:29
+built into this dashboard. I mean,
+19:31
+obviously it being a dashboard, it
+19:32
+solves part of that reliability problem,
+19:34
+which obviously I'm still working on.
+19:36
+But just being able to see exactly the
+19:38
+decisions that are going on here means
+19:39
+that it's easier for me to uh look at
+19:42
+this, even have my coding agent analyze
+19:44
+the runs in the database, and then
+19:46
+figure out how to improve the loop, how
+19:48
+to improve the harness here. And so I
+19:51
+just have been going through a lot of
+19:53
+really simple examples, but like
+19:54
+non-trivial enough where it does have to
+19:56
+go through quite a few rounds to build
+19:57
+it. So like building a single page
+19:59
+combine board as a static web app. I
+20:01
+just take this prompt and I'll show you
+20:03
+it running live right now. Like I'll
+20:04
+just send this in and I will start a
+20:06
+loop. And it's really cool. We can see
+20:08
+that the orchestrator is deciding how to
+20:10
+split up the work right now. And then we
+20:12
+also have like the full run history
+20:14
+here. It's pretty neat. Like it's super
+20:16
+easy to get this up and running. Uh if
+20:17
+you just want to check out the GitHub
+20:18
+repo linked in the description. But
+20:20
+after a little bit the orchestrator will
+20:22
+decide here is how I'm going to create
+20:24
+that first wave and then we'll see the
+20:26
+workers dispatched. So there we go. The
+20:28
+orchestrator spent 6,000 tokens with
+20:30
+that initial planning and then prompting
+20:32
+our first three workers in round number
+20:35
+one. And so we don't have to watch paint
+20:37
+dry seeing this go to completion here.
+20:39
+But you get the idea. We saw the full
+20:41
+run in the logs earlier of how it'll go
+20:43
+round by round doing validation each
+20:45
+time. And we can even have human in the
+20:47
+loop so that we get to actually take a
+20:49
+look at what has happened in the first
+20:50
+round before the orchestrator moves on
+20:53
+to the next. That is the kind of
+20:55
+reliability that I feel like we really
+20:57
+need to have right now in order to build
+20:59
+anything more than simple demos with uh
+21:01
+this kind of loop engineering setup. And
+21:03
+so yeah, I I would encourage you to just
+21:05
+play around with this kind of idea. Like
+21:07
+building a a dashboard to manage more
+21:09
+autonomous tasks in something like your
+Deploying Control Systems to Production
+21:11
+second brain is a big thing that I'm
+21:13
+focusing on right now. And we can even
+21:14
+take this kind of dashboard and deploy
+21:16
+it to the cloud as well. So we can
+21:18
+access it from anywhere. maybe even
+21:20
+start to share our loop setup with our
+21:23
+teammates. And these days, it's just so
+21:25
+easy to take applications that you build
+21:27
+locally for these kinds of control
+21:28
+systems and deploy them to production so
+21:30
+you can use it remotely or have a team
+21:32
+use it. Retool is a tool specifically
+21:35
+I've been leaning on a lot for these
+21:36
+kinds of deployments. And so it's just
+21:38
+so easy to create an app here and then
+21:41
+we can import React code. So I just had
+21:43
+Cloud Code build the entire dashboard in
+21:46
+React with the idea of I'm going to
+21:48
+deploy this here. It's so incredibly
+21:49
+easy. So, I just go in and I take the
+21:52
+zip file of the front end that I just
+21:53
+showed you and then its agent is going
+21:55
+to go through wiring everything up. So,
+21:57
+it'll connect to the backend with the
+21:58
+API that I have running with PI. It'll
+22:01
+get everything deployed to a real URL
+22:02
+that I can use. It's really neat. So,
+22:04
+for example, here connecting to my Neon
+22:06
+database where I'm storing all of the
+22:08
+runs for durability. It asks me to set
+22:11
+up a connection here. So, I can create a
+22:12
+new resource. I can select Postgress
+22:15
+because that's what Neon is running
+22:16
+under the hood and then set up all of my
+22:18
+connection information here. So really
+22:20
+easy to make that connections. I'm just
+22:22
+deploying the front end here and then
+22:23
+connecting it to wherever I'm hosting my
+22:26
+app hosting PI running behind the
+22:28
+scenes. So I'll get all this hooked up
+22:29
+off camera and then I'll show you the
+22:31
+final result here. And there we go.
+22:33
+Everything is deployed. We can see our
+22:35
+app hosted in the cloud just like it was
+22:37
+running locally. Very cool. So now we
+22:40
+have a URL where we can share this.
+22:41
+There's also a lot of other cool things
+22:43
+you can do in retool like you can set up
+22:44
+permission groups and so certain actions
+22:46
+that you can gate with an API endpoint.
+22:48
+So you have to approve it and have the
+22:50
+right permissions to do so. So for
+22:52
+example being able to pause the workflow
+22:55
+and then resume it. If I click this
+22:56
+right here you can see that approve and
+22:58
+resume and you can see the identity that
+23:00
+I have through retool. It's giving me
+23:01
+permission to actually do that. And then
+23:03
+it's also very easy to edit this
+23:05
+application. I can continue to make
+23:07
+changes with it here in the cloud as I
+23:09
+need adding new features to the front
+23:11
+end, whatever I need as I'm evolving my
+23:13
+dashboard. So yeah, I've just been doing
+23:14
+a lot of this with like deploying
+23:16
+dashboards for observability and helping
+23:17
+me with all my systems for my second
+23:19
+brain and my AI coding. Very powerful
+23:21
+stuff. And a quick shout out to the
+23:23
+retool team. Ever since I've been using
+23:24
+their platform, I've been working with
+23:26
+them and I even collab to bring this
+23:28
+integration in the video today. It's a
+23:30
+great platform because you get to build
+23:32
+your applications directly in retool or
+23:34
+you can import it like I showed earlier.
+23:36
+But then your team regardless has a
+23:38
+single governed path to production with
+23:41
+audit trails. Really easy to make your
+23:43
+changes just with chat like I showed
+23:44
+here and the review system with human in
+23:46
+the loop. All of it that you need to
+23:48
+ship your apps to production. And I'll
+23:50
+have a link in the description. If you
+23:52
+go now, you get free app imports through
+23:54
+July 1st and bonus AI credits on all
+23:56
+paid plans. So that's everything I have
+Outro
+23:58
+to cover for Loop Engineering. the
+24:00
+basics, the problems with it, how I'm
+24:02
+solving for it because I I really do
+24:03
+want to incorporate loop engineering.
+24:05
+Like I like the concept of it and I want
+24:07
+to drive how autonomous my coding agents
+24:10
+can be, but you got to have the right
+24:12
+system otherwise things are going to
+24:13
+completely fall apart like we've already
+24:15
+talked about. And so I hope I've
+24:17
+inspired some ideas for you even like
+24:18
+how to use Archon or start to build this
+24:21
+sort of harness for yourself. Really, I
+24:23
+would just fold loop engineering into
+24:25
+harness engineering. It doesn't quite
+24:26
+deserve its own buzzword, right? But
+24:28
+like there are some good ideas here. And
+24:30
+so I hope you found this useful. If you
+24:32
+did, I would really appreciate a like

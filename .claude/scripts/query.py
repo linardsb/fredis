@@ -1025,9 +1025,15 @@ def _print_workflows(data: Any) -> None:
     if isinstance(items, list) and items:
         for w in items:
             if isinstance(w, dict):
-                name = w.get("name", "?")
-                desc = w.get("description", "")
-                print(f"- {name}" + (f" — {desc}" if desc else ""))
+                # Engine wraps each entry as {"workflow": {name, description}, "source"}.
+                raw_wf = w.get("workflow")
+                wf = raw_wf if isinstance(raw_wf, dict) else w
+                name = wf.get("name", "?")
+                desc_lines = (wf.get("description") or "").strip().splitlines()
+                summary = desc_lines[0][:100] if desc_lines else ""
+                source = w.get("source")
+                label = f"- {name}" + (f"  [{source}]" if source else "")
+                print(label + (f" — {summary}" if summary else ""))
             else:
                 print(f"- {w}")
     else:

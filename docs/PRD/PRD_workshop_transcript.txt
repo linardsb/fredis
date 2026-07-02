@@ -1,0 +1,841 @@
+Rasmus is joining us here, doing a lot of the presentation for today, which I'm really excited for. So, when we first chatted about this at the start of the week, like, getting the plan ready for this workshop, the plan was more for Rasmus to just, like, help me prep things.
+Because he comes from a product management background, if you don't know, he is an expert at creating
+plans, even before AI coding, just as a product manager, creating plans for developers and larger teams. And so he was gonna help me with the prep, and I was gonna present a lot of it, especially because Rasmus wasn't even sure if he'd be able to make it at just this time today.
+But then it quickly became apparent that, you know what, it makes a lot more sense to Rasmus to really do most of the presenting here.
+Because he is way better at this stuff than me, let me just tell you that, guys. Like, one of the things that I feel like was really missed in my software engineering, just, like, the roles that I had in corporate, and then also getting my college degree, is a lot of that, you know, creating specs and PRBs. Because developers aren't expected to be product managers, but now with AI coding assistants, it's one of the most important skills.
+So it's one of those things that I've been kind of continuing to learn over time, as I've been using coding agents more and more, and Rasmus continuing to evolve his skills as well, and so he's just getting better and better at it, and he already had a huge starting point, so there's just so much to learn from him.
+So I'm gonna be learning just as much as you guys today. Obviously, besides the fact that, like, we went over the content already, so it might be a bit of review, but there's really good stuff that we got for today. So I'm just giving, like, the really quick introduction, and then I'm gonna hand it over to Rasmus, for the gold mine that he's got for the presentation for today.
+And yeah, so, like, kind of, like, the last thing that I want to say before I hand it over to Rasmus is that it's kind of crazy, like, how…
+Important it is to do the planning.
+with AI coding assistance. Like, you basically become the product manager for AI when you're working with coding agents, and so that's why, like, this is going to be such an important workshop for us all here. Like, definitely some things that we've hit on in the Ajenta Coding course, but we've never done a deep dive as much as we are here. So, with that, Rasmus, go ahead and take it away for us.
+Rasmus Widing
+Rasmus Widing
+00:02:22
+Well, I think Nicole. Yeah, and I think as well, like, even if you're not a product manager in the past, if you work as an engineer or anything similar, I think many of you have seen on the job market and everything, like, most companies are looking for that, what they call product engineer these days as well.
+And what that really implies is that you will be part of that discovery process and the kind of PRD process that we'll talk a lot about today, so you'll get a feel for what that is if you're not familiar.
+But yeah, so I think that whether you are a solo developer, or if you are on a team in an enterprise, or a startup, or whatever, the product engineer is really what's going to be dominating the…
+the market in the future here, I think.
+But yeah, quick before we dive in here, we'll have the chat open the whole time, so Cole will probably answer in the chat, but we'll have a bit of a bigger Q&A in the end as well. But feel free to write in the chat as well, and I can stop at some points to take some questions as well.
+We got a…
+a couple of, like, small exercises and polls as well in the chat. So, yeah, you can be ready for that as well.
+And, to just quickly give a frame of, what today will actually be about. So, I've been working as Gold said, as a product manager for close to 8 years, before AI was even a thing.
+And this workshop will build on my learnings, and also a lot of the industry's learning about that, so I have taken, of course, a lot of learnings from other people in…
+In the product manager space, and this is about the thinking behind the great plan.
+So, what counts as intent, where the real engineering decisions actually live, and how you make those decisions today, together with your AI agent, before you actually hand anything off to be implemented or built into code, or actual,
+Shipping code, rather.
+So it's not really a session about going deep into spec templates and syntax. We're not going to drill that kind of thing, but if there is enough interest in this, then we might have a course for that in a few months. So yeah, maybe some more on that in the end here.
+But yeah, I'm just gonna make sure here that I can swap slides. Okay, great.
+So…
+A PRD really is intent, and here is why planning is also worth 90 minutes of your time today. So, it's genuinely the most leveraged step in your whole agentic coding workflow. I certainly spend most of my time in planning, discovery, testing, and research.
+And, last week, I believe Cole also ran some benchmarks on this, where he found some interesting things about Opus and Kimik2, so maybe, Cole, you want to give a few words about that?
+Before we continue…
+Cole Medin
+Cole Medin
+00:05:23
+Yeah, I'd love to, and you have the next slide that, talks about that too, right?
+Rasmus Widing
+Rasmus Widing
+00:05:29
+Mmm… no.
+Cole Medin
+Cole Medin
+00:05:31
+We had a slide that showed, like, Opus and Kimi.
+Rasmus Widing
+Rasmus Widing
+00:05:33
+Alright, yeah, yeah, I did.
+Cole Medin
+Cole Medin
+00:05:34
+Yeah, this one. Yeah, yeah. Okay, awesome. Yep, so, I did a couple of livestreams, the last two weeks here. I don't know how many of you guys were there for it, just on my YouTube channel. And one of the biggest
+questions I wanted to answer is, if we are to mix providers, right? Like, we don't want to just use Opus for everything, because it's so expensive now, where should we keep the most powerful large language model versus where can we get away with using a cheaper and more lightweight model
+And so, I did a lot of testing, like, what if we use Opus for planning, and then Kimi for… KimmyK2.6 is the model I'm referring to. What if we use Opus for planning and Kimmy for everything else?
+And then, how does that compare to using Kimmy for planning and Opus for everything else? And then, how does that compare to using Opus for everything, or Kimmy for everything? So I kind of, like, created this matrix and did a bunch of benchmarking, so I kind of had, like, the same Archon workflow.
+Just using different combinations of models for different steps.
+And I ran it on real GitHub issues for, like, non-trivial tasks over a real codebase. It's the Dark Factory codebase I've been building the last month here that I was using as my… just, like, for my testing.
+And, what I found was that, using Opus for planning was really the only step where we had to have the best model possible.
+in order to get good results. So I was able to, with, using Opus for just planning, and then Kimi for everything else, like exploration and implementation and validation, it got basically as good of results as using Opus for all of the nodes in the workflow.
+Which is pretty crazy. What that tells us is, as long as we do a lot with our plan, we have a really well-specced plan that we create with the best large language model we have access to, then that allows us to not have to use the best for the rest of the workflow.
+So, Opus for planning, like, this is what the slide says here, Opus for planning plus Kimmy for building is significantly better than the reverse. Kimmy for planning and Opus for building.
+And, I mean, obviously, the caveat here is, like, yes, if you want the best, best, best results, you're gonna use Opus for everything, or GPT-5.5 for everything. Like, you'll still use a Frontier model, but the reason I'm so interested in
+doing this kind of benchmarking, I mean, there's two reasons. One is because it's just interesting to see, like, what step of the AI coding workflow actually matters the most. The answer is planning, that's why this workshop is so good. And then the other thing I want to address is just the fact that everyone is very interested in mixing providers right now, just because of how unrealistic the costs are becoming.
+GPT 5.5 is significantly more expensive than 5.3.
+Same with Opus, like, and then, like, for enterprise usage, like, they're getting rid of the subscriptions, you have to pay for API, so there's just so many people that are building in environments where
+they can't use a subscription, and the subscriptions themselves are getting more rate-limited and lower output quality over time. So, yeah, it's definitely worth investing your time into exploring other models, and, like, I'm trying to be on the frontier of that with mixing different ones together in a single workflow.
+So, planning's the most important step.
+Rasmus Widing
+Rasmus Widing
+00:08:51
+Yep.
+And what that also means in practice, then, is that if you get your plan right, then even a smaller, cheaper model can carry the implementation. But it also means that if you get your plan right, your implementation will also be right.
+Or more likely to be right, at least, let's put it like that.
+Cole Medin
+Cole Medin
+00:09:08
+Right.
+Rasmus Widing
+Rasmus Widing
+00:09:10
+Because everything they will need at that point will be in your spec document. But as we'll talk about today as well, there's also a difference between a spec document and a PRD.
+So, if there's one thing I want you to take away from today, is that PRD is intent, and an AI spec is engineering decisions. There is several names floating around for these things. In the course, for example, we call an AI spec a plan file.
+There can be a task.ent, there can be any other name, really, for this type of file, but what it means is that what you hand off your agent to be building.
+And as many of you have heard before, that AI did not get rid of engineering, it just moved it upstream into the spec document.
+And this holds whether you're building something brand new or if you're adding a feature to a product that already has read users.
+or that real users already depend on. The principles are the same in both cases. What changes is which risk that you're optimizing for, or which risk that might bite you, and which tools you reach to reach for to de-risk them.
+So we're going to follow two real stories here today, and the first is a company that you… that did it really well, and you all know about it, it's Slack, and we're going to use the case study from when they launched their threaded messages.
+And it's also well documented, and almost everyone here has used this as well, I'm sure.
+And the second one is more of a cautionary tale, and it's from Klarna.
+It's from when they rolled out AI to replace their, customer service agent. Sorry, I just have to mute my phone.
+And about 18 months later, they had to roll back that and go back to hiring humans again for their customer service.
+And by the end of this, you will also know exactly where the line is between those two artifacts, between the PRD and the spec file, and why it's… a lot of people are getting it wrong, and getting it wrong might also get really expensive, depending on what you're building.
+Cole Medin
+Cole Medin
+00:11:31
+Rasmus, are you… okay, so you were still on… I just want to make sure your screen wasn't frozen, because you were still on the planning slide, but I think you just moved.
+Rasmus Widing
+Rasmus Widing
+00:11:39
+Yeah, I don't have that many slides, so some slides I might stay on for quite a bit, so…
+Cole Medin
+Cole Medin
+00:11:45
+No, it's totally good. I just wanted to make sure, because sometimes Zoom does that, where it'll freeze your screen, but you're good. Keep crushing it.
+Rasmus Widing
+Rasmus Widing
+00:11:55
+So, before we get into it, though, for those of you who have watched Agent Decoding Go Sideways recently for yourself.
+What was the actual root cause of that? So, write in the chat here, what went wrong for you? Was it the model that made mistakes? Was it the tools that made mistakes, or was there something else that made it slip up?
+Cole Medin
+Cole Medin
+00:12:34
+Given away the answer already, at least for you.
+Rasmus Widing
+Rasmus Widing
+00:12:37
+Yeah.
+Cole Medin
+Cole Medin
+00:12:39
+Stop.
+Rasmus Widing
+Rasmus Widing
+00:12:41
+tools, Mike says, Omar says that, yeah, the planning, AI made the wrong decisions.
+bad plan. So I think, even if everyone don't agree, I think at least everyone has run into that problem where your plan was just wrong, and the wrong thing got implemented, essentially. And this happens to me as well, over and over again, and I'm sure it happens to everyone else as well.
+But yeah, another question.
+Does everyone here know what PRD actually stands for? Like, the acronym?
+Also, write in the shot, if you know.
+Also, guess if you don't know.
+Okay, great. At least, a lot of right answers there. Yeah, it's a product requirement document.
+So the textbook answer, then, is, yeah, product requirements document. But if you look at the chat, maybe we don't all agree.
+And, maybe some of you didn't know at all.
+And, the, the…
+one that most people get wrong is what the R stands for. So the R stands for requirements, and honestly, that's also what is the most confusing part about the product requirements document, because it kind of implies that you're going to put all of your requirements for what you're going to build in there.
+So that's actually a naming problem hiding in there, and I will come back to that… to that later on as well.
+But yeah.
+So, what is actually a PRD? So let me give you the definition that I have, and that's what I want us to work from today.
+A PRD defines a problem, and our hypothesis about solving that problem in a form a team can challenge before building and judge also after shipping. So a PRD can have one problem, but it can have many hypotheses.
+So…
+And the second half there also is the part people usually skip that judge after shipping, because if nobody can challenge it up front, and nobody can tell you afterwards whether what you did or what you shipped in that period actually worked.
+then it isn't really a PRD. It's just an opinion, your own bias, or your agent's bias sitting in a template.
+And the agentic era that we are in right now, then this matters even more than it used to, because this is why,
+This is the why that you're handling… handing over to your implementation agent.
+Is your success criteria? Is your definition of done? It's how you will know the work is actually correct. Not from a technical standpoint, but did this work actually move the needle towards that desired outcome for the product?
+So let me give you a tiny bit of history here.
+Because it explains how we got into this mess.
+The thing most people picture when they hear the word PRD is an old-school requirement document, like this big spec file that you gather all your requirements up front, you write them all down, and then you hand them over to your engineering team, or your agent, or whatever to get built.
+And the requirements might even be handed to you by a manager or a stakeholder. If you work in a larger team or a larger company, I'm sure that you… you… if you're an engineer, that you have been in that position.
+And that is the model that people like Marty Kagan, Teresa Torres, and other prominent PMs have been… spent years arguing against, and that's what we'll talk about today.
+So the point is that, in practice, that document gets written based on bias and opinion, as a sure, instead of doing the actual discovery work that you need to do to write the PRD. So basically, you avoid the hard part, which is genuinely working out what's even worth building in the first place.
+So that's really the difficult part about writing a PRD and discovering
+what should go into the PRD.
+And what that whole discoveries will push you towards is almost the opposite of that.
+A PRD should be capturing hypotheses, not any fixed requirements, and discovery isn't one phase that you do in the beginning that finishes the moment that you have written this document.
+It's a continuous thing that you're doing before you write the PRD, while you write it, and you keep doing it also after you have shipped it, as you learn more things.
+So modern PRD is really just that idea made concrete. It's like a shorter, more opinionated, full of hypotheses, and it captures the best conclusions that you have reached so far, rather than pretending that discovery is finished and that you know for sure before you have any proof.
+Sorry, now I accidentally scrolled here.
+And yeah.
+And this is where the AI part actually starts as well, which is earlier than most people expect.
+So that discovery work is more and more something that you do together with your agent. So you're doing it through user feedback, chatting with your agent about user feedback, maybe you're servicing opportunities together with your agent, you're looking at competitive landscape.
+And then the PRD just captures that conclusion that the two of you land on, or your team lands on.
+So this is the very first place that AI compresses the loop for you, and it's definitely not the last.
+So I'm sure a lot of you are doing this today, where you sit with your agent, you do research, you do planning, maybe you have user feedback that you use, maybe you have some other resources and learnings that you do along the way to kind of figure out what you build. So in… when you're doing that, you're essentially doing discovery.
+So let's make that concrete with Slack threads. So I'm going to just share…
+This, I hope you see this example here now.
+Can someone confirm that?
+Cole Medin
+Cole Medin
+00:19:20
+Yes, I can see it.
+Rasmus Widing
+Rasmus Widing
+00:19:22
+Okay.
+Great. So this is just outlining the example that we will go through today. I'm not going to read through this entire thing, but you can kind of skim through it here.
+So with Slack Threads, which is the example we'll follow.
+The Slack design team published this kind of long retrospective about how they built the threads feature.
+And if you read the entire thing, it's basically a public window into the whole discovery process that would have produced their PRD.
+So we… it took them 9 months of work to do this. They had 7… 7 different hypotheses and design exploration, and then one real breakthrough somewhere in the middle. So the real PRD itself wasn't published, but I kind of constructed it from those articles.
+And I kind of tried to capture the key areas here.
+And that article I will also share, because it's a really good read for anyone. It's a little bit older, it's from 2017, so it's basically before AI. That's also why I chose that example, to kind of show what this process looks like in these companies.
+But yeah, I highly recommend that you read it as well after this workshop. It's not that long, so it won't take you more than maybe 10 minutes to read, or 15.
+So what you're looking at here is that kind of reconstructed… reconstructed version of that.
+PRD. So this is the actual PRD I reconstructed, so this is the example.
+And this is the PRD that we… that I reconstructed.
+Cole Medin
+Cole Medin
+00:21:02
+And could you, drop this in the chat quick?
+Rasmus Widing
+Rasmus Widing
+00:21:06
+Yes.
+Cole Medin
+Cole Medin
+00:21:06
+to me, so I could include in the description, because this is good.
+Rasmus Widing
+Rasmus Widing
+00:21:09
+Yeah, it's basically an HTML file, though, but I can…
+Cole Medin
+Cole Medin
+00:21:13
+Right, but yeah, but if you drop the file, because then we can open it locally like you have it.
+Rasmus Widing
+Rasmus Widing
+00:21:17
+Yeah, I'm gonna just open my Slack here, and I'll send it to you so that you can…
+Cole Medin
+Cole Medin
+00:21:22
+Sure, yeah, sounds good.
+Rasmus Widing
+Rasmus Widing
+00:21:23
+And I think that's easier.
+Yeah.
+Cole Medin
+Cole Medin
+00:21:27
+Cool.
+Rasmus Widing
+Rasmus Widing
+00:21:36
+I'll drop all the free PD… or… no.
+all the free…
+Cole Medin
+Cole Medin
+00:21:45
+Yeah, thanks, Thomas, as well, for sending the link to the, to what's Slack… Slack's blog post, so that.
+Rasmus Widing
+Rasmus Widing
+00:21:51
+Yeah, great, yeah.
+Cole Medin
+Cole Medin
+00:21:52
+the files that Rasmus will send me, that'll be everything there.
+Rasmus Widing
+Rasmus Widing
+00:21:57
+Yeah, perfect. Thanks so much.
+Cole Medin
+Cole Medin
+00:21:58
+Yeah, thank you.
+I'll download all of these. I'll include them in the description after the workshop, and then for now, I'll put them in the Zoom chat if you guys want to take a look or download them.
+But this, this is a gold mine.
+Rasmus Widing
+Rasmus Widing
+00:22:14
+Yeah, and moving on here, we will come back to this later, but it's… you can, you know, since I'm not going to swap slides so much, you can kind of swap back to those examples, and you can kind of skim through it as I talk as well, because I will be talking about that example quite a bit.
+And yeah, so the last thing also for this block here, people constantly mix up 3 different documents, so I just want to keep them clearly separate.
+So the PRD here is the problem and the intent, the spec is the engineering decisions and the how, and the roadmap is when, the sequencing of it all.
+So those are 3 genuinely different jobs, and almost all of the confusion in this space comes from squashing them together, or mixing them up, or saying one thing but meaning the other. So basically, it's understanding that is the confusing part here.
+Really, it doesn't matter if you put all of this in a huge file, if you want to, as long as everyone who reads it understands the difference between the different sections.
+So if the modern PRD
+So if a modern PRD is a shorter and more opinionated, and not about the solution, but about the hypothesis and what you can prove along the way, the obvious question is what actually makes one good? And that's what we will talk about next.
+So, I'm gonna swap back to this for a second here.
+So this, again, is that reconstructed Slack PRD that I showed a minute ago. I want to keep it on the screen here while I talk, so you can read through it.
+Because this is going to be the main example of what a good PRD looks like.
+So you don't really need to read the whole thing, but we'll come back to some specific bits later on.
+And the first things worth noticing before any of the details, there is no solutions sections anywhere in this PRD, so if you look through it, there is nothing here, really, about how to solve this problem that is described here.
+So it's got problem, hypothesis, it's got success metrics, it's got non-goals, open questions.
+But it never once tells you what to build and how to build it.
+So that's not really a gap of the document, that's really the discipline that we are exercising here.
+And that's also what generally makes it really hard to make a good PRD. I have myself written
+hundreds of PRDs, I mean, probably close to at least 200, maybe more, in my career, and probably around 10% of them were actually great PRDs. Some of them were really, really bad, and some might have been quite okay.
+And the key around what makes the PRD good is the shared understanding with the team, or nowadays your AI, of what the problem is, and that problem space.
+So, I'm gonna go back to the slides here.
+So yeah, there are 5 things I look for usually when I write the PRD.
+And most PRDs miss at least one or two of these, including my own. So the first one is that the problem has to be grounded in some sort of evidence, not your opinion, not in vibes, not in bias.
+So not just, the user wants this.
+And if you look at that Slack BRD, the problem section is naming actual numbers. So if you just hop back here, we have some actual numbers here.
+You know, they put on… if I just read the problem statement, channels at scale stop delivering their core value in channels with high daily message volume, with 100-plus messages per day, so roughly 7% of all active channels.
+but capturing 60% of users' attention. So they are using these numbers a lot throughout the article as well.
+So yeah.
+Things like how busy the channel is before it breaks down, and data on how often people mute the channel. Themes coming straight out of customer conversation, and that's a problem somebody actually went and investigated through their user feedback or communication channels with their users.
+As opposed to just having an opinion or a problem someone assumed that someone might have had.
+And the second one here is the big one, and we're going to spend some real time on this as well later, and it's the hypothesis.
+The hypothesis has to have a separate right condition and a separate wrong condition. Most PRDs will happily tell you what success looks like, but very few of them will tell you what it looks like if you prove it wrong and if it fails.
+So, a wrong condition is the single most skipped line in any PRD that I have ever read, at least.
+And third, your success metrics have to be specific and shaped like an outcome, not engagement. So you don't say, oh, we want engagement here, not, this has this many daily users, but something that you would actually be willing to, be judged on, tied to the behavior that you're trying to change.
+And fourth is also to have an explicit nonal section. This is another section that often gets left out, or at least mistreated in some way.
+And it's one of the most useful things in the document as well, because it will kind of limit your scope and make sure that you don't drift to another problem in your PRD.
+As you can see from the example here as well, there is no multi-level threading, no retroactive threading,
+They are explicitly not replacing channels, and writing down what you're deliberately not doing is how you stop building from quietly sprawling out of control, so how you don't get that scope creep.
+And fifth, also the open questions are also often skipped, or at least mistreated.
+And a good PRD is honest about what it still doesn't know, because that's also what the discovery is about, is answering those questions.
+So putting those questions up front will also help you design experiments and ideas or prototypes for how to answer those questions.
+I'm still on the same slide, so there is… I haven't swapped slides yet, I'm gonna swap now.
+So if, I don't know, I wasn't here long, do you want some more time to see those? But I basically… it's those examples that I just read out.
+So yeah, I will stop here.
+And there's one more thing a good problem statement has to do as well, that people constantly kind of forget, and it's the whole difference between a product that gets used and one that just exists.
+Solving a real user pain is one of the first… it's only the first 10% of building a product or a feature, because people already have some way of dealing with that pain today, most likely, even if it's a clumsy one or a workaround.
+And even if they're just putting up with it. So the real question your PRD should be answering isn't, does this solve the problem for the user? It's, does this solve it so much better than that they are doing today, that they'll actually switch to this new solution? And if that answer isn't a clear yes.
+Then it's unlikely that they will choose you, no matter how clean and technically excellent you build it.
+So if you look back at the Slack PRD here for a second…
+The problem section names what people did before threads, muting channels, splitting them off, dragging conversation into DMs. Competitors like Teams already started to ship threading.
+And threads had… Slack's threads had to beat all of that. They didn't only have to be better on their own platform, they also had to do it better than Teams or better than their competitors to ensure that their users would stay.
+For that feature. The way I put it is, solving the problem is table stakes. Solving it better than whatever they do today is the actual product.
+And that's exactly why the success metric has, here is about people staying and posting, and not about whether the threads button gets clicked X amount of times.
+So… Slide 10, right? Yeah.
+So if we go deeper on that hypothesis as well, because it really is the heart of any good PRD, and what shapes,
+Sorry.
+And here is the shape I… I like to use. It doesn't always look exactly like this, but this is, like, my starting point.
+And it goes something like, we believe that some change will cause these specific users to do this specific thing.
+Which results in an outcome that we actually care about, and we'll know that we are right if we see some leading signal within some certain time frame, and we know that we're wrong if a counter signal shows up, or a guardrail metric starts moving the wrong direction.
+And what I love about this is that, everything,
+Everything it forces you to pin down, or everything that it forces you at least to think about.
+It forces you to name the actual change that you're making, it forces you to say who it is for specifically, it forces you to name the behavior and the mechanism, and not just end up resulting… not just the end result you're hoping for.
+It forces some type of timeframe as well, so that you don't spend all your time on it, and it focuses you to define the failure as something other than just, well, that did not work.
+And this is exactly the line that Klarna didn't have in their example.
+Their real unspoken hypothesis was basically AI can take over most of our customer service, and save us a fortune.
+And there is no line there in any of their documentation around it that says that we'll know that we have pushed too far if customer satisfaction drops past a certain number.
+So when the quality started to slip for them, there was nothing that they had pre-agreed that they could catch it with, so there was no signal that they already promised that they would be watching. And because of that, their reversal didn't come from some metric or quality flag problem.
+It came from their CEO standing up about 18 years… 18 months after they had
+shipped it and admitting that it didn't work in public. A wrong condition isn't pessimism, it's the contract that you… lets you look back on that feature and quickly and cheaply switch it back or throw it away instead of slowly and expensively, or even in an embarrassing way.
+As I would say, it was for Klarno.
+Okay, so I'm going to make you do a little bit of work now. I have two PRDs, side by side, so let's take a minute or two. I don't know, I think Cole also shared these in the chat, so you can open this as well on your own.
+And, I want you to just read through these, and the goal is to name which one is good and which one is bad.
+In the U.S.
+Cole Medin
+Cole Medin
+00:34:15
+Zoom in a little bit as well.
+Rasmus Widing
+Rasmus Widing
+00:34:18
+And it's not necessarily that one is horrible and one is great, but there are some differences here that are slightly standing out in one of them.
+Cole Medin
+Cole Medin
+00:34:30
+Cool. And I think you didn't share this HTML with me, so if you could send that in Slack as well, then I can drop it here if people want to have it open for the next couple minutes here. That'd be awesome.
+And, Rasmus, Slack threads… so I have the threads PDF, the threads HTML, and the threads case.
+Rasmus Widing
+Rasmus Widing
+00:34:55
+Yeah, and below that, I send it in a single message, so it shows up as an HTML.
+Cole Medin
+Cole Medin
+00:34:59
+Oh, yep, I see. Okay, awesome.
+Rasmus Widing
+Rasmus Widing
+00:35:02
+Let me go ahead…
+Cole Medin
+Cole Medin
+00:35:06
+And download that. So yeah, Rasmus did a good job designing this exercise, because it's not, like, super obvious which one is better or worse. Like, they're actually both pretty good, like he said.
+So, yeah, curious to see what you guys come up with here. Let me get this shared…
+There we go. Alright, put it in the chat.
+Rasmus Widing
+Rasmus Widing
+00:35:29
+Yeah, I'll do one zoom out to see if maybe the whole thing… shows. Is this readable?
+Cole Medin
+Cole Medin
+00:35:38
+Pretty good, yeah.
+Yeah, and you guys can,
+Go ahead and just put your answer, like, left or right in the chat.
+I think there's, like, a voting extension to Zoom, but I don't know how to do that.
+I think that's something I have to enable separately, I'm pretty sure.
+Rasmus Widing
+Rasmus Widing
+00:35:56
+Yeah, I can do, like this, A and B, and you can just like the message. Okay, no. It won't work, but people write, I guess.
+Cole Medin
+Cole Medin
+00:36:06
+Yeah, if everyone just wants to write this all good, we don't have to have an exact tally.
+Yep.
+It looks like ev- literally everyone has said B at this point. I'm pretty sure… yeah, like, right or B. Yep.
+Nice.
+Well, I won't say if that's right or wrong. I'll leave that to you, Erasmus, whenever you're ready.
+Rasmus Widing
+Rasmus Widing
+00:36:32
+Does anyone want to… someone maybe want to raise their hand or write in the chat why you think it's better?
+Okay, both.
+Cole Medin
+Cole Medin
+00:36:55
+Sergi said, B is better because it has numeric goals.
+And, Omar said that, the one on the right is more contextual, more metric-oriented. And then Scott said metrics in all caps. So, good thoughts, Scott. Yep, Dave said more specifics, yep.
+Rasmus Widing
+Rasmus Widing
+00:37:14
+Yeah.
+Yeah, so I mean, most of you here have figured out already that the B version is a bit stronger.
+And you have kind of nailed what it is. It has measurable goals. It doesn't have any prescriptive solution in it.
+there is nothing, like, super wrong with the first one, and your PRD might even start by looking like that before you have figured out exactly what the metrics are and what your evidence is.
+So when you write your PRD, you might have a problem statement that you are trying to gather evidence for. So your PRD might start looking something like, you know, the beginning of this, when you start writing it, and then you fill it up with the metrics.
+And yeah, exactly, B will have fewer follow-up questions. Like, a PRD should answer
+to anyone that reads it, why this problem is worth our time. Why is it worth investing in this issue or problem? That's really the… one of the main goals of the PRD. It should be able to be shared with your team, it should be able to be shared with your stakeholders, and anyone in your company should clearly understand why you're spending your time on this.
+But yeah, great. I'm not gonna go through these in great detail. You can look at the descriptions here later on if you are interested to save some time here. We've already been through 40 minutes, I see, so yeah.
+Gonna get a move on.
+See ya.
+I'm just gonna skip through here a little bit.
+So…
+So the whole idea also about what we're going to do next is, based on this, like, what makes a good PRD.
+Because if naming the solution too early is the trap, then the real job of the PRD is to capture the intent and not the solution, so we'll talk about that here next.
+So, I thought about taking this out, but I didn't. But how many of you have written a PRD that literally had the solution written down in the first paragraph?
+I know I'm guilty.
+Yeah, so it's quite common. Even customers and companies I've worked with in my years as a PM, definitely there was a lot of times where the solution was kind of prescribed in the top of the document.
+But yeah, that's the easiest trap to… To, fall into.
+So yeah, pretty much everyone, and me included, has fallen into this, trap.
+And, let me see which slide I'm on… 13, okay.
+So here is the one test I use.
+If only one solution… so if only one solution could possibly fit your problem statement, then it really isn't a problem statement at all, it's just a spec file in disguise, or a solution file in disguise.
+So a good problem leaves room for more than one answer.
+So this is basically the whole outcomes over outputs idea that I'm sure you hear many PMs talk about.
+You're meant to be accountable for moving an outcome, not for shipping one particular feature.
+And, one famous PM, Teresa Torres, makes a structural version of that argument in a framework she has created called the Opportunity Solutions Tree.
+it's not really a PRD at all, but it's, like, the same idea of hypothesis and intent, and a solution tree that basically forks out into multiple possible solutions, and it's pretty cool if you want to look into that, and I highly recommend it too.
+So the entire point of these
+Is that you generate several possible solutions for the outcome that you want.
+and to your opportunity before you commit to a single one, because if you only ever had one idea, you never actually made any choice at all. And this is also where AI can help us out a lot, because nowadays we can
+Easily generate 10 solutions to the same solution, or to the same problem in parallel, and test them all.
+So that's really, great use case for… AI in this process.
+So, let me also show you the difference on Slack Threads. The solution's prescriptive version of that PRD just says something like, add a reply button to every message, and that would be that.
+And that's more of an instruction and not really a problem.
+The intent frame version sounds more like, once a channel gets past roughly 100 messages a day, conversation starts colliding, and the active people either go quiet, or they're constantly asking who's replying to what.
+So yeah, you saw it from the PRD.
+So, that also means that the first version here of that kills the 6 other possible solutions that the team went through before they picked the actual solution that they wanted to go with. So, if they just went with something like the first version here, they might have missed the good solution altogether.
+And also, I want to talk a little bit about what, especially since AI came around,
+PRD has become a lot more of a popular word than what it used to be, because a lot of people use it with AI, and a lot of people also who don't have an engineering or a product manager or any kind of software background started to use it. So there is a lot of misconceptions and misinterpretations of what a PRD is.
+So…
+there is quite a common pattern out there right now to kind of, like, write the PRD, paste it into your agent, get some app or feature out of it.
+And to be fair,
+that's kind of, like, real things that people use and say, not something that I invented here. So, I found this quite popular AI PRD tool.
+And their literal description of what a PRD is says that a PRD is an instruction set for your AI.
+And another one says that your PRD should contain all your database schemas and your tech stack.
+But at that point, if it contains those things, it's not really a PRD anymore. Then you are kind of writing your technical spec, or your design documents, or some architecture documentation, or any other kind of more engineering-driven document that is no longer a PRD.
+Second, the assumption that the AI will just also figure it out. So, a lot of articles has come out around intent engineering.
+some of them, a lot of them, kind of tells you to write intent and write a PRD, intent-driven PRD, and then just hand it off to your AI agent, and let your AI agent figure out the how.
+And…
+yeah, that's not gonna really work, at least not reliably, because an agent can't really infer the things that you have left out of your PRD.
+And I think Cole has said it quite well before, that WAG specs or plans produce WAG code.
+So if your doc doesn't explicitly say, don't build authentication yet, the agent could happily build authentication, and probably also build it wrong.
+So third, also, the idea, to…
+the idea to product in 30 minutes promise that I'm sure you've heard of.
+That frame also quietly deletes the one thing that's actually the job here, which is the engineering judgment that goes into your AI specs.
+And the reason all of this happens is that the word PRD kind of got stretched until it means everything that you tell your AI, and even serious people push back on that quite a lot.
+So, a ThoughtWorks article also says flatly that specifications is definitely more than just a PRD.
+And the naive version of this is basically just a waterfall spec accelerated by AI.
+But here's the part that I actually find good and exciting, and it's the… oh…
+Sorry, I'm losing my voice.
+So yeah, the idea of the PRD as a hypothesis, a problem plus a why plus a falsifiable bet.
+with no solution baked in is almost completely missing from the AI coding scene, so we're not really piling onto some crowded argument here, we're kind of filling a hole in it, and that's what I'm aiming to do here as well.
+So…
+Yup.
+And the rule that falls out of all of this,
+I would put this on a sticky note.
+Build the… so when you have your PRD ready.
+And you want to start testing your solutions, or your ideas for solutions.
+The goal would be to build the thinnest slice that
+Easiest and quickest tests your hypothesis.
+then measure. And if it holds, if it proves your hypothesis, then you keep going, and you maybe even throw it away and build it properly. And if it doesn't, then you throw it away completely, and you start over on the next idea, or the next solution, the next hypothesis.
+And that's the whole difference between a PRD that will drive discovery, and a PRD that just pretends that discovery already happened, and you already proved it.
+So… Also, whether you're working in a greenfield or a brownfield project, the principles doesn't really change.
+what changes is the risk that dominates. On something brand new, it's usually, does anyone even want to use this in the first place? So you lean on maybe fake doors or user interviews, you talk to potential users to figure out what to build. And on a mature product, it's usually
+will this thing that we are planning to build break or annoy people that's already using it? Will they make it… will it make them leave?
+That would be the highest risk.
+So you lean on maybe A-B tests or data that you already have and collect for what to build next.
+And I think most of us here live somewhere on that brownfield project. We at least have started our projects in some way.
+And that's where I have kept most of the focus here.
+So… Also, another exercise here.
+So, I'm gonna read this out one by one, and what I kind of want you to do is, as I read it, you just write in the chat if it's a problem, or a problem statement or a solution statement.
+So the first one…
+New customers who place one order rarely come back for a second order within their first month. We're talking about the food ordering app here.
+Yeah, so it's a problem statement.
+Second one… Add the one-tap reorder your last meal button to the home screen.
+And yes, that's the solution. So those were two quite obvious ones. Now it's a little bit trickier ones here.
+Customers need a quicker way to get back to the meals they've ordered before.
+Yeah, it's actually a solution statement in disguise here.
+It sounds like a user need, but a quicker way to get back to a previous meal has already picked a fix. A reorder shortcut, same tells as the first version from Episode 1, or from exercise 1.
+But yeah, it's kind of both, to put it correctly.
+So the last one, customers abandon their cart because checkout has too many steps.
+So this is also a solution in disguise, actually.
+So, customers' abandoned record is a real problem. Everything after, because, is an untested solution, or an untested hypothesis with no real measure.
+So, fewer checkout steps kind of, like, smuggles in if… as if it was a fact. We don't… we haven't proven yet that it's because of that, that they abandoned their card, so that's why it is a solution statement.
+So yeah, it's kind of tricky ones, definitely things I have failed on myself, especially as I have written PRDs. I have definitely written things like the 3 and the 4 here many, many times into PRDs.
+So, if a PRD is all about the intent, W's question is also, where do the actual engineering decisions go? Because they don't disappear, and that question is also important, so that's what we are going to talk about next here.
+So now we're talking a bit about intent engineering here.
+So yeah.
+This is the part everything else has been kind of building towards, so let me start with the mental model I use, which is kind of free altitudes.
+The lowest one is the prompt engineering, and that's really about optimizing the language, getting the wording right. I'm sure you've all heard it before. Above that is context engineering, which is about optimizing what the model knows, and when it knows it, kind of the knowledge that you feed it, you all know this.
+And the kind of new minted term, intent engineering, is all about optimizing for actual business impact, getting the right thing built in the first place, and most of the energy…
+Sorry, I'm really losing my voice.
+Cole Medin
+Cole Medin
+00:52:31
+Yeah, just make sure you drink some liquid. Hopefully I don't have to cut… I have to…
+Rasmus Widing
+Rasmus Widing
+00:52:35
+Homemade plum you was here, so I'm good.
+Cole Medin
+Cole Medin
+00:52:38
+Nice, nice. It's been a long time since I had plum juice. Wow. Sounds good. Sean said beer helps. Maybe not here, Sean, but later tonight.
+Yep.
+Rasmus Widing
+Rasmus Widing
+00:52:50
+So, I'm kind of a fan of this… the term intent engineering, because it kind of helps frame, this new kind of… it's not a new discipline at all, I mean, this has been around for 20, 30 years already, like, hypothesis building and discovery and all of that stuff.
+So, but it's just good, kind of, to get that separation for…
+Especially people who are new to this and haven't been in the business for that long, then it's definitely helpful, I think.
+But yeah, here also, specs are the real artifact, so there's a reason that this is landing now as well, I think. A lot of people say here, for example, Sean Grove from OpenAI gave this talk called The New Code.
+And the core line is that the code itself, in his words, is a lossy projection from the specification. The spec is the real thing, the source, and the code is just the lossy compile of it.
+And any points that kind of slightly absurd thing we'll do, we keep the generated code, and we throw away the prompt, or the spec that made it.
+And he kind of compares it to shredding your source code, and then very carefully version controlling your binary. Which, when you say it out loud, it kind of sounds backwards. I mean, I certainly throw away a lot of my specs as well.
+Also, Carpathy kind of circles the same topic when he says that prompts are the new source code. The point, I think at least, that they're trying to make is that specifications are becoming first-class engineering artifacts in their own right.
+And they are not really throwaway pre-work anymore, and it's the part that actually lasts. Of course, the code is what actually runs, and what still needs to be written and tested, but there might be something in that at some point to kind of store your specs as
+some artifact.
+But also, I want to be honest about the other side of that, because there is…
+Good engineers in here, in the room, or in the meeting.
+We're probably kind of twitching a little bit at that, so…
+yeah, as I said, code is still the artifact that actually runs, and words like fast or secure in a spec are themselves lossy, so they don't execute, they are wide open to interpretation, and I'm not going to pretend that the tension there between spec and code isn't real, because it is, and
+naming it honestly kind of beats pretending that the spec is some kind of perfect oracle that the AI will get right every time.
+I kind of missed the satellite here, but yeah.
+And this is also where I want to pay off that naming from the start, that what does PRD even stand for? And I think here's the actual issue. The word requirement, as I also said before, implies certainty. It sounds like a fact that's been handed down for you to go implement.
+But a PRD doesn't really carry certainty at all. It carries direction under uncertainty.
+So, the framing of intent is just a better word than requirement, and intent engineering is a better name for this discipline than writing requirements.
+And that's kind of why I like this rebrand, because it makes it kind of clearer.
+But,
+here is kind of where I get off the bus on a lot of those articles that I've been reading. The popular version of intent engineering that's circling out there is basically write an intent-driven PRD and then let the AI figure out how to do it.
+And that's the misreading, that's kind of not the discipline. And just delegating a nicer name on it, letting the AI figure out how, or baking pieces of what you, of why into the PRD.
+this is on its own, exactly how you ship something like that Klarna example we went through before.
+So, real intent engineering is a loop, not a single document that you throw over a wall to your engineers or to your AI. It's describing the what and the why precisely enough that the AI can help you co-design the spec later on for what to actually build.
+And assign, and assign also the experiments to test it and validate it.
+you're still the one making the engineering decisions, of course. The AI is just the amplifier for you, the helper, and not the substitute. So, I want to keep the name, because it's a good name, and I kind of want to throw away the vibe coding, or paste and pray misinterpretation that a lot of articles seem to…
+Catch.
+But yeah.
+There is also a lot of good articles on intent engineering. It's just a very, kind of, split… split field of the kind of few articles that I read. Some interpretations are really good, some interpretations are horrible.
+So, let me make the rules here really concrete as well, because this is where I think it can get confusing.
+There are two altitudes that you kind of move through when you work with AI encoding and product building in general.
+The intent altitude is…
+kind of the what and the why that we've been going through, and that artifact that that produces is the PRD, or some version of a similar document, like a PRD. You want to capture the how and the why.
+And kind of learn about the problem that you're about to go solve. And you will write this, you will research this, you will write this together with your team, with your AI, depending on your situation.
+And then you have the engineering altitude, and that's where you go all into the how.
+And that produces some type of spec document or a requirements document. Also, you write this with your AI and your agent, and this is where your tech stack, your architecture, your decisions, your file naming, your…
+You know, function names, all of that will go into, and how you want to build something.
+Now on a team, those two altitudes could also be two different people. It could be, for example, a PM, a small team, and an engineer.
+But in this community, I think most of you are both, so most of you are both the PM and the engineer in these cases, so when you're moving through both of these altitudes yourself.
+the discipline isn't really about whose hat is whose, and what text goes where. It's about knowing what you're doing at the time. So which altitude are you standing at when you write this line, or this document? And specifically not letting the agent kind of quietly make engineering decisions for you while you're still trying to figure out the problem.
+So in that stage, you're just kind of setting intent, and you're trying to figure out if this problem is worth solving. Is it the right problem we're focusing on? So only after you have figured out that one, you want to kind of go into the how.
+So that boundary between those two altitudes is really the point I'm trying to make today here.
+So, should the PRD name your database?
+No, never. And should the spec name your database? Yeah, probably always.
+And there is a whole category of decisions exactly like that.
+once a PRD must never make, but the specs absolutely has to, so kind of what I said before as well about names and stuff, but also what libraries does this implementation need?
+what tech stack are we using? It basically… you can't just say, let's build a React project. You should specify, I want to use React 18 with Vite and Tailwind and Tanstack, for example. So you need to be specific in this stage.
+And, yeah, there was also a recent GitHub study of over 2,500 of these agent config files, and the single most useful phrase in any of those was, never commit secrets.
+So yeah, that kind of reduced security risk quite a lot, according to this study.
+But yeah.
+you want to, of course, I'm sure you all know from all of the other content that Cole has made here what you want to put in your spec files, like test structure, what to test for, why to test, and so on.
+So yeah, a little small example here to what might be in the spec file for that Slack example that we had before.
+So this is a table of engineering decisions that we probably would have put in that AI spec for the French feature.
+So the data model, we would definitely have in there. We would want to decide on, do you hang a parent ID of the existing message table, or do you want to stand up a different thread replies table?
+So that's a show that you will have to make before you start building. Or, for example, for the notifications, when someone gets mentioned in a thread, are they now out to following that whole thread, or are they not?
+So the PRD is allowed to say users get notified appropriately, but the spec has to actually define what appropriately means in this case.
+Because that single decision is the line between useful and completely unreadable, or the agent will come up with something.
+And here is the… here's the thing as well. None of these decisions appear anywhere in the public design article that… or the retrospective article that Slack published either.
+They were absolutely made at some point, they just weren't published, so the AI doesn't change which document is which. What it changes is the audience for the spec. It's now an engineer plus an agent, not just an engineer.
+So yeah, it massively raises the cost of leaving any of these blank, or at least the risk of leaving any of these blank.
+So…
+also have an example here from… from Lovable. So if you want to see exactly what skipping the spec or writing bad specs, for your agent might look like.
+When you're working at AI speed.
+There was an audit in 2025 that found over 160 of about 1,600 lovable built apps were leaking user data, payment records, home addresses.
+And the cause was that,
+The cost was the same kind of thing every time.
+Usually role-level security, secrets handling, webhook verification, none of it whatever in the so-called PRD that people pasted in, and the agent does not add what you did not ask for.
+So the engineering decision didn't disappear when the people skipped them, they just quietly turned into vulnerabilities instead.
+So if Klarna is organizational version of building without the wrong condition, lovable is the build-level version of building without the spec in the first place.
+And Karpati's line kind of nails it. A demo is, work
+A demo is works.any, a product is works.all.
+So Yeah, I'm gonna take a sip.
+Where are we on time as well?
+Okay.
+Cole Medin
+Cole Medin
+01:05:02
+Yeah, we got, 20 minutes left. It'd be good to have at least, like, 10 minutes for Q&A.
+Rasmus Widing
+Rasmus Widing
+01:05:07
+Yeah, I'll try to kind of work through this a bit quicker here.
+Cole Medin
+Cole Medin
+01:05:11
+Sounds good.
+Rasmus Widing
+Rasmus Widing
+01:05:12
+12.
+Simon Willison, I'm sure a lot of you have heard about him. For those of you who don't… who hasn't, he's a very… he's like a blog writer, and writes a lot about the Genetic engineering.
+And he draws a distinction I kind of like, and it's the people, level mirror, it's the whole, document thing, so he kind of names,
+he makes a distinction between wipe coding and what he calls wipe engineering, what I usually call agentic engineering, and this is really the difference about writing a good spec and a bad spec today.
+Okay.
+So yeah, that's kind of the whole thing landed as well. The engineering didn't disappear, it kind of moved upstream into the spec, which actually makes the PRD even more important than it was before, not less, because now the person writing that spec needs a clean, unambiguous brief to work from.
+Get the intent right, and everything downstream from that will get easier.
+If you get that wrong, then you will get something like a Klarna or a Lavapole.
+So, you've got a PRD, and you know the spec is where the engineering lives. The natural next question is, okay, so what do you actually do next? And the answer is not go build the whole thing. Instead, it's kind of what I showed before already.
+defining, also, who you're building for. So here is the question I get a lot.
+I got my PRD, the…
+the PRD is tight, intent is framed, it's got the real hypothesis in it, but what do I do now? And the answer,
+most of the AI coding world kind of gives you is, now you go and build a product, and I think it's kind of wrong. You don't go from a PRD straight to building the real thing. You go to kind of the thinnest possible solution that proves your hypothesis.
+So, you sit down with your agent, and you plan what to… how can you prove this? How can you build MVP to prove this hypothesis? Not the full product.
+The thinnest slice that actually will tell you whether your bet was right or wrong.
+And you try to build that first.
+And I want to be…
+kind of precise about what I mean with an MVP as well, because that term has also been beaten half to death, and it means different things for different people. For me, an MVP is exactly that. The thinnest line
+you can build to prove end-to-end that your hypothesis is either right or wrong, and that's it. Nothing else, nothing more.
+It's not version 1 with fewer features.
+It's literally that thinnest end-to-end slice that you can get signal from, or that you can run a test on, run an experiment on.
+And anything that isn't in service of proving your hypothesis, that you can defer to later.
+And this is where the PRD, then spec idea from earlier actually lines up in time.
+The full spec, the one you build the real thing from, that comes after you have landed your hypothesis, or after your hypothesis has survived.
+First, you build a thin SMEP to test it, if it holds up, then you write a proper spec, and then you build it for real. And if it doesn't hold up, you get to throw it away, and then you get to build a new thin slice. And as I said before, with AI, you can build 10 of these, and then you can test them.
+Altogether.
+for me, it's like, I think Archon here is a good example for me as well, because I kind of… I think I'm the biggest user of Archon. I probably use it the most of all of our users. So I can build these experiments, you know, I usually build two free versions of a solution, and then I test them on myself, so I kind of…
+Sidestep a little bit of the discovery process.
+By doing it quicker and doing it by myself, and you can really leverage that if you're building apps that you are the main user of.
+So…
+there is a big kind of, like, that it depends sitting on top of it, and it depends on who you're building for. So when it's just you and an agent, it's really fast and really tempting to kind of skip the validation altogether and jump straight into a solution.
+And sometimes it's probably completely fine as well to do that, if you're building that thing for yourself, and you're not really caring about if you get users or not.
+When you are the main customers.
+And maybe you want a small group of customers or users.
+But it's also, when you're building for other users, and you are the main user, and you're building for similar people, like, you are the main persona, that's when it can really help you and speed things up a lot.
+Because you can help prove your own hypotheses.
+On yourself, in real time. And then iterate way faster than you could if you need to find other people to run user tests on, and so on.
+But the moment, also, when you start building for someone else who isn't you, it gets a lot trickier, because you can just introspect your way into their heads, or you can't introspect your way into their heads, you can't just assume what they want and what they need.
+And that's exactly the situations where building a feature right matters a lot more than just building the feature.
+And that's where that thinnest MVP plus a couple of experiments is how you figure out what right even means before you commit to it.
+So, and AI also speeds up every part of this loop, it helps you build the PRD, it helps you plan the MVPs, and it… because building is also so cheap, it lets you run several hypothesis tests in parallel, instead of one at a time.
+I mean, in history, even 5 years ago, you probably needed a team of 3, 4, 5 people to run an experiment. Today, you can do it yourself in… before lunch.
+Okay.
+And the real question, of course, is,
+what… which of your assumptions do you actually need to de-risk before you commit, and how? A PRD is intent. Intent is a full of intent… assumptions, and assumptions are how PRDs quietly go wrong.
+So let's talk about how we can also de-risk these.
+So, another famous PM called Marty Kagan.
+Has put up this framework.
+But yeah, let's talk about spikes and experiments.
+These are just tools for de-risking the assumptions in your PRD. Before you commit to a full spec, and the cleanest way, I know, to think about which risk you are even dealing with at the time comes from this framework. So the four main things that you kind of want to test for are these.
+Value will annoy… Sorry.
+The value comes from, will anyone actually want to use it? Usability, can people figure out how to use it? Feasibility, can we actually build it technically? And viability, does it work for our business?
+And each one has a matching tool. For value, you go talk to your customers, user interviews, etc. For usability, you prototype, and you watch people use it, also a type of user interview.
+For feasibility, you build your MVP, you do a quick engineering spike to kind of prove an assumption, and also for viability, you check in with your stakeholders that it matches the business's goals.
+Most teams, including myself, and especially with AI,
+over-invest in feasibility. It's also the fun part. According to me, you start building right away.
+And if you start building some kind of feasibility experiment, that can very easily turn into the feature or the product in the first place. And I'm sure it has happened to me many times, and I'm sure it happens to others too, that you start building, and then you keep going.
+And then also you badly under-invest in those value-type experiments, where you can actually prove the hypothesis that it's worth spending all of that time building in the first place.
+And one also sharpening on that value question, because it's one of the things that is very easy to get lazy about.
+Value isn't just, do they want it? It's also, do they want it more than the alternatives that they have already got.
+And that's the version most teams skip.
+And the one that actually predicts whether anything… anyone will switch to the new solution.
+So yeah, I have here something about that slack example in the forest, but I think we can skip that. I'll kind of reiterate on things that I have already said.
+So, I will kind of skip through.
+Skype, spike it or build it? I think this is something we can spend a minute on, kind of before we end here.
+So, when you are deciding on spiking or building it right away, you kind of want to have a decision framework. You want to…
+If it's easy to reverse, you can just build it, because you can just roll it back right away if it didn't work.
+But if it's expensive, it's huge, takes a long time, you don't know, you have a lot of assumptions, unanswered questions, then you probably want to spike it first to prove it.
+So that's kind of, like, the easy answer there.
+So I will kind of skip through a bit here.
+And yeah, I'm gonna share this template here that I have used, so kind of wanted to reiterate here on the hypothesis template.
+I use this a lot, even though I don't always use everything just like this. I kind of…
+this template can just help you think through the problem in a certain way, so that you don't miss out. I mean, I don't always get my… definitely don't always get my measurements right, and my time box, I definitely don't get right.
+It's really hard to get the wrong signal.
+right as well, but it at least forces you to think through it. Even if you don't get it right, you have at least thought about it and have some assumptions of what might be right.
+So I think that's really helpful, especially when you're a solo developer and kind of go through these problems.
+In a team, it's more important to actually get it right.
+Or in an enterprise, or a larger company.
+Yeah, another exercise we can skip.
+Also just a few words here on, kind of over-planning.
+Gonna find if I have some notes for that.
+Okay.
+I would say… I'm gonna keep it very short here, actually, so…
+Overplanning is all a risk game.
+If you're building it for someone who depends on your app, and the risk is
+That if you build this feature wrong.
+And your customers will leave. Your big enterprise customer might pull up and leave for another company.
+If you get this wrong, then spending 30, 60, 80, 9 months, or, you know, 30 hours, 60 hours, 90 hours, or even 9 months, as Slack did, is totally worthwhile your investment.
+But if it's just you, and you're building something brand new, then just spending an hour on writing a page is probably enough.
+So that's kind of what I want to leave you with there. We can go more into this in some other kind of follow-up, and more practical also in some other workshop, maybe in the future as well, if there is interest to this, but I think I'm going to end it here so we have actually time for some questions.
+Cole Medin
+Cole Medin
+01:18:00
+Sounds good.
+Yeah, follow-up workshop makes sense for quite a few different things throughout this, but this was great, Rasmus. Thank you very much.
+Very, very important. I learned a lot, and I know a lot of you guys are as well, I can tell.
+So, great, yeah, let's go through some questions here. So, there's a couple, I mean, I was able to kind of go through, like, all of them as they were coming in. So thanks, guys, for all the awesome questions that I've already answered in the chat, and there's a couple that are more specific to you, and I'm sure we'll have a couple.
+Rasmus Widing
+Rasmus Widing
+01:18:29
+We can do, like, raise hands, and if you want to unmute and ask, then we can do some of those, maybe?
+Cole Medin
+Cole Medin
+01:18:36
+Maybe, for the sake of time, might just be better to stick to the Zoom chat so we can go through things at our pace, but, yeah, the first one from Sergi here that, I couldn't answer myself, obviously, is, do you ever write your PRDs in Estonian, or…
+PRD is only English for you.
+Rasmus Widing
+Rasmus Widing
+01:18:54
+So, I'm Swedish, actually, I barely
+I'm, like, a 4-year-old, 5-year-old level Estonian, you know, so… But I don't write them in Swedish, it's all in English.
+I have never held a software job in Swedish, actually, so I have done a couple of workshops in Swedish, like, the last year, and it's really, really difficult for me to hold a workshop in Swedish, because I don't know the terminology. Like, it's super, super hard.
+Cole Medin
+Cole Medin
+01:19:28
+I can imagine.
+Rasmus Widing
+Rasmus Widing
+01:19:29
+Like, I don't speak business Swedish.
+Cole Medin
+Cole Medin
+01:19:32
+Business Swedish. Yep.
+Huh.
+Alright, awesome. So, yeah, we got a similar question from James and Eric here. So, James asks, any tools that you like that make your planning process faster, more than just Opus? And then Eric asks, what tools do you use for creating PRDs?
+Rasmus Widing
+Rasmus Widing
+01:19:51
+Yeah, so…
+I kind of use this combination… I mean, sometimes I just start from something, very simple, like, if we go back to this template, right?
+I will write some type of prompt that holds some of this. So I… I mean, I use PRP, like the PRD creating framework that I have in PRD, just to kind of go through the process.
+But I also, sometimes I just start a conversation, like, a good example is when I started to build the console UI in Archon.
+I basically just started talking to, to Cloud Code, and I said that I have this hypothesis that if we build, if we build,
+the UI around the workflow run, it's gonna be way easier for the mental model to understand what is going on on the page, and that's kind of how I got started, so…
+it wasn't, like, I didn't go through any, like, rigorous PRD process, but I went through a process to kind of help me think through all the problems, like, kind of, like, just manually prompting, and then I built, like, 7 different versions of that UI.
+and tested it on myself. And I went with my favorite. So, it's kind of like a discovery process disguised a little bit, because, you know, I…
+I dog fed… I dog-fed with myself only. I didn't use anyone else's opinion, except for some opinions from Cole and Thomas.
+So, apart from that, I didn't do much of discovery around that, more than just chatting with AI. And then when I started building my… I created, like, a PRD document out of that discovery session I had with Cloud Code.
+And then I built 7 different plan files from that, and I kicked them off in Archon and started building it. I actually built one in GitHub, or not GitHub, but Anti-Gravity, and that's actually the one that ended up winning.
+Cole Medin
+Cole Medin
+01:21:54
+Oh, wow. For… just because of the UI, or was it for something else?
+Rasmus Widing
+Rasmus Widing
+01:21:59
+It was just because of the UI. Basically, all of them were very similar in concept.
+So, in concept, it's kind of…
+Cole Medin
+Cole Medin
+01:22:10
+Is it for the console spike feature, though?
+That you're referring to? Or is there something else in Archon?
+Rasmus Widing
+Rasmus Widing
+01:22:16
+tons of spike, kind of UI.
+There wasn't any back-end features added, it was just kind of like a re-skin of the UI.
+Cole Medin
+Cole Medin
+01:22:26
+Yep, that makes sense, Gemini 1, then. I was just gonna be really surprised if it was for something else, like the backend of Archon, that would be really surprising.
+Rasmus Widing
+Rasmus Widing
+01:22:34
+Yeah, but it was after the…
+To a 3.5, flash release.
+Cole Medin
+Cole Medin
+01:22:39
+Right, yep, makes sense.
+Cool, alright, well, we got time for one more question. We got one from Dave here, and then actually everything has been answered. It was fantastic, we had a good time here. And I think you kind of already have, like, in your last answer, you kind of already touched on this quite a bit, but just giving you a chance to expand on things more, maybe.
+He asked, do you have an AI interview and validation process set up to build a good PRD that can also be used to iterate in the future?
+Rasmus Widing
+Rasmus Widing
+01:23:08
+Yeah, and that's the PRP flows, create PRD. It also exists in the coding course. We have this,
+slash command that, you know, creates a PRD, it will ask you questions, and kind of… it's designed to help you think through these problems. It doesn't create the perfect template, but it kind of is designed around asking you the right questions.
+Cole Medin
+Cole Medin
+01:23:36
+Nice.
+Rasmus Widing
+Rasmus Widing
+01:23:37
+I kind of want to answer Eric's question here as well. Yeah. Because this is something that I have run into hundreds of times in my career, so when you get an oversized business requirement document from a stakeholder or a manager, do you break it into several PRDs?
+And here, it highly depends in what type of environment your company operates in. So, people often talk about feature teams and product teams.
+And if you're working in an organization where stakeholders or managers often will hand over a requirement document to you that you need to build this, get on it, then you're basically working in a software factory, and you are basically the AI, you know, in that company.
+Cole Medin
+Cole Medin
+01:24:23
+If…
+Rasmus Widing
+Rasmus Widing
+01:24:24
+If your company is well-organized around product, they will give you a problem to solve, so that the manager or the stakeholder might give you that initial problem statement, and then it's you and your team's job to figure out what to build and how to build it to solve that problem.
+And that's the way I prefer to build, that's the way I drive organizations to build when I have worked for them. I have certainly been in the situation where I have been handed off a huge requirement document.
+But what I would do is I would push back on it hard, and I would ask for proof and evidence of why we should build this.
+And if I end up having to build it, I will make sure that it's de-scoped enough that it's actually
+viable to build.
+Cole Medin
+Cole Medin
+01:25:12
+And I do want to acknowledge that you might not be in an organization where you have the opportunity to push back, or you would get pushback and your pushback. It's always a possibility, but like, yes, if you can, you definitely should, yeah.
+Rasmus Widing
+Rasmus Widing
+01:25:24
+And that's probably a signal for you to change jobs.
+Cole Medin
+Cole Medin
+01:25:26
+Yep, I was just gonna say, like, yeah, then also, like, if you're in that position, which unfortunately I know a lot of people who are, then it really probably.
+Rasmus Widing
+Rasmus Widing
+01:25:33
+And it's way more common than people think, too. Most companies build like that. They have some CEOs, some stakeholder, some higher up, that wants a feature for some reason that they have made up, and then they want to build it.
+Cole Medin
+Cole Medin
+01:25:47
+Right, yeah.
+I had that to an extent in my old job, because it was, like, one of the business… so it wasn't, like, my boss or, like, the people up the chain on my team, but it was, like, one of our stakeholders.
+that was more technically inclined, so he would try to kind of push, like, the solution, not just the problem a lot. And that was tough, because I wasn't always in the position, especially when I didn't, like, have the balls at the start of my job, to really push back myself.
+got to the point where I started to, but then it was kind of this thing where, like, at least, like, the rest of my team and people, like, higher up in my vertical would, like, help me push back.
+So I've had to, like, deal with that before. It definitely can be tough.
+Rasmus Widing
+Rasmus Widing
+01:26:25
+Yeah, and it is tough, especially if you are, if you are a product engineer in the team, and not, like… if you're an engineering manager, or a tech lead, or a product manager, or a design lead, or something like that, it will be easier for you to push back.
+But if the product manager is the one handing you this, then it's just bad product management.
+Cole Medin
+Cole Medin
+01:26:51
+Right.
+Yep.
+Alright, well, hey, we're at the top of the hour here, so I think we got through everything here, so…
+Yeah, we're good. This was great, Rasmus. Thank you so much for this presentation. Hope you guys got a lot out of it.
+And, I mean, I know I did for sure, and yeah, definitely some opportunities for a couple of follow-ups for this as well. Like I said, I think it was Dave that mentioned this earlier, or asked about it, I will be including… Rasmus and I will be including a lot of this kind of stuff.
+in the next version of the Agenta Coding course. And in fact, like, kind of the evolution that we have here with a lot of our planning.
+our approach to planning is one of the reasons I wanted to do a sort of overhaul of the agenda coding course in the first place. So, really excited for that. But yeah, thanks again, Rasmus. Thanks, everyone, for being here, all your awesome questions and thoughts, and going through the exercises, too.
+Hope you guys have a fantastic weekend, and we'll see you in the community.
+Take care, everyone.
